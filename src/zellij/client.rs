@@ -1,76 +1,67 @@
 use crate::error::HxIdeError;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// Zellij terminal multiplexer client
 pub struct ZellijClient {
-    path: String,
+    path: PathBuf,
 }
 
 impl ZellijClient {
-    /// Create a new Zellij client
-    pub fn new(path: &str) -> Self {
-        Self {
-            path: path.to_string(),
-        }
+    pub fn new(path: PathBuf) -> Self {
+        Self { path }
     }
 
-    /// Check if Zellij is available
-    pub fn is_available(&self) -> bool {
-        which::which(&self.path).is_ok()
+    pub fn session_exists(&self, name: &str) -> Result<bool, HxIdeError> {
+        let output = Command::new(&self.path)
+            .args(["list-sessions", "--short", "--no-formatting"])
+            .output()
+            .map_err(|error| {
+                HxIdeError::ZellijError(format!("Failed to list sessions: {error}"))
+            })?;
+
+        // Zellij exits non-zero when no sessions exist.
+        let sessions = String::from_utf8_lossy(&output.stdout);
+        Ok(sessions.lines().any(|session| session.trim() == name))
     }
 
-    /// Start a new Zellij session with a layout
-    pub fn new_session(
-        &self,
-        layout_path: &Path,
-        config_path: Option<&Path>,
-        yazi_config_dir: Option<&Path>,
-    ) -> Result<(), HxIdeError> {
-        self.run_with_layout(
-            "--new-session-with-layout",
-            layout_path,
-            config_path,
-            yazi_config_dir,
+    pub fn attach(&self, name: &str, config: &Path) -> Result<(), HxIdeError> {
+        self.run(
+            Command::new(&self.path)
+                .arg("--config")
+                .arg(config)
+                .arg("attach")
+                .arg(name),
         )
     }
 
-    /// Open the layout in the current session, or start one when outside Zellij.
-    pub fn open_layout(
+    pub fn create(
         &self,
-        layout_path: &Path,
-        config_path: Option<&Path>,
-        yazi_config_dir: Option<&Path>,
+        name: &str,
+        layout: &Path,
+        config: &Path,
+        project_dir: &Path,
     ) -> Result<(), HxIdeError> {
-        self.run_with_layout("--layout", layout_path, config_path, yazi_config_dir)
+        self.run(
+            Command::new(&self.path)
+                .current_dir(project_dir)
+                .arg("--config")
+                .arg(config)
+                .arg("--session")
+                .arg(name)
+                .arg("--new-session-with-layout")
+                .arg(layout),
+        )
     }
 
-    fn run_with_layout(
-        &self,
-        layout_flag: &str,
-        layout_path: &Path,
-        config_path: Option<&Path>,
-        yazi_config_dir: Option<&Path>,
-    ) -> Result<(), HxIdeError> {
-        let mut command = Command::new(&self.path);
-        if let Some(config_path) = config_path {
-            command.arg("--config").arg(config_path);
-        }
-        if let Some(yazi_config_dir) = yazi_config_dir {
-            command.env("YAZI_CONFIG_HOME", yazi_config_dir);
-        }
+    fn run(&self, command: &mut Command) -> Result<(), HxIdeError> {
         let status = command
-            .arg(layout_flag)
-            .arg(layout_path)
             .status()
-            .map_err(|e| HxIdeError::ZellijError(format!("Failed to start Zellij: {}", e)))?;
-
+            .map_err(|error| HxIdeError::ZellijError(format!("Failed to start Zellij: {error}")))?;
         if status.success() {
             Ok(())
         } else {
             Err(HxIdeError::ZellijError(format!(
-                "Zellij exited with status {}",
-                status
+                "Zellij exited with status {status}"
             )))
         }
     }

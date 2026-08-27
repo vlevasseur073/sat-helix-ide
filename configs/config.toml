@@ -1,158 +1,52 @@
-# SAT Helix IDE Configuration
-# Place this file at ~/.config/sat-helix-ide/config.toml
-# Generated tool configs remain private to sat-helix-ide and are opt-in.
-use_generated_configs = false
+# sat-hx-ide composes a Zellij session without modifying any tool config.
 
-[workspace]
-# Default workspace directory (defaults to current directory)
-default_dir = "~"
-# Auto-detect project type
-auto_detect = true
-# Open in new Zellij session by default
-new_session_default = false
-# Remember last workspace
-remember_last = true
+[session]
+# Attach when a session with the project-derived name already exists.
+attach_existing = true
+# Add the AI tab whenever the [tools.ai] agent below is on PATH. When it is
+# not, the tab is skipped and the session still starts.
+ai_by_default = true
+# Optional explicit merge source. By default, ZELLIJ_CONFIG_FILE or the normal
+# XDG path (~/.config/zellij/config.kdl) is used read-only.
+# zellij_config = "/home/user/.config/zellij/config.kdl"
 
-[tools]
+[terminal]
+# Dock a shell under Helix in the code tab. It runs Zellij's default shell.
+enabled = true
+# Height of that shell as a percentage of the code tab.
+dock_percent = 15
 
-[tools.helix]
-# Path to Helix executable
-path = "hx"
-# Default theme
-theme = "catppuccin_mocha"
-# Enable LSP
-lsp = true
-# Additional arguments
-args = []
+[keybindings]
+# Zellij key notation. Bindings are added to shared_except "locked".
+file_manager = "Ctrl y"
+file_manager_dock = "Alt y"
+git = "Alt g"
+# Hide the terminal behind a fullscreen Helix, or bring it back.
+terminal = "Alt t"
+# Switch the terminal between its docked height and fullscreen.
+terminal_zoom = "Alt Shift t"
 
 [tools.zellij]
-# Path to Zellij executable
-path = "zellij"
-# Default theme
-theme = "catppuccin-mocha"
-# Enable mouse support
-mouse = true
+command = "zellij"
+args = []
 
-[tools.yazi]
-# Path to Yazi executable
-path = "yazi"
-# Open files in Helix
-open_in_helix = true
+[tools.editor]
+command = "hx"
+args = []
 
-[tools.yazi.preview]
-# Maximum width
-max_width = 120
-# Maximum height
-max_height = 60
-# Tab size
-tab_size = 4
+[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+float_width = "100%"
+float_height = "100%"
+dock_percent = 28
 
 [tools.git]
-# Preferred git client (lazygit or gitui)
-client = "lazygit"
-# Use git-delta for diffs
-delta = true
-
-[tools.git.delta_config]
-# Syntax theme
-theme = "Catppuccin-mocha"
-# Show line numbers
-line_numbers = true
-# Side-by-side diff
-side_by_side = true
-
-# Layout configurations
-[[layouts]]
-name = "default"
-description = "Default layout with editor, file explorer, and git client"
-direction = "vertical"
-
-[[layouts.parts]]
-direction = "horizontal"
-borderless = true
-
-[[layouts.parts.panes]]
-id = "editor"
-command = "hx"
-run = true
-
-[[layouts.parts.parts]]
-direction = "vertical"
-
-[[layouts.parts.parts.panes]]
-id = "file-explorer"
-command = "yazi"
-run = true
-
-[[layouts.parts.parts.panes]]
-id = "git-client"
 command = "lazygit"
-run = true
+args = []
 
-[[layouts]]
-name = "minimal"
-description = "Minimal layout with editor and file explorer"
-direction = "horizontal"
-
-[[layouts.parts]]
-direction = "horizontal"
-borderless = true
-
-[[layouts.parts.panes]]
-id = "editor"
-command = "hx"
-run = true
-
-[[layouts.parts.panes]]
-id = "file-explorer"
-command = "yazi"
-run = true
-
-[[layouts]]
-name = "coding"
-description = "Code-focused layout with large editor"
-direction = "vertical"
-
-[[layouts.parts]]
-direction = "horizontal"
-borderless = true
-
-[[layouts.parts.panes]]
-id = "editor"
-command = "hx"
-run = true
-
-[[layouts.parts.parts]]
-direction = "vertical"
-
-[[layouts.parts.parts.panes]]
-id = "file-explorer"
-command = "yazi"
-run = true
-
-[[layouts]]
-name = "review"
-description = "Code review layout with diff viewer"
-direction = "vertical"
-
-[[layouts.parts]]
-direction = "horizontal"
-borderless = true
-
-[[layouts.parts.panes]]
-id = "editor"
-command = "hx"
-run = true
-
-[[layouts.parts.panes]]
-id = "diff-viewer"
-command = "git delta"
-run = false
-
-[[layouts.parts.parts]]
-direction = "horizontal"
-
-[[layouts.parts.parts.panes]]
-id = "git-client"
-command = "lazygit"
-run = true
+# The agent for the AI tab. Ignored when the command is not on PATH.
+[tools.ai]
+command = "cursor-agent"
+args = []

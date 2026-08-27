@@ -1,17 +1,15 @@
 //! Helix IDE - Workspace Orchestrator
 //!
-//! This crate provides a workspace management system that integrates
-//! Helix, Zellij, Yazi, Lazygit/GitUI, and git-delta into a cohesive
-//! terminal-based IDE experience.
+//! A focused Zellij session composer for Helix and terminal tools.
 
+pub mod actions;
 pub mod config;
 pub mod error;
-pub mod helix;
-pub mod tools;
+pub mod resolve;
 pub mod workspace;
 pub mod zellij;
 
-// Re-export main types
 pub use config::Config;
 pub use error::HxIdeError;
+pub use resolve::resolve_executable;
 pub use workspace::WorkspaceManager;

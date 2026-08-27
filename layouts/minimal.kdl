@@ -1,8 +1,0 @@
-// Minimal layout: Just editor and file explorer
-
-layout {
-    pane split_direction="horizontal" {
-        pane name="editor" command="hx"
-        pane name="file-explorer" command="yazi"
-    }
-}

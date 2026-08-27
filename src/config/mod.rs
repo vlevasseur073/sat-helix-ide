@@ -1,173 +1,188 @@
-mod layout;
 mod tools;
-mod workspace;
 
-pub use layout::{LayoutConfig, LayoutPane, LayoutPart};
-pub use tools::{GitConfig, ToolConfig, YaziConfig};
-pub use workspace::WorkspaceConfig;
+pub use tools::{CommandConfig, FileManagerConfig, ToolConfig};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Main configuration for Helix IDE
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    /// Workspace configuration
     #[serde(default)]
-    pub workspace: WorkspaceConfig,
+    pub session: SessionConfig,
 
-    /// Tool configurations
     #[serde(default)]
     pub tools: ToolConfig,
 
-    /// Layout configurations
     #[serde(default)]
-    pub layouts: Vec<LayoutConfig>,
+    pub terminal: TerminalConfig,
 
-    /// Default layout
-    #[serde(default = "default_default_layout")]
-    pub default_layout: String,
-
-    /// Use configurations generated in sat-helix-ide's private config directory.
-    ///
-    /// Disabled by default so the tools continue to use the user's existing
-    /// configuration unchanged.
     #[serde(default)]
-    pub use_generated_configs: bool,
-
-    /// sat-helix-ide-owned directory for generated tool configurations.
-    #[serde(skip, default = "default_generated_config_dir")]
-    generated_config_dir: PathBuf,
-
-    /// sat-helix-ide-owned file for volatile workspace state.
-    #[serde(skip, default = "default_state_file")]
-    state_file: PathBuf,
+    pub keybindings: KeybindingConfig,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let mut config: Self = toml::from_str(include_str!("../../configs/config.toml"))
-            .expect("bundled configuration must be valid TOML");
-        config.generated_config_dir = default_generated_config_dir();
-        config.state_file = default_state_file();
-        config
+        toml::from_str(include_str!("../../configs/config.toml"))
+            .expect("bundled configuration must be valid TOML")
     }
 }
 
-fn default_default_layout() -> String {
-    "default".to_string()
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionConfig {
+    /// Attach to an existing project-named session when one exists.
+    #[serde(default = "default_true")]
+    pub attach_existing: bool,
+
+    /// Add the AI tab when the configured agent is available. Skipped
+    /// silently when it is not, so this can stay on.
+    #[serde(default = "default_true")]
+    pub ai_by_default: bool,
+
+    /// Optional explicit path to the Zellij config used as merge input.
+    #[serde(default)]
+    pub zellij_config: Option<PathBuf>,
 }
 
-fn default_app_config_dir() -> PathBuf {
-    std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .or_else(|| home::home_dir().map(|p| p.join(".config")))
-        .unwrap_or_else(|| PathBuf::from(".config"))
-        .join("sat-helix-ide")
+impl Default for SessionConfig {
+    fn default() -> Self {
+        Self {
+            attach_existing: true,
+            ai_by_default: true,
+            zellij_config: None,
+        }
+    }
 }
 
-fn default_generated_config_dir() -> PathBuf {
-    default_app_config_dir().join("generated")
+/// The shell pane docked under Helix in the code tab. It runs Zellij's default
+/// shell, so there is no command to configure here.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TerminalConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+
+    /// Height of the docked terminal as a percentage of the code tab.
+    #[serde(default = "default_terminal_percent")]
+    pub dock_percent: u8,
 }
 
-fn default_state_file() -> PathBuf {
-    std::env::var_os("XDG_STATE_HOME")
-        .map(PathBuf::from)
-        .or_else(|| home::home_dir().map(|p| p.join(".local").join("state")))
-        .unwrap_or_else(|| PathBuf::from(".local/state"))
-        .join("sat-helix-ide")
-        .join("state.toml")
+impl Default for TerminalConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            dock_percent: default_terminal_percent(),
+        }
+    }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-struct WorkspaceState {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    last_workspace: Option<PathBuf>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeybindingConfig {
+    #[serde(default = "default_file_manager_key")]
+    pub file_manager: String,
+
+    #[serde(default = "default_file_manager_dock_key")]
+    pub file_manager_dock: String,
+
+    #[serde(default = "default_git_key")]
+    pub git: String,
+
+    #[serde(default = "default_terminal_key")]
+    pub terminal: String,
+
+    #[serde(default = "default_terminal_zoom_key")]
+    pub terminal_zoom: String,
+}
+
+impl Default for KeybindingConfig {
+    fn default() -> Self {
+        Self {
+            file_manager: default_file_manager_key(),
+            file_manager_dock: default_file_manager_dock_key(),
+            git: default_git_key(),
+            terminal: default_terminal_key(),
+            terminal_zoom: default_terminal_zoom_key(),
+        }
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_file_manager_key() -> String {
+    "Ctrl y".to_string()
+}
+
+fn default_file_manager_dock_key() -> String {
+    "Alt y".to_string()
+}
+
+fn default_git_key() -> String {
+    "Alt g".to_string()
+}
+
+fn default_terminal_key() -> String {
+    "Alt t".to_string()
+}
+
+fn default_terminal_zoom_key() -> String {
+    "Alt Shift t".to_string()
+}
+
+fn default_terminal_percent() -> u8 {
+    15
 }
 
 impl Config {
-    /// Load configuration from file
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let path = path.as_ref();
-
-        // Convert to string to handle tilde expansion
-        let path_str = path.to_string_lossy();
-
-        // If path starts with ~, expand it using home directory
-        let path = if path_str.starts_with("~/") {
-            home::home_dir()
-                .map(|p| p.join(&path_str[2..]))
-                .unwrap_or_else(|| path.to_path_buf())
-        } else {
-            path.to_path_buf()
-        };
-
-        // Make it absolute
-        let path = path_absolutize::Absolutize::absolutize(&path)?;
-        log::debug!("Loading config from: {}", path.display());
-
+    pub fn load(path: impl AsRef<Path>) -> Result<Self> {
+        let path = expand_tilde(path.as_ref());
         if !path.exists() {
-            log::debug!("Config does not exist; using in-memory defaults");
-            let mut config = Config::default();
-            config.load_state()?;
-            return Ok(config);
+            log::debug!(
+                "Config {} does not exist; using bundled defaults",
+                path.display()
+            );
+            return Ok(Self::default());
         }
 
-        let content = fs::read_to_string(&path)?;
-        let mut config: Config = toml::from_str(&content)?;
-        config.generated_config_dir = default_generated_config_dir();
-        config.state_file = default_state_file();
-        config.load_state()?;
-
-        Ok(config)
+        let content = fs::read_to_string(&path)
+            .with_context(|| format!("Failed to read {}", path.display()))?;
+        toml::from_str(&content)
+            .with_context(|| format!("Failed to parse sat-hx-ide config {}", path.display()))
     }
 
-    /// Persist volatile application state outside all tool configuration trees.
-    pub fn save_last_workspace(&self, path: &Path) -> Result<()> {
-        let state = WorkspaceState {
-            last_workspace: Some(path.to_path_buf()),
-        };
-        if let Some(parent) = self.state_file.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        let content = toml::to_string(&state)?;
-        fs::write(&self.state_file, content)
-            .with_context(|| format!("Failed to save state to {}", self.state_file.display()))?;
-        Ok(())
+    /// Locate the user's Zellij config. This path is read-only.
+    pub fn zellij_config_path(&self) -> Option<PathBuf> {
+        self.session
+            .zellij_config
+            .as_deref()
+            .map(expand_tilde)
+            .or_else(|| std::env::var_os("ZELLIJ_CONFIG_FILE").map(PathBuf::from))
+            .or_else(|| {
+                let base = std::env::var_os("XDG_CONFIG_HOME")
+                    .map(PathBuf::from)
+                    .or_else(|| home::home_dir().map(|home| home.join(".config")))?;
+                Some(base.join("zellij").join("config.kdl"))
+            })
+            .filter(|path| path.exists())
     }
 
-    fn load_state(&mut self) -> Result<()> {
-        if !self.state_file.exists() {
-            return Ok(());
-        }
-        let content = fs::read_to_string(&self.state_file)?;
-        let state: WorkspaceState = toml::from_str(&content)?;
-        self.workspace.last_workspace = state.last_workspace;
-        Ok(())
+    pub fn runtime_dir(&self, session_name: &str) -> PathBuf {
+        let base = std::env::var_os("XDG_RUNTIME_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(std::env::temp_dir);
+        base.join("sat-helix-ide").join(session_name)
     }
+}
 
-    pub fn generated_zellij_config(&self) -> PathBuf {
-        self.generated_config_dir.join("zellij").join("config.kdl")
-    }
-
-    pub fn generated_yazi_config_dir(&self) -> PathBuf {
-        self.generated_config_dir.join("yazi")
-    }
-
-    pub fn generated_helix_config(&self) -> PathBuf {
-        self.generated_config_dir.join("helix").join("config.toml")
-    }
-
-    /// Get layout by name
-    pub fn get_layout(&self, name: &str) -> Option<&LayoutConfig> {
-        self.layouts.iter().find(|l| l.name == name)
-    }
-
-    /// List all available layouts
-    pub fn list_layouts(&self) -> Vec<String> {
-        self.layouts.iter().map(|l| l.name.clone()).collect()
+pub fn expand_tilde(path: &Path) -> PathBuf {
+    let text = path.to_string_lossy();
+    if let Some(rest) = text.strip_prefix("~/") {
+        home::home_dir()
+            .map(|home| home.join(rest))
+            .unwrap_or_else(|| path.to_path_buf())
+    } else {
+        path.to_path_buf()
     }
 }
 
@@ -176,46 +191,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn loading_a_missing_config_never_creates_it() {
+    fn missing_config_is_not_created() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("zellij").join("config.kdl");
+        let path = temp.path().join("missing.toml");
 
-        let _ = Config::load(&path).unwrap();
+        let config = Config::load(&path).unwrap();
 
+        assert_eq!(config.keybindings.file_manager, "Ctrl y");
         assert!(!path.exists());
     }
 
     #[test]
-    fn workspace_state_does_not_touch_tool_configuration() {
-        let temp = tempfile::tempdir().unwrap();
-        let tool_config = temp.path().join("config.kdl");
-        fs::write(&tool_config, "user-owned-zellij-config").unwrap();
+    fn old_tool_names_still_deserialize() {
+        let config: Config = toml::from_str(
+            r#"
+            [tools.helix]
+            path = "/snap/bin/hx"
+            theme = "ignored"
 
-        let config = Config {
-            state_file: temp.path().join("state").join("state.toml"),
-            ..Default::default()
-        };
-        config
-            .save_last_workspace(Path::new("/tmp/example-project"))
-            .unwrap();
+            [tools.yazi]
+            path = "yazi"
 
-        assert_eq!(
-            fs::read_to_string(&tool_config).unwrap(),
-            "user-owned-zellij-config"
-        );
-        let state = fs::read_to_string(&config.state_file).unwrap();
-        assert!(state.contains("/tmp/example-project"));
-    }
+            [tools.git]
+            client = "gitui"
+            "#,
+        )
+        .unwrap();
 
-    #[test]
-    fn generated_configs_live_under_the_application_directory() {
-        let config = Config::default();
-        for path in [
-            config.generated_zellij_config(),
-            config.generated_yazi_config_dir(),
-            config.generated_helix_config(),
-        ] {
-            assert!(path.to_string_lossy().contains("sat-helix-ide/generated"));
-        }
+        assert_eq!(config.tools.editor.command, "/snap/bin/hx");
+        assert_eq!(config.tools.file_manager.command, "yazi");
+        assert_eq!(config.tools.git.command, "gitui");
     }
 }

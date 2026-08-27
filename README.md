@@ -1,169 +1,273 @@
 # sat-helix-ide
 A workspace orchestrator for a full IDE based on Helix + Zellij + Yazi + lazygit/gitui + git-delta
-It launches [Helix](https://helix-editor.com/), [Zellij](https://zellij.dev/), [Yazi](https://yazi-rs.github.io/), and [Lazygit](https://github.com/jesseduffield/lazygit) or [GitUI](https://github.com/gitui-org/gitui) as one terminal IDE.
 
-**Motto: sat-helix-ide never overwrites your existing tool configuration.** Zellij, Helix, Yazi, Lazygit, GitUI, and global Git settings stay untouched. Optional overlays live only under sat-helix-ide's own directories and are used for a session when you opt in.
+[Helix](https://helix-editor.com/), [Zellij](https://zellij.dev/), [Yazi](https://yazi-rs.github.io/), and [Lazygit](https://github.com/jesseduffield/lazygit) or [GitUI](https://github.com/gitui-org/gitui) as one terminal IDE.
 
-## Requirements
 
-Install the tools you want in the layout:
+`sat-hx-ide` is a small Zellij session composer for a Helix-centered workflow.
+It starts a project session with:
 
-| Tool | Required |
-| --- | --- |
-| [Zellij](https://zellij.dev/) | yes |
-| [Helix](https://helix-editor.com/) (`hx`) | yes |
-| [Yazi](https://yazi-rs.github.io/) | optional (file explorer panes) |
-| [Lazygit](https://github.com/jesseduffield/lazygit) or [GitUI](https://github.com/gitui-org/gitui) | optional (git panes) |
-| [git-delta](https://github.com/dandavison/delta) | optional (diff pager check only) |
+- a `code` tab with Helix and a docked shell below it;
+- an `ai` tab running the configured agent when it is installed;
+- `Ctrl-y` to open or focus Yazi in a full-screen floating pane;
+- `Alt-y` to dock Yazi on the left of Helix, or float it again;
+- `Alt-t` to hide the terminal behind fullscreen Helix, or show it again;
+- `Alt-Shift-t` to zoom the terminal to full tab height, or dock it back;
+- `Alt-g` to open Lazygit, GitUI, or another Git TUI in a floating pane.
 
-Rust 1.80+ is enough to build from source.
+It is deliberately **not** a dotfile manager or tool installer.
 
-## Install
+> sat-hx-ide never writes your Zellij, Helix, Yazi, Lazygit, GitUI, or global
+> Git configuration.
+
+## How it works
+
+Zellij has no configuration `include` directive. To add session-level
+shortcuts without editing your config, sat-hx-ide:
+
+1. reads your existing Zellij config;
+2. parses it and checks for key collisions;
+3. adds its bindings to a private runtime copy;
+4. launches Zellij with `--config <runtime-copy>`.
+
+The source remains byte-for-byte unchanged. Runtime files live under:
+
+```text
+$XDG_RUNTIME_DIR/sat-helix-ide/<session>/
+├── config.kdl
+└── layout.kdl
+```
+
+If `XDG_RUNTIME_DIR` is unavailable, the system temporary directory is used.
+
+## Requirements and installation
+
+Required:
+
+- Zellij
+- Helix (`hx`)
+- Yazi (the supported file-manager adapter)
+- Lazygit, GitUI, or another configured Git TUI
+- a current stable Rust toolchain when building from source
 
 ```bash
 cargo install --path .
+sat-hx-ide doctor
 ```
 
-The binary is named `sat-hx-ide`. After `cargo install --path .` that is the command to use.
+Shell aliases are invisible to Zellij. Configure an absolute executable path
+when a command is not on `PATH`, such as Snap Helix:
+
+```toml
+[tools.editor]
+command = "/snap/bin/hx"
+```
 
 ## Usage
 
 ```bash
-sat-hx-ide doctor
-sat-hx-ide list-layouts
+# Create or attach to a session named after the project directory
 sat-hx-ide init .
-sat-hx-ide init /path/to/project --layout coding --new-session
+
+# Skip the AI tab for this session
+sat-hx-ide init . --no-ai
+
+# Override the session name
+sat-hx-ide init ~/src/project --session project-api
+
+sat-hx-ide doctor
+sat-hx-ide config
+sat-hx-ide version
 ```
 
-| Command | Purpose |
-| --- | --- |
-| `init` / `start` | Open a Zellij session with a layout in the given project |
-| `list-layouts` / `ls` | List layouts from the sat-helix-ide config |
-| `config` | Print the loaded configuration |
-| `generate` / `gen` | Write optional overlays under sat-helix-ide's private config dir |
-| `doctor` / `check` | Check that required tools are on `PATH` |
-| `version` | Print version |
+An existing project-named session is attached by default. Set
+`session.attach_existing = false` to fail instead.
 
-`--layout` defaults to `default_layout` in the config (`default`). `--new-session` forces `zellij --new-session-with-layout`; otherwise the layout is opened with `zellij --layout`.
+## Workspace
+
+The `code` tab runs Helix with your login shell docked underneath (15% height
+by default):
+
+```text
+┌─ code ────────────────────────────────────┐
+│                  Helix                   │
+├──────────────────────────────────────────┤
+│               shell (15%)                │
+└──────────────────────────────────────────┘
+```
+
+A second tab runs the configured AI agent whenever that command is on `PATH`:
+
+```text
+tabs: [ code: Helix ] [ ai: configured agent ]
+```
+
+The AI tab is best-effort. When `tools.ai.command` cannot be found, sat-hx-ide
+prints a note and starts the session without that tab, so a machine without the
+agent installed still works. Use `--no-ai` for a single session, or
+`session.ai_by_default = false` to opt out permanently.
+
+Yazi and the Git client are not permanent layout panes. They are opened on
+demand by Zellij.
+
+## Keybindings
+
+Bindings are active in every Zellij mode except locked mode:
+
+| Key | Action |
+| --- | --- |
+| `Ctrl-y` | Open Yazi as a full-screen floating pane, or focus the existing file-manager pane |
+| `Alt-y` | Toggle the same file-manager pane between full-screen floating and docked left of Helix |
+| `Alt-t` | Hide the terminal behind a fullscreen Helix, or show it again at the docked height |
+| `Alt-Shift-t` | Zoom the terminal to full tab height, or dock it back to `terminal.dock_percent` |
+| `Alt-g` | Open the configured Git client as a full-screen floating pane |
+| `Ctrl-g` | Existing Zellij lock/unlock binding; sat-hx-ide intentionally leaves it alone |
+
+The keys are configurable. sat-hx-ide refuses to launch if a selected key
+already exists anywhere in the source Zellij keybindings; it never silently
+replaces a user binding.
+
+### File-manager states
+
+```text
+Ctrl-y
+  missing  -> open floating
+  existing -> focus it
+
+Alt-y
+  missing      -> open floating
+  floating     -> dock left beside Helix
+  docked left  -> float full-screen
+```
+
+When docked, Yazi takes `tools.file_manager.dock_percent` of the combined
+Yazi/Helix width (28% by default):
+
+```text
+┌──────────────┬─────────────────────────────────┐
+│              │                                 │
+│     Yazi     │              Helix              │
+│              │                                 │
+└──────────────┴─────────────────────────────────┘
+```
+
+### Terminal states
+
+The shell runs in a named `terminal` pane with no configured command — Zellij
+starts your `$SHELL`. Toggles use Zellij fullscreen so the process keeps
+running:
+
+```text
+Alt-t
+  visible -> hide (Helix fullscreen, terminal stays alive underneath)
+  hidden  -> show (restore split, focus terminal)
+
+Alt-Shift-t
+  docked -> zoom terminal to full tab height
+  zoomed -> dock back to terminal.dock_percent
+```
+
+If you exit the shell, `Alt-t` or `Alt-Shift-t` spawns a fresh one.
+
+Selecting a file in Yazi opens it in the existing named Helix pane. A floating
+Yazi exits after selection. A docked Yazi reopens after handing the path to
+Helix so the file-manager pane remains alongside the editor. Quitting Yazi
+without a selection closes it in either state.
+
+The integration uses targeted Zellij terminal input because Helix does not
+provide a remote-control API.
 
 ## Configuration
 
-sat-helix-ide looks at `~/.config/sat-helix-ide/config.toml` (or `$XDG_CONFIG_HOME/sat-helix-ide/config.toml`). If that file is missing, bundled defaults from `configs/config.toml` are used **in memory**. The missing file is not created.
+sat-hx-ide reads:
 
-Last workspace is stored separately in `$XDG_STATE_HOME/sat-helix-ide/state.toml` (typically `~/.local/state/sat-helix-ide/state.toml`). That write never targets Zellij, Helix, Yazi, or Git client configs.
+```text
+~/.config/sat-helix-ide/config.toml
+```
 
-Copy the sample to start customizing:
+Pass `--config` to use another path. A missing file is not created; bundled
+defaults are used in memory. Copy the sample to customize:
 
 ```bash
 mkdir -p ~/.config/sat-helix-ide
 cp configs/config.toml ~/.config/sat-helix-ide/config.toml
 ```
 
-### Tool paths and shell aliases
-
-Layout panes are launched by Zellij directly, not through your shell, so **shell aliases and functions are not visible to them**. A pane command such as `hx` is mapped onto the matching `[tools]` entry and then resolved on `PATH`:
-
-| Layout command | Config key |
-| --- | --- |
-| `hx`, `helix` | `tools.helix.path` |
-| `yazi` | `tools.yazi.path` |
-| `lazygit`, `gitui` | `tools.git.client` |
-
-If a tool is not on `PATH` (for example Helix installed via snap, where `hx` is only a shell alias), set an absolute path:
+Example:
 
 ```toml
-[tools.helix]
-path = "/snap/bin/hx"
+[session]
+attach_existing = true
+ai_by_default = true
+# zellij_config = "/home/me/.config/zellij/config.kdl"
+
+[terminal]
+enabled = true
+dock_percent = 15
+
+[keybindings]
+file_manager = "Ctrl y"
+file_manager_dock = "Alt y"
+git = "Alt g"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+
+[tools.zellij]
+command = "zellij"
+args = []
+
+[tools.editor]
+command = "hx"
+args = []
+
+[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+float_width = "100%"
+float_height = "100%"
+dock_percent = 28
+
+[tools.git]
+command = "lazygit" # or "gitui"
+args = []
+
+# Any agent command. Skipped silently when it is not installed.
+[tools.ai]
+command = "cursor-agent"
+args = []
 ```
 
-`init` resolves every command before starting Zellij and fails with the unresolved name, rather than opening a broken pane.
+The Zellij merge source is selected in this order:
 
-### Layouts
+1. `session.zellij_config`;
+2. `ZELLIJ_CONFIG_FILE`;
+3. `$XDG_CONFIG_HOME/zellij/config.kdl`;
+4. `~/.config/zellij/config.kdl`.
 
-Bundled layouts (from `configs/config.toml`):
+If none exists, the private config contains only sat-hx-ide's additive
+keybindings and Zellij supplies its normal defaults.
 
-| Name | Contents |
-| --- | --- |
-| `default` | Helix, Yazi, Lazygit |
-| `coding` | Helix and Yazi |
-| `review` | Helix and Lazygit |
-| `minimal` | Helix and Yazi side by side |
+### Migration from the draft configuration
 
-`layouts/*.kdl` are reference Zellij files. Runtime layouts come from the TOML config and are converted to current Zellij KDL.
+Old tool names remain readable:
 
-### Optional generated overlays
+- `[tools.helix] path` maps to `[tools.editor] command`;
+- `[tools.yazi] path` maps to `[tools.file_manager] command`;
+- `[tools.git] client` maps to `[tools.git] command`.
 
-By default `use_generated_configs = false`, so Zellij, Helix, and Yazi keep using **your** configs.
-
-To experiment with sat-helix-ide overlays without touching `~/.config/{zellij,helix,yazi}`:
-
-```bash
-sat-hx-ide generate --all
-```
-
-That writes only under `$XDG_CONFIG_HOME/sat-helix-ide/generated/`. Enable them in the sat-helix-ide config:
-
-```toml
-use_generated_configs = true
-```
-
-Then `init` passes `--config` to Zellij, `YAZI_CONFIG_HOME` to Yazi, and `--config` to Helix panes. If those generated files are missing, `init` fails rather than falling back to writing into your tool directories.
-
-`generate` never writes `git config --global`. The generated Zellij overlay only sets `theme` and `mouse_mode`; it does **not** add keybinds.
-
-## Scripts
-
-`scripts/` is leftover from the draft and is **not used** by `sat-hx-ide`.
-
-| Script | Purpose | Useful? |
-| --- | --- | --- |
-| `scripts/helix-ide` | Thin wrapper: `exec sat-hx-ide` if installed, else `cargo run`. | Optional. After install, call `sat-hx-ide` directly. Handy only while iterating from a source checkout. |
-| `scripts/open-in-helix` | Intended Yazi opener that finds a Helix pane and opens the selected file there. | **No.** Nothing calls it. It uses Zellij CLI that 0.44 does not provide (`zellij query --panes`, `zellij action --pane-id … run`) and depends on `jq`. Opening a file from Yazi uses Yazi's own opener (`hx`, or `$EDITOR`). |
-
-Leave them in the tree if you want a local alias, but they are not part of the orchestrator.
-
-## Navigating panes
-
-sat-hx-ide does not install or override Zellij, Helix, Yazi, or Git-client keybinds. After `init`, you are in a Zellij session using **your existing tool configs** (`use_generated_configs = false` by default).
-
-In the default layout, Helix is the large left pane; Yazi is top-right; Lazygit is bottom-right. Click a pane if Zellij `mouse_mode` is on (it is by default).
-
-Zellij's stock bindings (and the usual customized dump of them) move focus **without** a prefix, which is what you want while Helix has the keyboard:
-
-| Keys | Action |
-| --- | --- |
-| `Alt`+`h` / `j` / `k` / `l` | Focus left / down / up / right (`h`/`l` also switch tab at the edge) |
-| `Alt`+arrows | Same as `Alt`+`hjkl` |
-| `Ctrl`+`p`, then `h`/`j`/`k`/`l` | Pane mode, then move focus |
-| `Ctrl`+`p`, then `p` | Cycle focus |
-| `Ctrl`+`p`, then `f` | Toggle fullscreen on the focused pane |
-| `Ctrl`+`p`, then `n` / `d` / `r` | New pane (auto / down / right) |
-| `Ctrl`+`p`, then `x` | Close focused pane |
-| `Ctrl`+`n`, then `hjkl` or `+/-` | Resize mode |
-| `Ctrl`+`t`, then `n` / `x` / `1`–`9` | Tabs |
-| `Ctrl`+`o`, then `w` | Session manager |
-| `Ctrl`+`g` | Toggle locked mode (Zellij ignores other prefixes until `Ctrl`+`g` again) |
-| `Ctrl`+`q` | Quit Zellij |
-
-`Alt`+`hjkl` is the practical way to leave Helix for Yazi or Lazygit. Helix, Yazi, and Lazygit keep their own keys while focused; they do not see Zellij's `Ctrl`+`p` mode until you send those keys to Zellij.
-
-Your own Helix config is unchanged. Typical extra bindings people already have (not provided by sat-hx-ide) include Helix `Space`+`g` for floating git tools and `Ctrl`+`y` for a Yazi chooser; those continue to work because sat-hx-ide does not replace `~/.config/helix/config.toml`.
-
-If a prefix seems dead, check that the pane is not in Zellij locked mode (`Ctrl`+`g`) and that the focused app is not eating the key (Helix insert mode, Lazygit, Yazi).
+Draft-only fields (`layouts`, generated tool configs, themes, project
+detection, delta settings) are ignored. Replace the file with the new sample
+to remove ambiguity.
 
 ## Development
 
 ```bash
 cargo fmt --all -- --check
-cargo clippy --all-targets -- -D warnings
-cargo test
-```
-
-Install [pre-commit](https://pre-commit.com/) and enable the hooks:
-
-```bash
-pre-commit install
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked
 pre-commit run --all-files
 ```
 
-GitHub Actions on `push` and `pull_request` run the same formatter, Clippy, and test checks.
+GitHub Actions runs the formatter, Clippy, and tests on pushes and pull
+requests.
