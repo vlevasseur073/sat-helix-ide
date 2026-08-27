@@ -1,0 +1,36 @@
+# Local quality gates. CI in .github/workflows/ci.yml runs the same cargo checks.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^target/
+      - id: end-of-file-fixer
+        exclude: ^target/
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all
+        language: system
+        pass_filenames: false
+        types: [rust]
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --locked --all-targets -- -D warnings
+        language: system
+        pass_filenames: false
+        types: [rust]
+      - id: cargo-test
+        name: cargo test
+        entry: cargo test --locked
+        language: system
+        pass_filenames: false
+        types: [rust]

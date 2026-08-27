@@ -61,7 +61,8 @@ impl<'a> WorkspaceManager<'a> {
 
         // Apply project-specific overrides
         let mut layout = self.apply_project_overrides(layout, &project_type)?;
-        self.apply_generated_helix_config(&mut layout);
+        self.resolve_pane_commands(&mut layout.parts)?;
+        self.apply_generated_helix_config(&mut layout)?;
         let layout_path = self.save_layout(&layout)?;
 
         // Check tools
@@ -175,16 +176,63 @@ impl<'a> WorkspaceManager<'a> {
         Ok(layout)
     }
 
-    fn apply_generated_helix_config(&self, layout: &mut LayoutConfig) {
+    /// Map a layout command onto the configured tool binary and locate it on PATH.
+    ///
+    /// Zellij spawns pane commands itself, so shell aliases and functions are not
+    /// available to it and the binary has to be resolvable.
+    fn resolve_command(&self, command: &str) -> Result<String> {
+        let tools = &self.config.tools;
+        let configured = match command {
+            "hx" | "helix" => tools.helix.path.as_str(),
+            "yazi" => tools.yazi.path.as_str(),
+            "lazygit" | "gitui" => tools.git.client.as_str(),
+            other => other,
+        };
+
+        let resolved = which::which(configured).map_err(|_| {
+            HxIdeError::ToolNotFound(format!(
+                "'{command}' resolves to '{configured}', which is not on PATH. \
+                 Shell aliases are invisible to Zellij, so set an absolute path \
+                 under [tools] in your sat-helix-ide config."
+            ))
+        })?;
+
+        Ok(resolved.display().to_string())
+    }
+
+    fn resolve_pane_commands(&self, parts: &mut [crate::config::LayoutPart]) -> Result<()> {
+        for part in parts {
+            for pane in &mut part.panes {
+                if !pane.run || pane.command.trim().is_empty() {
+                    continue;
+                }
+
+                let mut tokens = pane.command.split_whitespace();
+                let Some(binary) = tokens.next() else {
+                    continue;
+                };
+                let inline_args: Vec<String> = tokens.map(str::to_owned).collect();
+
+                pane.command = self.resolve_command(binary)?;
+                if !inline_args.is_empty() {
+                    let mut args = inline_args;
+                    args.append(&mut pane.args);
+                    pane.args = args;
+                }
+            }
+            self.resolve_pane_commands(&mut part.parts)?;
+        }
+        Ok(())
+    }
+
+    fn apply_generated_helix_config(&self, layout: &mut LayoutConfig) -> Result<()> {
         if !self.config.use_generated_configs {
-            return;
+            return Ok(());
         }
         let config_path = self.config.generated_helix_config();
-        Self::add_helix_config_args(
-            &mut layout.parts,
-            &self.config.tools.helix.path,
-            &config_path,
-        );
+        let helix_command = self.resolve_command(&self.config.tools.helix.path)?;
+        Self::add_helix_config_args(&mut layout.parts, &helix_command, &config_path);
+        Ok(())
     }
 
     fn add_helix_config_args(
@@ -376,5 +424,73 @@ display-signature-help-docs = true
 
         info!("Helix configuration saved to: {}", config_path.display());
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{LayoutPane, LayoutPart};
+
+    fn config_with_helix_path(path: &str) -> Config {
+        let mut config = Config::default();
+        config.tools.helix.path = path.to_string();
+        config
+    }
+
+    #[test]
+    fn layout_commands_use_the_configured_tool_path() {
+        let config = config_with_helix_path("/bin/sh");
+        let manager = WorkspaceManager::new(&config);
+
+        let mut parts = vec![LayoutPart {
+            panes: vec![LayoutPane {
+                command: "hx".to_string(),
+                run: true,
+                ..Default::default()
+            }],
+            ..Default::default()
+        }];
+
+        manager.resolve_pane_commands(&mut parts).unwrap();
+
+        assert!(parts[0].panes[0].command.ends_with("/sh"));
+        assert!(parts[0].panes[0].command.starts_with('/'));
+    }
+
+    #[test]
+    fn unresolvable_commands_fail_before_launching_zellij() {
+        let config = config_with_helix_path("definitely-not-a-real-binary");
+        let manager = WorkspaceManager::new(&config);
+
+        let mut parts = vec![LayoutPart {
+            panes: vec![LayoutPane {
+                command: "hx".to_string(),
+                run: true,
+                ..Default::default()
+            }],
+            ..Default::default()
+        }];
+
+        let error = manager.resolve_pane_commands(&mut parts).unwrap_err();
+        assert!(error.to_string().contains("definitely-not-a-real-binary"));
+    }
+
+    #[test]
+    fn panes_that_do_not_run_are_left_alone() {
+        let config = config_with_helix_path("definitely-not-a-real-binary");
+        let manager = WorkspaceManager::new(&config);
+
+        let mut parts = vec![LayoutPart {
+            panes: vec![LayoutPane {
+                command: "git delta".to_string(),
+                run: false,
+                ..Default::default()
+            }],
+            ..Default::default()
+        }];
+
+        manager.resolve_pane_commands(&mut parts).unwrap();
+        assert_eq!(parts[0].panes[0].command, "git delta");
     }
 }

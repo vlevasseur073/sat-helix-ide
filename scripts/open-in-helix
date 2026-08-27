@@ -21,7 +21,7 @@ fi
 if [ -n "$ZELLIJ" ]; then
     # Find the Helix pane
     PANE_ID=$(zellij query --panes | jq -r '.[] | select(.command | contains("hx")) | .id' | head -n 1)
-    
+
     if [ -n "$PANE_ID" ]; then
         # Send the open command to Helix
         zellij action --pane-id "$PANE_ID" run -c "hx --path $SELECTED_FILE"
