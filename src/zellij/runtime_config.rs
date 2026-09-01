@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 pub struct RuntimeConfigInput<'a> {
     pub source: Option<&'a Path>,
     pub destination: &'a Path,
+    pub session_name: &'a str,
     pub keys: &'a KeybindingConfig,
     pub executable: &'a Path,
     pub app_config: &'a Path,
@@ -96,12 +97,36 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
         git_binding(input)?,
     ];
 
+    set_session_name(&mut document, input.session_name)?;
+    set_session_serialization(&mut document, false)?;
+
     let keybinds = ensure_keybinds(&mut document);
     let shared = ensure_shared_except_locked(keybinds);
     let children = shared.ensure_children();
     children.nodes_mut().extend(bindings);
 
     Ok(document.to_string())
+}
+
+fn set_session_name(document: &mut KdlDocument, session_name: &str) -> Result<()> {
+    document
+        .nodes_mut()
+        .retain(|node| node.name().value() != "session_name");
+    document.nodes_mut().push(parse_single_node(&format!(
+        "session_name {session_name:?}\n"
+    ))?);
+    Ok(())
+}
+
+fn set_session_serialization(document: &mut KdlDocument, enabled: bool) -> Result<()> {
+    document
+        .nodes_mut()
+        .retain(|node| node.name().value() != "session_serialization");
+    document.nodes_mut().push(parse_single_node(&format!(
+        "session_serialization {}\n",
+        enabled
+    ))?);
+    Ok(())
 }
 
 /// Runs sat-hx-ide itself in a floating pane. Helpers that only drive Zellij
@@ -248,6 +273,7 @@ mod tests {
         RuntimeConfigInput {
             source: None,
             destination,
+            session_name: "my-project",
             keys,
             executable: Path::new("/usr/bin/sat-hx-ide"),
             app_config: Path::new("/home/user/.config/sat-helix-ide/config.toml"),
@@ -311,6 +337,20 @@ mod tests {
             shared,
             ["Ctrl p", "Ctrl y", "Alt y", "Alt t", "Alt Shift t", "Alt g"]
         );
+    }
+
+    #[test]
+    fn writes_project_session_name_into_runtime_config() {
+        let temp = tempfile::tempdir().unwrap();
+        let destination = temp.path().join("runtime/config.kdl");
+        let keys = KeybindingConfig::default();
+        let input = input(&destination, &keys);
+
+        build_runtime_config(&input).unwrap();
+
+        let runtime = fs::read_to_string(destination).unwrap();
+        assert!(runtime.contains("session_name \"my-project\""));
+        assert!(runtime.contains("session_serialization false"));
     }
 
     #[test]

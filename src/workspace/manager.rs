@@ -1,7 +1,9 @@
 use crate::config::{expand_tilde, CommandConfig, Config};
 use crate::error::HxIdeError;
 use crate::resolve::resolve_executable;
-use crate::zellij::{build_runtime_config, session_layout, RuntimeConfigInput, ZellijClient};
+use crate::zellij::{
+    build_runtime_config, session_layout, RuntimeConfigInput, SessionStatus, ZellijClient,
+};
 use anyhow::{bail, Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -25,8 +27,7 @@ impl<'a> WorkspaceManager<'a> {
         session_override: Option<&str>,
         ai_override: Option<bool>,
     ) -> Result<()> {
-        let project_dir = fs::canonicalize(path)
-            .with_context(|| format!("Failed to resolve project path {}", path.display()))?;
+        let project_dir = resolve_project_dir(path)?;
         let session_name = session_override
             .map(sanitize_session_name)
             .unwrap_or_else(|| project_session_name(&project_dir));
@@ -69,6 +70,7 @@ impl<'a> WorkspaceManager<'a> {
         build_runtime_config(&RuntimeConfigInput {
             source: self.config.zellij_config_path().as_deref(),
             destination: &config_path,
+            session_name: &session_name,
             keys: &self.config.keybindings,
             executable: &executable,
             app_config: &self.app_config_path,
@@ -80,22 +82,34 @@ impl<'a> WorkspaceManager<'a> {
         })?;
 
         let zellij = ZellijClient::new(zellij_path);
-        if zellij.session_exists(&session_name)? {
-            if self.config.session.attach_existing {
-                zellij
-                    .attach(&session_name, &config_path)
-                    .context("Failed to attach to existing Zellij session")
-            } else {
-                Err(HxIdeError::WorkspaceError(format!(
-                    "Session '{session_name}' already exists; enable session.attach_existing \
-                     or choose another --session name"
-                ))
-                .into())
+        match zellij.session_status(&session_name)? {
+            SessionStatus::Active => {
+                if self.config.session.attach_existing {
+                    zellij
+                        .attach(&session_name, &config_path)
+                        .context("Failed to attach to existing Zellij session")
+                } else {
+                    Err(HxIdeError::WorkspaceError(format!(
+                        "Session '{session_name}' already exists; enable session.attach_existing \
+                         or choose another --session name"
+                    ))
+                    .into())
+                }
             }
-        } else {
-            zellij
+            SessionStatus::Exited => {
+                // Zellij resurrection replays serialized pane commands, which can
+                // drift from the configured layout (for example after Helix spawns
+                // an LSP child). Always recreate exited sessions from layout.kdl.
+                zellij
+                    .delete_session(&session_name)
+                    .context("Failed to delete exited Zellij session")?;
+                zellij
+                    .create(&session_name, &layout_path, &config_path, &project_dir)
+                    .context("Failed to create Zellij session")
+            }
+            SessionStatus::NotFound => zellij
                 .create(&session_name, &layout_path, &config_path, &project_dir)
-                .context("Failed to create Zellij session")
+                .context("Failed to create Zellij session"),
         }
     }
 
@@ -154,6 +168,18 @@ fn resolve_command(command: &CommandConfig) -> Result<PathBuf> {
         .with_context(|| format!("Cannot find executable '{}'", command.command))
 }
 
+fn resolve_project_dir(path: &Path) -> Result<PathBuf> {
+    let project_dir = fs::canonicalize(path)
+        .with_context(|| format!("Failed to resolve project path {}", path.display()))?;
+    if !project_dir.is_dir() {
+        bail!(
+            "Project path '{}' is not a directory",
+            project_dir.display()
+        );
+    }
+    Ok(project_dir)
+}
+
 fn project_session_name(project_dir: &Path) -> String {
     let raw = project_dir
         .file_name()
@@ -193,5 +219,15 @@ mod tests {
     #[test]
     fn creates_safe_session_name() {
         assert_eq!(sanitize_session_name("my project!"), "my-project");
+    }
+
+    #[test]
+    fn session_name_uses_project_directory_basename() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join("my-project");
+        fs::create_dir(&project).unwrap();
+
+        let project_dir = resolve_project_dir(&project).unwrap();
+        assert_eq!(project_session_name(&project_dir), "my-project");
     }
 }

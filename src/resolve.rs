@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 /// Resolve a configured tool name to an absolute executable path.
@@ -9,13 +9,11 @@ use std::process::Command;
 pub fn resolve_executable(command: &str) -> Result<PathBuf> {
     let path = Path::new(command);
     if path.is_absolute() || command.contains('/') {
-        return path
-            .canonicalize()
-            .with_context(|| format!("Cannot find executable '{command}'"));
+        return normalize_executable_path(path);
     }
 
     if let Ok(found) = which::which(command) {
-        return Ok(found);
+        return normalize_executable_path(&found);
     }
 
     if let Some(found) = resolve_via_login_shell(command)? {
@@ -52,10 +50,44 @@ fn resolve_via_login_shell(command: &str) -> Result<Option<PathBuf>> {
         return Ok(None);
     }
 
-    Path::new(&resolved)
-        .canonicalize()
+    normalize_executable_path(Path::new(&resolved))
         .map(Some)
-        .with_context(|| format!("Login shell resolved '{command}' to '{resolved}', but that path is unusable"))
+        .with_context(|| {
+            format!("Login shell resolved '{command}' to '{resolved}', but that path is unusable")
+        })
+}
+
+/// Normalize a path to an absolute, usable executable location.
+///
+/// Snap apps are exposed as symlinks under `/snap/bin/` that ultimately point
+/// at `/usr/bin/snap`. Canonicalizing those wrappers strips the app identity
+/// snap needs, so they are returned unchanged after an existence check.
+fn normalize_executable_path(path: &Path) -> Result<PathBuf> {
+    if is_snap_wrapper(path) {
+        return path
+            .exists()
+            .then(|| path.to_path_buf())
+            .with_context(|| format!("Cannot find executable '{}'", path.display()));
+    }
+
+    let needs_canonicalize = !path.is_absolute()
+        || path
+            .components()
+            .any(|component| matches!(component, Component::CurDir | Component::ParentDir));
+
+    if needs_canonicalize {
+        return path
+            .canonicalize()
+            .with_context(|| format!("Cannot find executable '{}'", path.display()));
+    }
+
+    path.exists()
+        .then(|| path.to_path_buf())
+        .with_context(|| format!("Cannot find executable '{}'", path.display()))
+}
+
+fn is_snap_wrapper(path: &Path) -> bool {
+    path.starts_with("/snap/bin")
 }
 
 fn is_safe_command_name(command: &str) -> bool {
@@ -78,5 +110,24 @@ mod tests {
     #[test]
     fn rejects_unsafe_shell_lookup_names() {
         assert!(resolve_via_login_shell("hx; rm -rf /").unwrap().is_none());
+    }
+
+    #[test]
+    fn recognizes_snap_wrappers() {
+        assert!(is_snap_wrapper(Path::new("/snap/bin/hx")));
+        assert!(is_snap_wrapper(Path::new("/snap/bin/helix")));
+        assert!(!is_snap_wrapper(Path::new("/snap/helix/current/bin/hx")));
+        assert!(!is_snap_wrapper(Path::new("/usr/bin/hx")));
+    }
+
+    #[test]
+    fn preserves_snap_wrapper_paths_without_canonicalizing() {
+        let path = Path::new("/snap/bin/hx");
+        if !path.exists() {
+            return;
+        }
+
+        let normalized = normalize_executable_path(path).unwrap();
+        assert_eq!(normalized, path);
     }
 }
