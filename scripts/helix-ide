@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Convenience script to launch Helix IDE
+# Usage: helix-ide <sat-hx-ide arguments>
+
+set -euo pipefail
+
+# Find the sat-helix-ide binary
+if command -v sat-hx-ide &> /dev/null; then
+    exec sat-hx-ide "$@"
+else
+    # Fallback: use cargo run
+    exec cargo run -- "$@"
+fi

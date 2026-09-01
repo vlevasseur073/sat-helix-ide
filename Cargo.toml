@@ -1,0 +1,39 @@
+[package]
+name = "sat-helix-ide"
+version = "0.1.0"
+edition = "2021"
+authors = ["Vincent Levasseur"]
+description = "A workspace orchestrator for Helix + Zellij + Yazi + Lazygit/GitUI + git-delta"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/vlevasseur073/sat-helix-ide"
+keywords = ["helix", "zellij", "yazi", "lazygit", "git-delta", "ide", "workspace"]
+categories = ["development-tools", "command-line-utilities"]
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.6", features = ["derive"] }
+env_logger = "0.11.11"
+home = "0.5.12"
+log = "0.4.34"
+path-absolutize = "4.0.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+toml = "1.1.4"
+which = "8.0.6"
+
+[dev-dependencies]
+tempfile = "3.8"
+assert_cmd = "2.0"
+predicates = "3.0"
+
+[profile.release]
+opt-level = 2
+lto = true
+codegen-units = 1
+strip = true
+
+[[bin]]
+name = "sat-hx-ide"
+path = "src/main.rs"

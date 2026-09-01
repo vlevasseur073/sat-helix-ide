@@ -1,0 +1,12 @@
+// Coding layout: Large editor with small sidebar
+// Editor (80%) | Sidebar (20%)
+// Sidebar: Yazi only
+
+layout {
+    pane split_direction="horizontal" {
+        pane size="80%" name="editor" command="hx"
+        pane size="20%" split_direction="vertical" {
+            pane name="file-explorer" command="yazi"
+        }
+    }
+}

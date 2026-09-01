@@ -1,0 +1,13 @@
+// Code review layout
+// Top: Editor (50%) | Diff (50%)
+// Bottom: Git client (100%)
+
+layout {
+    pane split_direction="vertical" {
+        pane size="50%" split_direction="horizontal" {
+            pane name="editor" command="hx"
+            pane name="diff-viewer"
+        }
+        pane size="50%" name="git-client" command="lazygit"
+    }
+}

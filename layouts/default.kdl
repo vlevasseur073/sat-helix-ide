@@ -1,0 +1,13 @@
+// Default Helix IDE layout
+// Editor (70%) | Sidebar (30%)
+// Sidebar: Yazi (top) | Lazygit (bottom)
+
+layout {
+    pane split_direction="horizontal" {
+        pane size="70%" name="editor" command="hx"
+        pane size="30%" split_direction="vertical" {
+            pane name="file-explorer" command="yazi"
+            pane name="git-client" command="lazygit"
+        }
+    }
+}

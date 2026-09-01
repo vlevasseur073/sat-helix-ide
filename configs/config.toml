@@ -1,0 +1,158 @@
+# SAT Helix IDE Configuration
+# Place this file at ~/.config/sat-helix-ide/config.toml
+# Generated tool configs remain private to sat-helix-ide and are opt-in.
+use_generated_configs = false
+
+[workspace]
+# Default workspace directory (defaults to current directory)
+default_dir = "~"
+# Auto-detect project type
+auto_detect = true
+# Open in new Zellij session by default
+new_session_default = false
+# Remember last workspace
+remember_last = true
+
+[tools]
+
+[tools.helix]
+# Path to Helix executable
+path = "hx"
+# Default theme
+theme = "catppuccin_mocha"
+# Enable LSP
+lsp = true
+# Additional arguments
+args = []
+
+[tools.zellij]
+# Path to Zellij executable
+path = "zellij"
+# Default theme
+theme = "catppuccin-mocha"
+# Enable mouse support
+mouse = true
+
+[tools.yazi]
+# Path to Yazi executable
+path = "yazi"
+# Open files in Helix
+open_in_helix = true
+
+[tools.yazi.preview]
+# Maximum width
+max_width = 120
+# Maximum height
+max_height = 60
+# Tab size
+tab_size = 4
+
+[tools.git]
+# Preferred git client (lazygit or gitui)
+client = "lazygit"
+# Use git-delta for diffs
+delta = true
+
+[tools.git.delta_config]
+# Syntax theme
+theme = "Catppuccin-mocha"
+# Show line numbers
+line_numbers = true
+# Side-by-side diff
+side_by_side = true
+
+# Layout configurations
+[[layouts]]
+name = "default"
+description = "Default layout with editor, file explorer, and git client"
+direction = "vertical"
+
+[[layouts.parts]]
+direction = "horizontal"
+borderless = true
+
+[[layouts.parts.panes]]
+id = "editor"
+command = "hx"
+run = true
+
+[[layouts.parts.parts]]
+direction = "vertical"
+
+[[layouts.parts.parts.panes]]
+id = "file-explorer"
+command = "yazi"
+run = true
+
+[[layouts.parts.parts.panes]]
+id = "git-client"
+command = "lazygit"
+run = true
+
+[[layouts]]
+name = "minimal"
+description = "Minimal layout with editor and file explorer"
+direction = "horizontal"
+
+[[layouts.parts]]
+direction = "horizontal"
+borderless = true
+
+[[layouts.parts.panes]]
+id = "editor"
+command = "hx"
+run = true
+
+[[layouts.parts.panes]]
+id = "file-explorer"
+command = "yazi"
+run = true
+
+[[layouts]]
+name = "coding"
+description = "Code-focused layout with large editor"
+direction = "vertical"
+
+[[layouts.parts]]
+direction = "horizontal"
+borderless = true
+
+[[layouts.parts.panes]]
+id = "editor"
+command = "hx"
+run = true
+
+[[layouts.parts.parts]]
+direction = "vertical"
+
+[[layouts.parts.parts.panes]]
+id = "file-explorer"
+command = "yazi"
+run = true
+
+[[layouts]]
+name = "review"
+description = "Code review layout with diff viewer"
+direction = "vertical"
+
+[[layouts.parts]]
+direction = "horizontal"
+borderless = true
+
+[[layouts.parts.panes]]
+id = "editor"
+command = "hx"
+run = true
+
+[[layouts.parts.panes]]
+id = "diff-viewer"
+command = "git delta"
+run = false
+
+[[layouts.parts.parts]]
+direction = "horizontal"
+
+[[layouts.parts.parts.panes]]
+id = "git-client"
+command = "lazygit"
+run = true
