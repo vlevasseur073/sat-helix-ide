@@ -7,9 +7,20 @@ pub fn session_layout(
     ai: Option<(&CommandConfig, &Path)>,
     terminal_percent: Option<u8>,
     project_dir: &Path,
+    status_bar: bool,
 ) -> String {
     let mut layout = String::from("layout {\n");
-    layout.push_str("    tab name=\"code\" focus=true {\n");
+    if status_bar {
+        layout.push_str("    tab_template name=\"status_tab\" {\n");
+        layout.push_str("    children\n");
+        layout.push_str("        pane size=2 borderless=true {\n");
+        layout.push_str("            plugin location=\"zellij:status-bar\"\n");
+        layout.push_str("        }\n");
+        layout.push_str("    }\n");
+    }
+    let tab = if status_bar { "status_tab" } else { "tab" };
+    layout.push_str(&format!("    {tab}"));
+    layout.push_str(" name=\"code\" focus=true {\n");
     match terminal_percent {
         Some(percent) => {
             layout.push_str("        pane split_direction=\"horizontal\" {\n");
@@ -81,6 +92,7 @@ mod tests {
             None,
             None,
             Path::new("/work"),
+            false,
         );
 
         assert!(layout.contains("tab name=\"code\" focus=true"));
@@ -88,6 +100,24 @@ mod tests {
         assert!(!layout.contains("tab name=\"ai\""));
         assert!(!layout.contains("name=\"terminal\""));
     }
+
+    // #[test]
+    // fn builds_code_only_layout_with_status_bar() {
+    //     let editor = CommandConfig::new("hx");
+    //     let layout = session_layout(
+    //         &editor,
+    //         Path::new("/usr/bin/hx"),
+    //         None,
+    //         None,
+    //         Path::new("/work"),
+    //         true,
+    //     );
+
+    //     assert!(layout.contains("status_tab name=\"code\" focus=true"));
+    //     assert!(layout.contains("command=\"/usr/bin/hx\""));
+    //     assert!(!layout.contains("tab name=\"ai\""));
+    //     assert!(!layout.contains("name=\"terminal\""));
+    // }
 
     #[test]
     fn adds_configured_ai_tab() {
@@ -102,6 +132,7 @@ mod tests {
             Some((&ai, Path::new("/usr/bin/agent"))),
             None,
             Path::new("/work"),
+            false,
         );
 
         assert!(layout.contains("tab name=\"ai\""));
@@ -118,6 +149,7 @@ mod tests {
             None,
             Some(15),
             Path::new("/work"),
+            false,
         );
 
         assert!(layout.contains("split_direction=\"horizontal\""));

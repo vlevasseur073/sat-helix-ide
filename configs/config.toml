@@ -9,6 +9,8 @@ ai_by_default = true
 # Optional explicit merge source. By default, ZELLIJ_CONFIG_FILE or the normal
 # XDG path (~/.config/zellij/config.kdl) is used read-only.
 # zellij_config = "/home/user/.config/zellij/config.kdl"
+# Add status bar in zellij tabs
+status_bar = false
 
 [terminal]
 # Dock a shell under Helix in the code tab. It runs Zellij's default shell.

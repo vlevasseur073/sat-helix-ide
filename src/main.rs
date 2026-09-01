@@ -44,6 +44,9 @@ enum Commands {
         #[arg(long, overrides_with = "ai")]
         no_ai: bool,
 
+        #[arg(long)]
+        status_bar: Option<bool>,
+
         /// Override the project-derived Zellij session name
         #[arg(short, long)]
         session: Option<String>,
@@ -97,6 +100,7 @@ fn main() -> Result<()> {
             path,
             ai,
             no_ai,
+            status_bar,
             session,
         } => {
             let config = Config::load(&cli.config)?;
@@ -106,7 +110,7 @@ fn main() -> Result<()> {
                 _ => None,
             };
             WorkspaceManager::new(&config, &cli.config)
-                .init_workspace(&path, session.as_deref(), ai_override)
+                .init_workspace(&path, session.as_deref(), ai_override, status_bar)
                 .context("Failed to initialize workspace")?;
         }
         Commands::Config => {

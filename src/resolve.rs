@@ -92,9 +92,9 @@ fn is_snap_wrapper(path: &Path) -> bool {
 
 fn is_safe_command_name(command: &str) -> bool {
     !command.is_empty()
-        && command
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.'))
+        && command.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.')
+        })
 }
 
 #[cfg(test)]

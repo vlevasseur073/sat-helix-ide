@@ -26,6 +26,7 @@ impl<'a> WorkspaceManager<'a> {
         path: &Path,
         session_override: Option<&str>,
         ai_override: Option<bool>,
+        status_bar: Option<bool>,
     ) -> Result<()> {
         let project_dir = resolve_project_dir(path)?;
         let session_name = session_override
@@ -49,6 +50,8 @@ impl<'a> WorkspaceManager<'a> {
         let ai_enabled = ai_override.unwrap_or(self.config.session.ai_by_default);
         let ai = if ai_enabled { self.resolve_ai() } else { None };
 
+        let status_bar = status_bar.unwrap_or(self.config.session.status_bar);
+
         let runtime_dir = self.config.runtime_dir(&session_name);
         fs::create_dir_all(&runtime_dir)?;
         let layout_path = runtime_dir.join("layout.kdl");
@@ -63,6 +66,7 @@ impl<'a> WorkspaceManager<'a> {
                 .enabled
                 .then_some(self.config.terminal.dock_percent),
             &project_dir,
+            status_bar,
         );
         fs::write(&layout_path, layout)?;
 

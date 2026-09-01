@@ -43,6 +43,10 @@ pub struct SessionConfig {
     /// Optional explicit path to the Zellij config used as merge input.
     #[serde(default)]
     pub zellij_config: Option<PathBuf>,
+
+    /// Add the status bar in zellij tabs
+    #[serde(default)]
+    pub status_bar: bool,
 }
 
 impl Default for SessionConfig {
@@ -51,6 +55,7 @@ impl Default for SessionConfig {
             attach_existing: true,
             ai_by_default: true,
             zellij_config: None,
+            status_bar: false,
         }
     }
 }

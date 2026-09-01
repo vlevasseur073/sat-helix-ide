@@ -38,11 +38,7 @@ impl ZellijClient {
     }
 
     pub fn delete_session(&self, name: &str) -> Result<(), HxIdeError> {
-        self.run(
-            Command::new(&self.path)
-                .arg("delete-session")
-                .arg(name),
-        )
+        self.run(Command::new(&self.path).arg("delete-session").arg(name))
     }
 
     pub fn attach(&self, name: &str, config: &Path) -> Result<(), HxIdeError> {
@@ -126,9 +122,7 @@ mod tests {
             Some(("sat-helix-ide", SessionStatus::Active))
         );
         assert_eq!(
-            parse_session_line(
-                "sat-helix-ide [Created 9m ago] (EXITED - attach to resurrect)"
-            ),
+            parse_session_line("sat-helix-ide [Created 9m ago] (EXITED - attach to resurrect)"),
             Some(("sat-helix-ide", SessionStatus::Exited))
         );
         assert!(parse_session_line("No active zellij sessions found.").is_none());
