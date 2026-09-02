@@ -24,7 +24,7 @@ struct Cli {
     config: PathBuf,
 
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -88,6 +88,18 @@ enum TerminalCommands {
     Zoom,
 }
 
+impl Default for Commands {
+    fn default() -> Self {
+        Commands::Init {
+            path: PathBuf::from("."),
+            ai: Default::default(),    // false
+            no_ai: Default::default(), // false
+            status_bar: Default::default(),
+            session: Default::default(),
+        }
+    }
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
     if cli.verbose {
@@ -95,7 +107,7 @@ fn main() -> Result<()> {
     }
     env_logger::init();
 
-    match cli.command {
+    match cli.command.unwrap_or_default() {
         Commands::Init {
             path,
             ai,

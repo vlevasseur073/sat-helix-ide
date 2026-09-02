@@ -50,5 +50,5 @@ args = []
 
 # The agent for the AI tab. Ignored when the command is not on PATH.
 [tools.ai]
-command = "cursor-agent"
+command = "vibe"
 args = []
