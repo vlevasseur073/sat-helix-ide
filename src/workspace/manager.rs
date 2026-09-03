@@ -1,5 +1,6 @@
 use crate::config::{expand_tilde, CommandConfig, Config};
 use crate::error::HxIdeError;
+use crate::ipc;
 use crate::resolve::resolve_executable;
 use crate::zellij::{
     build_runtime_config, session_layout, RuntimeConfigInput, SessionStatus, ZellijClient,
@@ -7,6 +8,7 @@ use crate::zellij::{
 use anyhow::{bail, Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 pub struct WorkspaceManager<'a> {
     config: &'a Config,
@@ -21,7 +23,7 @@ impl<'a> WorkspaceManager<'a> {
         }
     }
 
-    pub fn init_workspace(
+    pub async fn init_workspace(
         &self,
         path: &Path,
         session_override: Option<&str>,
@@ -52,6 +54,35 @@ impl<'a> WorkspaceManager<'a> {
 
         let status_bar = status_bar.unwrap_or(self.config.session.status_bar);
 
+        // Calculate socket path based on project directory for daemon persistence
+        let socket_path = ipc::socket_path(&project_dir);
+
+        // Spawn daemon if not already running (like helix-ide's Start command)
+        // This ensures daemon persists for the entire session lifetime
+        let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
+
+        if !ipc::is_daemon_alive(&socket_path).await {
+            log::info!("Spawning daemon for session: {}", session_name);
+            std::process::Command::new(&executable)
+                .arg("daemon")
+                .arg("--socket")
+                .arg(&socket_path)
+                .env("ZELLIJ_SESSION_NAME", &session_name)
+                .spawn()
+                .context("Failed to spawn daemon")?;
+
+            // Wait for daemon to start listening (with timeout)
+            for _ in 0..50 {
+                if ipc::is_daemon_alive(&socket_path).await {
+                    log::info!("Daemon is now listening on {}", socket_path.display());
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        } else {
+            log::debug!("Daemon already running for session: {}", session_name);
+        }
+
         let runtime_dir = self.config.runtime_dir(&session_name);
         fs::create_dir_all(&runtime_dir)?;
         let layout_path = runtime_dir.join("layout.kdl");
@@ -69,8 +100,6 @@ impl<'a> WorkspaceManager<'a> {
             status_bar,
         );
         fs::write(&layout_path, layout)?;
-
-        let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
         build_runtime_config(&RuntimeConfigInput {
             source: self.config.zellij_config_path().as_deref(),
             destination: &config_path,

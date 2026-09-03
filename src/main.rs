@@ -290,6 +290,7 @@ async fn async_main(cli: Cli) -> Result<()> {
             };
             WorkspaceManager::new(&config, &cli.config)
                 .init_workspace(&path, session.as_deref(), ai_override, status_bar)
+                .await
                 .context("Failed to initialize workspace")?;
         }
         Commands::Config => {

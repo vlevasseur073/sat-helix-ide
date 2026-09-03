@@ -1,16 +1,17 @@
 use crate::protocol::{Request, Response};
 use anyhow::{Context, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
 
-/// Generate socket path for a given session name
+/// Generate socket path for a given project directory
 ///
-/// Socket naming convention: /run/user/<uid>/sat-hx-ide-<session_hash>.sock
-/// This follows helix-ide's pattern but with sat-hx-ide naming.
-pub fn socket_path(session_name: &str) -> PathBuf {
-    // Hash the session name to avoid filesystem issues with special characters
-    let hash = session_name
+/// Socket naming convention: /run/user/<uid>/sat-hx-ide-<project_hash>.sock
+/// Uses project directory hash for stability across session restarts.
+pub fn socket_path(project_dir: &Path) -> PathBuf {
+    // Hash the project directory path to avoid filesystem issues with special characters
+    let hash = project_dir
+        .to_string_lossy()
         .bytes()
         .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
 
@@ -22,12 +23,46 @@ pub fn socket_path(session_name: &str) -> PathBuf {
     runtime_dir.join(format!("sat-hx-ide-{hash}.sock"))
 }
 
-/// Generate socket path for the current session
-/// Uses ZELLIJ_SESSION_NAME env var if available, otherwise defaults
+/// Generate socket path for the current session based on project directory
+/// Falls back to session name if project directory cannot be determined
 pub fn current_socket_path() -> PathBuf {
+    // Try to use project directory first (more stable)
+    if let Ok(project_dir) = std::env::current_dir() {
+        return socket_path(&project_dir);
+    }
+
+    // Fallback to session name
     let session_name =
         std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "default".to_string());
-    socket_path(&session_name)
+
+    // For backward compatibility, hash the session name
+    let hash = session_name
+        .bytes()
+        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
+
+    let runtime_dir = std::env::var_os("XDG_RUNTIME_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+
+    runtime_dir.join(format!("sat-hx-ide-{hash}.sock"))
+}
+
+/// Generate socket path for a given session name (legacy)
+///
+/// Socket naming convention: /run/user/<uid>/sat-hx-ide-<session_hash>.sock
+/// This follows helix-ide's pattern but with sat-hx-ide naming.
+pub fn session_socket_path(session_name: &str) -> PathBuf {
+    // Hash the session name to avoid filesystem issues with special characters
+    let hash = session_name
+        .bytes()
+        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
+
+    // Use XDG_RUNTIME_DIR if available, otherwise /tmp
+    let runtime_dir = std::env::var_os("XDG_RUNTIME_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+
+    runtime_dir.join(format!("sat-hx-ide-{hash}.sock"))
 }
 
 /// Start the IPC server on the given socket
