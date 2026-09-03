@@ -649,8 +649,6 @@ fn zellij_status(command: &mut Command) -> Result<()> {
 }
 
 pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
-    // For now, git actions just spawn a floating git client pane
-    // In the future, this could be more sophisticated
     let zellij = resolve(&config.tools.zellij.command)?;
     let panes = list_panes(&zellij)?;
     let editor = panes
@@ -658,7 +656,11 @@ pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
         .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
         .context("Cannot find the sat-hx-ide editor pane")?;
 
-    // Spawn a floating git client
+    // Resolve the git command
+    let git_command = resolve_executable(&config.tools.git.command)
+        .with_context(|| format!("Cannot find git client '{}'", config.tools.git.command))?;
+
+    // Spawn a floating git client pane with the actual git command
     let output = Command::new(zellij)
         .args(["action", "new-pane", "--close-on-exit"])
         .args(["--name", "git", "--tab-id"])
@@ -669,6 +671,9 @@ pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
         .arg("100%")
         .arg("--height")
         .arg("100%")
+        .arg("--")
+        .arg(&git_command)
+        .args(&config.tools.git.args)
         .output()
         .context("Failed to create git pane")?;
 

@@ -242,7 +242,11 @@ impl App {
 
     /// Spawn a floating git client pane
     async fn spawn_git_pane(&self, zellij: &PathBuf, editor: &PaneInfo) -> Result<()> {
-        let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
+        // Resolve the git command from config
+        let git_command =
+            resolve_executable(&self.config.tools.git.command).with_context(|| {
+                format!("Cannot find git client '{}'", self.config.tools.git.command)
+            })?;
 
         let output = Command::new(zellij)
             .args(["action", "new-pane", "--close-on-exit"])
@@ -255,10 +259,8 @@ impl App {
             .arg("--height")
             .arg("100%")
             .arg("--")
-            .arg(executable)
-            .arg("--config")
-            .arg("~/.config/sat-helix-ide/config.toml")
-            .args(["__git", "open"])
+            .arg(&git_command)
+            .args(&self.config.tools.git.args)
             .output()
             .await
             .context("Failed to create git pane")?;
