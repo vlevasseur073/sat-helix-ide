@@ -1,5 +1,5 @@
 use crate::config::{expand_tilde, CommandConfig, Config};
-use crate::error::HxIdeError;
+
 use crate::ipc;
 use crate::resolve::resolve_executable;
 use crate::zellij::{
@@ -120,13 +120,12 @@ impl<'a> WorkspaceManager<'a> {
                 if self.config.session.attach_existing {
                     zellij
                         .attach(&session_name, &config_path)
-                        .context("Failed to attach to existing Zellij session")
+                        .context("Failed to attach to existing Zellij session")?
                 } else {
-                    Err(HxIdeError::WorkspaceError(format!(
+                    bail!(
                         "Session '{session_name}' already exists; enable session.attach_existing \
                          or choose another --session name"
-                    ))
-                    .into())
+                    );
                 }
             }
             SessionStatus::Exited => {
@@ -138,12 +137,21 @@ impl<'a> WorkspaceManager<'a> {
                     .context("Failed to delete exited Zellij session")?;
                 zellij
                     .create(&session_name, &layout_path, &config_path, &project_dir)
-                    .context("Failed to create Zellij session")
+                    .context("Failed to create Zellij session")?
             }
             SessionStatus::NotFound => zellij
                 .create(&session_name, &layout_path, &config_path, &project_dir)
-                .context("Failed to create Zellij session"),
+                .context("Failed to create Zellij session")?,
         }
+
+        // Zellij session has ended (attach/create returned)
+        // Clean up the daemon
+        log::info!("Zellij session ended, cleaning up daemon");
+        if let Err(e) = crate::daemon::kill_daemon(&socket_path) {
+            log::warn!("Failed to kill daemon: {}", e);
+        }
+
+        Ok(())
     }
 
     /// The AI tab is a convenience, not a requirement: an agent that is

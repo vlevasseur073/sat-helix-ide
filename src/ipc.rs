@@ -3,6 +3,7 @@ use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
+use tokio::sync::mpsc;
 
 /// Generate socket path for a given project directory
 ///
@@ -66,7 +67,11 @@ pub fn session_socket_path(session_name: &str) -> PathBuf {
 }
 
 /// Start the IPC server on the given socket
-pub async fn serve(socket: &PathBuf, app: std::sync::Arc<crate::app::App>) -> Result<()> {
+/// Returns a sender that can be used to signal the server to shutdown
+pub async fn serve(
+    socket: &PathBuf,
+    app: std::sync::Arc<crate::app::App>,
+) -> Result<(mpsc::Sender<()>, tokio::task::JoinHandle<Result<()>>)> {
     // Remove stale socket if it exists
     if socket.exists() {
         std::fs::remove_file(socket)
@@ -79,21 +84,57 @@ pub async fn serve(socket: &PathBuf, app: std::sync::Arc<crate::app::App>) -> Re
 
     log::info!("IPC daemon listening on {}", socket.display());
 
-    // Accept loop
-    loop {
-        let (stream, _) = listener
-            .accept()
-            .await
-            .with_context(|| "failed to accept IPC connection")?;
+    // Create shutdown channel
+    let (shutdown_sender, mut shutdown_receiver) = mpsc::channel(1);
 
-        let app = std::sync::Arc::clone(&app);
+    // Clone socket path for the async task
+    let socket_clone = socket.clone();
 
-        tokio::spawn(async move {
-            if let Err(error) = handle_connection(stream, app).await {
-                log::error!("IPC error: {error:#}");
+    // Spawn the server task
+    let handle = tokio::spawn(async move {
+        // Accept loop
+        loop {
+            // Check for shutdown signal
+            tokio::select! {
+                // Accept new connection
+                result = listener.accept() => {
+                    match result {
+                        Ok((stream, _)) => {
+                            let app = std::sync::Arc::clone(&app);
+                            tokio::spawn(async move {
+                                if let Err(error) = handle_connection(stream, app).await {
+                                    log::error!("IPC error: {error:#}");
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            log::error!("Failed to accept IPC connection: {e:#}");
+                            break;
+                        }
+                    }
+                }
+                // Shutdown signal received
+                _ = shutdown_receiver.recv() => {
+                    log::info!("Daemon received shutdown signal");
+                    break;
+                }
             }
-        });
-    }
+        }
+
+        // Cleanup: remove socket file
+        let _ = std::fs::remove_file(&socket_clone);
+
+        Ok(())
+    });
+
+    Ok((shutdown_sender, handle))
+}
+
+/// Start the IPC server on the given socket (simple version without shutdown)
+pub async fn serve_simple(socket: &PathBuf, app: std::sync::Arc<crate::app::App>) -> Result<()> {
+    let (_sender, handle) = serve(socket, app).await?;
+    handle.await??;
+    Ok(())
 }
 
 /// Handle a single IPC connection

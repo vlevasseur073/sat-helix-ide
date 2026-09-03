@@ -168,14 +168,9 @@ fn helper_binding(
 }
 
 fn git_binding(input: &RuntimeConfigInput<'_>) -> Result<KdlNode> {
-    let args = input
-        .git_args
-        .iter()
-        .map(|arg| format!(" {arg:?}"))
-        .collect::<String>();
     let snippet = format!(
         r#"bind {key:?} {{
-    Run {command:?}{args} {{
+    Run {exe:?} "--config" {config:?} "__git" "open" {{
         floating true
         close_on_exit true
         x "0%"
@@ -187,7 +182,8 @@ fn git_binding(input: &RuntimeConfigInput<'_>) -> Result<KdlNode> {
     }}
 }}"#,
         key = input.keys.git,
-        command = input.git_command.display().to_string(),
+        exe = input.executable.display().to_string(),
+        config = input.app_config.display().to_string(),
         width = input.float_width,
         height = input.float_height,
         cwd = input.project_dir.display().to_string(),

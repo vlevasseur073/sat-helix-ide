@@ -375,6 +375,43 @@ User runs: sat-hx-ide init
 - **Two spawn attempts**: init + first action (fallback if init fails)
 - **Fallback preserved**: Process mode still works if IPC fails
 
+### Daemon Lifecycle Management
+
+The daemon implements a complete lifecycle with proper cleanup:
+
+```
+Daemon Lifecycle:
+┌─────────────────────────────────────────────────────────────────┐
+│  1. SPAWN:                                                           │
+│     - Called during init_workspace() BEFORE Zellij starts           │
+│     - Creates Unix socket based on project directory hash          │
+│     - Writes PID to socket-specific PID file (daemon.pid)         │
+│     - Sets up panic hook to clean up PID file on crash             │
+│                                                                     │
+│  2. OPERATION:                                                      │
+│     - Handles IPC requests from action panes                       │
+│     - Maintains cached state (panes, tool paths)                    │
+│     - Graceful shutdown via SIGTERM signal                         │
+│                                                                     │
+│  3. CLEANUP:                                                       │
+│     - When Zellij session ends, manager calls kill_daemon()         │
+│     - Sends SIGTERM → waits 200ms → sends SIGKILL if needed        │
+│     - Removes PID file and socket file                             │
+│     - Handles cleanup even if main process is killed              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**PID File Strategy**:
+- **Location**: `<socket_directory>/daemon.pid` (socket-specific)
+- **Content**: Process ID of the daemon
+- **Purpose**: Allows cleanup code to find and kill the daemon process
+- **Cleanup**: Removed on graceful shutdown, panic, or explicit kill
+
+**Graceful Shutdown**:
+- SIGTERM → daemon stops accepting connections and completes current requests
+- SIGKILL → forceful termination if daemon doesn't respond to SIGTERM
+- PID file cleanup happens in all cases
+
 ### Performance Characteristics
 
 | Metric | Process Model | IPC Model | Improvement |

@@ -258,7 +258,7 @@ impl App {
             .arg(executable)
             .arg("--config")
             .arg("~/.config/sat-helix-ide/config.toml")
-            .args(["__git", "run"])
+            .args(["__git", "open"])
             .output()
             .await
             .context("Failed to create git pane")?;
