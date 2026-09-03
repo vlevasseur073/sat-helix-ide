@@ -1,7 +1,7 @@
 use crate::config::{expand_tilde, Config};
 use crate::resolve::resolve_executable;
 use anyhow::{bail, Context, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
@@ -106,20 +106,25 @@ pub enum TerminalAction {
     Zoom,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-struct PaneInfo {
-    id: u64,
-    is_plugin: bool,
-    is_floating: bool,
-    is_fullscreen: bool,
-    title: String,
-    tab_id: u64,
-    pane_columns: usize,
-    pane_rows: usize,
+#[derive(Debug, Clone, Copy)]
+pub enum GitAction {
+    Open,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaneInfo {
+    pub id: u64,
+    pub is_plugin: bool,
+    pub is_floating: bool,
+    pub is_fullscreen: bool,
+    pub title: String,
+    pub tab_id: u64,
+    pub pane_columns: usize,
+    pub pane_rows: usize,
 }
 
 impl PaneInfo {
-    fn cli_id(&self) -> String {
+    pub fn cli_id(&self) -> String {
         format!("terminal_{}", self.id)
     }
 }
@@ -641,6 +646,40 @@ fn zellij_status(command: &mut Command) -> Result<()> {
     } else {
         bail!("{display} exited with status {status}")
     }
+}
+
+pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
+    // For now, git actions just spawn a floating git client pane
+    // In the future, this could be more sophisticated
+    let zellij = resolve(&config.tools.zellij.command)?;
+    let panes = list_panes(&zellij)?;
+    let editor = panes
+        .iter()
+        .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
+        .context("Cannot find the sat-hx-ide editor pane")?;
+
+    // Spawn a floating git client
+    let output = Command::new(zellij)
+        .args(["action", "new-pane", "--close-on-exit"])
+        .args(["--name", "git", "--tab-id"])
+        .arg(editor.tab_id.to_string())
+        .arg("--floating")
+        .args(["--x", "0%", "--y", "0%"])
+        .arg("--width")
+        .arg("100%")
+        .arg("--height")
+        .arg("100%")
+        .output()
+        .context("Failed to create git pane")?;
+
+    if !output.status.success() {
+        bail!(
+            "Failed to create git pane: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
