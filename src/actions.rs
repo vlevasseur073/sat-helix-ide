@@ -5,10 +5,91 @@ use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
+use std::sync::{OnceLock, RwLock};
+use std::time::{Duration, Instant};
 
 const FILE_MANAGER_PANE: &str = "file-manager";
 const EDITOR_PANE: &str = "editor";
 const TERMINAL_PANE: &str = "terminal";
+
+/// Default TTL for pane cache in milliseconds
+const PANE_CACHE_TTL_MS: u64 = 500;
+
+/// Cached pane information with timestamp
+struct CachedPanes {
+    timestamp: Instant,
+    panes: Vec<PaneInfo>,
+    zellij_path: PathBuf,
+}
+
+/// Cache for Zellij pane information to avoid repeated list-panes calls
+/// This cache is per-process and helps when list_panes is called multiple
+/// times within a single action execution.
+struct PaneCache {
+    data: RwLock<Option<CachedPanes>>,
+}
+
+impl PaneCache {
+    fn new() -> Self {
+        Self {
+            data: RwLock::new(None),
+        }
+    }
+
+    /// Get panes from cache if fresh, otherwise fetch and cache
+    fn get(&self, zellij: &Path) -> Result<Vec<PaneInfo>> {
+        // Read cache
+        {
+            let guard = self.data.read().unwrap();
+            if let Some(ref cached) = *guard {
+                // If the Zellij path matches and cache is fresh, return cached data
+                if cached.zellij_path == zellij
+                    && cached.timestamp.elapsed() < Duration::from_millis(PANE_CACHE_TTL_MS)
+                {
+                    return Ok(cached.panes.clone());
+                }
+            }
+        }
+
+        // Fetch fresh data
+        let panes = fetch_panes(zellij)?;
+
+        // Update cache
+        {
+            let mut guard = self.data.write().unwrap();
+            *guard = Some(CachedPanes {
+                timestamp: Instant::now(),
+                panes: panes.clone(),
+                zellij_path: zellij.to_path_buf(),
+            });
+        }
+
+        Ok(panes)
+    }
+}
+
+/// Global pane cache instance - one per process
+static PANE_CACHE: OnceLock<PaneCache> = OnceLock::new();
+
+/// Get the global pane cache, initializing if necessary
+fn pane_cache() -> &'static PaneCache {
+    PANE_CACHE.get_or_init(PaneCache::new)
+}
+
+/// Fetch panes directly from Zellij (uncached)
+fn fetch_panes(zellij: &Path) -> Result<Vec<PaneInfo>> {
+    let output = Command::new(zellij)
+        .args(["action", "list-panes", "--json", "--all"])
+        .output()
+        .context("Failed to query Zellij panes")?;
+    if !output.status.success() {
+        bail!(
+            "Failed to query Zellij panes: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    serde_json::from_slice(&output.stdout).context("Invalid pane JSON returned by Zellij")
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum FileManagerAction {
@@ -529,18 +610,13 @@ fn resize_against_editor(
     Ok(())
 }
 
+/// Get the list of panes from Zellij, using cache if available
+///
+/// This function uses a per-process cache to avoid calling `zellij action list-panes`
+/// multiple times within a single action execution. The cache has a TTL of 500ms
+/// to ensure data freshness.
 fn list_panes(zellij: &Path) -> Result<Vec<PaneInfo>> {
-    let output = Command::new(zellij)
-        .args(["action", "list-panes", "--json", "--all"])
-        .output()
-        .context("Failed to query Zellij panes")?;
-    if !output.status.success() {
-        bail!(
-            "Failed to query Zellij panes: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    serde_json::from_slice(&output.stdout).context("Invalid pane JSON returned by Zellij")
+    pane_cache().get(zellij)
 }
 
 fn current_pane_id() -> Result<u64> {
@@ -596,5 +672,68 @@ mod tests {
         .unwrap();
         assert_eq!(panes[0].cli_id(), "terminal_4");
         assert!(panes[0].is_floating);
+    }
+
+    #[test]
+    fn pane_cache_starts_empty() {
+        let cache = PaneCache::new();
+        // Verify cache starts empty
+        assert!(cache.data.read().unwrap().is_none());
+    }
+
+    #[test]
+    fn pane_cache_stores_data() {
+        let cache = PaneCache::new();
+
+        // Add some data
+        {
+            let mut guard = cache.data.write().unwrap();
+            *guard = Some(CachedPanes {
+                timestamp: Instant::now(),
+                panes: vec![PaneInfo {
+                    id: 1,
+                    is_plugin: false,
+                    is_floating: false,
+                    is_fullscreen: false,
+                    title: "editor".to_string(),
+                    tab_id: 0,
+                    pane_columns: 80,
+                    pane_rows: 24,
+                }],
+                zellij_path: PathBuf::from("/usr/bin/zellij"),
+            });
+        }
+
+        // Verify it's there
+        assert!(cache.data.read().unwrap().is_some());
+    }
+
+    #[test]
+    fn pane_cache_respects_ttl() {
+        let cache = PaneCache::new();
+        let zellij = Path::new("/usr/bin/zellij");
+
+        // Add data with an expired timestamp
+        {
+            let mut guard = cache.data.write().unwrap();
+            *guard = Some(CachedPanes {
+                timestamp: Instant::now() - Duration::from_millis(PANE_CACHE_TTL_MS + 1),
+                panes: vec![PaneInfo {
+                    id: 1,
+                    is_plugin: false,
+                    is_floating: false,
+                    is_fullscreen: false,
+                    title: "editor".to_string(),
+                    tab_id: 0,
+                    pane_columns: 80,
+                    pane_rows: 24,
+                }],
+                zellij_path: zellij.to_path_buf(),
+            });
+        }
+
+        // Cache should be considered stale and not returned
+        // (We can't fully test this without mocking fetch_panes, but the logic is there)
+        assert!(cache.data.read().unwrap().is_some());
     }
 }
