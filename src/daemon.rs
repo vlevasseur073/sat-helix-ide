@@ -61,14 +61,12 @@ impl Daemon {
 
 /// Path to the daemon PID file for a given socket
 fn daemon_pid_path(socket: &Path) -> PathBuf {
-    if let Some(parent) = socket.parent() {
-        parent.join("daemon.pid")
-    } else {
-        let runtime_dir = std::env::var_os("XDG_RUNTIME_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(std::env::temp_dir);
-        runtime_dir.join("sat-helix-ide").join("daemon.pid")
-    }
+    ipc::pid_path(socket)
+}
+
+#[cfg(unix)]
+fn process_alive(pid: u32) -> bool {
+    unsafe { libc::kill(pid as libc::pid_t, 0) == 0 }
 }
 
 /// Write the current process ID to the PID file for a given socket
@@ -114,15 +112,13 @@ pub fn kill_daemon(socket: &Path) -> Result<()> {
         // Wait a bit for graceful shutdown
         std::thread::sleep(std::time::Duration::from_millis(200));
 
-        // Check if still alive, force kill if needed
-        if let Some(pid) = read_daemon_pid(socket) {
+        // Force kill only if the same PID is still running
+        #[cfg(unix)]
+        if process_alive(pid) {
             log::warn!("Daemon did not exit gracefully, sending SIGKILL");
-            #[cfg(unix)]
-            {
-                use libc::{kill, SIGKILL};
-                unsafe {
-                    kill(pid as libc::pid_t, SIGKILL);
-                }
+            use libc::{kill, SIGKILL};
+            unsafe {
+                kill(pid as libc::pid_t, SIGKILL);
             }
         }
 

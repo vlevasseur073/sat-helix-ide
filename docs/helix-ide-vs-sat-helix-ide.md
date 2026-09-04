@@ -1,5 +1,10 @@
 # helix-ide vs sat-helix-ide: Architecture Comparison & IPC Assessment
 
+> **Note (2026):** sat-helix-ide now implements a **hybrid IPC daemon** on the
+> `feature/ipc-protocol` branch. Sections below that describe sat-helix-ide as
+> "process-only" reflect the pre-IPC baseline; see [`design.md`](design.md) and
+> [`ipc.md`](ipc.md) for the current architecture.
+
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)

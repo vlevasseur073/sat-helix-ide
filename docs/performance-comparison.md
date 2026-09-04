@@ -1,5 +1,10 @@
 # Performance Comparison: sat-helix-ide vs. Your Helix + Zellij Setup
 
+> **Note (2026):** sat-helix-ide now includes an optional **IPC daemon** that
+> reduces per-action work inside the daemon (cached pane lists, config loaded
+> once). The helper-process spawn cost documented below still applies on each
+> keypress. See [`ipc.md`](ipc.md) for the hybrid latency model.
+
 ## Table of Contents
 
 1. [Your Current Setup Analysis](#your-current-setup-analysis)

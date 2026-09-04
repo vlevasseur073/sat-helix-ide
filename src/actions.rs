@@ -1,4 +1,4 @@
-use crate::config::{expand_tilde, Config};
+use crate::config::{expand_tilde, Config, TerminalDockPosition};
 use crate::resolve::resolve_executable;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -65,6 +65,10 @@ impl PaneCache {
         }
 
         Ok(panes)
+    }
+
+    fn invalidate(&self) {
+        *self.data.write().unwrap() = None;
     }
 }
 
@@ -413,10 +417,29 @@ pub fn terminal_action(config: &Config, action: TerminalAction) -> Result<()> {
 }
 
 /// Dock a fresh shell when the previous one was exited by the user.
-fn respawn_terminal(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result<()> {
-    let output = Command::new(zellij)
-        .args(["action", "new-pane", "--name", TERMINAL_PANE, "--tab-id"])
-        .arg(editor.tab_id.to_string())
+pub fn respawn_terminal(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result<()> {
+    let terminal = &config.terminal;
+    if !terminal.enabled {
+        bail!("Terminal is disabled in configuration");
+    }
+
+    focus_pane(zellij, editor)?;
+
+    let mut command = Command::new(zellij);
+    command.args([
+        "action",
+        "new-pane",
+        "--direction",
+        terminal.dock_position.zellij_new_pane_direction(),
+        "--name",
+        TERMINAL_PANE,
+        "--near-current-pane",
+    ]);
+    if let Ok(cwd) = std::env::current_dir() {
+        command.arg("--cwd").arg(cwd);
+    }
+
+    let output = command
         .output()
         .context("Failed to create the terminal pane")?;
     if !output.status.success() {
@@ -430,19 +453,31 @@ fn respawn_terminal(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result
         .context("Zellij returned a non-UTF-8 pane ID")?;
     wait_for_pane(zellij, &pane_id)?;
 
+    // `--name` on `new-pane` does not always stick; match layout.kdl naming explicitly.
     zellij_status(
         Command::new(zellij)
-            .args(["action", "move-pane", "--pane-id"])
+            .args(["action", "rename-pane", "--pane-id"])
             .arg(&pane_id)
-            .arg("down"),
+            .arg(TERMINAL_PANE),
     )?;
+
+    // Once Zellij ships `--size` on tiled `new-pane` (zellij-org/zellij#4735), prefer
+    // that over post-create resize.
+    let (axis, grow_border) = match terminal.dock_position {
+        TerminalDockPosition::Down => (Axis::Rows, "up"),
+        TerminalDockPosition::Right => (Axis::Columns, "left"),
+    };
     resize_against_editor(
         zellij,
         &pane_id,
         TERMINAL_PANE,
-        Axis::Rows,
-        usize::from(config.terminal.dock_percent),
-    )
+        axis,
+        grow_border,
+        usize::from(terminal.dock_percent),
+    )?;
+
+    pane_cache().invalidate();
+    Ok(())
 }
 
 fn toggle_fullscreen(zellij: &Path, pane: &PaneInfo) -> Result<()> {
@@ -498,6 +533,7 @@ fn toggle_dock(
             &pane_id,
             FILE_MANAGER_PANE,
             Axis::Columns,
+            "right",
             usize::from(config.tools.file_manager.dock_percent),
         )?;
     }
@@ -557,27 +593,44 @@ impl Axis {
             Axis::Rows => pane.pane_rows,
         }
     }
+}
 
-    /// The border to push on to grow a pane docked away from the editor.
-    fn grow_border(self) -> &'static str {
-        match self {
-            Axis::Columns => "right",
-            Axis::Rows => "up",
-        }
+/// Share of the split (terminal + editor) taken by `pane`, as an integer percent.
+fn pane_area_share(pane: &PaneInfo, editor: &PaneInfo, axis: Axis) -> Option<usize> {
+    let total = axis.measure(pane) + axis.measure(editor);
+    (total > 0).then_some(axis.measure(pane) * 100 / total)
+}
+
+fn resize_pane(zellij: &Path, pane_id: &str, resize: &str, direction: Option<&str>) -> Result<()> {
+    let mut command = Command::new(zellij);
+    command.args(["action", "resize", "--pane-id", pane_id, resize]);
+    if let Some(direction) = direction {
+        command.arg(direction);
     }
+    zellij_status(&mut command)
 }
 
 /// Zellij resizes in fixed steps, so nudge the pane until it is close enough
 /// to the requested share of the space it splits with the editor.
+///
+/// Uses coarse `+`/`-` (≈5% steps) when far from the target, then fine-grained
+/// border resizes. Always reads fresh pane geometry — the pane cache must not
+/// be used here or measurements go stale mid-loop.
 fn resize_against_editor(
     zellij: &Path,
     pane_id: &str,
     subject: &str,
     axis: Axis,
+    grow_border: &'static str,
     target: usize,
 ) -> Result<()> {
-    for _ in 0..20 {
-        let panes = list_panes(zellij)?;
+    const MAX_STEPS: usize = 100;
+    const TOLERANCE_PERCENT: usize = 1;
+    /// Switch to Zellij's coarse resize when more than this many points away.
+    const COARSE_THRESHOLD: usize = 8;
+
+    for _ in 0..MAX_STEPS {
+        let panes = fetch_panes(zellij)?;
         let Some(pane) = panes
             .iter()
             .find(|pane| !pane.is_plugin && pane.title == subject)
@@ -590,28 +643,59 @@ fn resize_against_editor(
         else {
             return Ok(());
         };
-        let total = axis.measure(pane) + axis.measure(editor);
-        if total == 0 {
+
+        let Some(current) = pane_area_share(pane, editor, axis) else {
             return Ok(());
-        }
-        let current = axis.measure(pane) * 100 / total;
-        if current.abs_diff(target) <= 3 {
-            return Ok(());
-        }
-        let resize = if current > target {
-            "decrease"
-        } else {
-            "increase"
         };
-        zellij_status(Command::new(zellij).args([
-            "action",
-            "resize",
-            "--pane-id",
-            pane_id,
-            resize,
-            axis.grow_border(),
-        ]))?;
+        let diff = current.abs_diff(target);
+        if diff <= TOLERANCE_PERCENT {
+            return Ok(());
+        }
+
+        let coarse = diff > COARSE_THRESHOLD;
+        if coarse {
+            let step = if current > target { "-" } else { "+" };
+            resize_pane(zellij, pane_id, step, None)?;
+        } else {
+            let step = if current > target {
+                "decrease"
+            } else {
+                "increase"
+            };
+            resize_pane(zellij, pane_id, step, Some(grow_border))?;
+        }
+
+        // Stop if a step overshoots the target (common with coarse `-`/`+`).
+        let panes = fetch_panes(zellij)?;
+        let Some(pane) = panes
+            .iter()
+            .find(|pane| !pane.is_plugin && pane.title == subject)
+        else {
+            return Ok(());
+        };
+        let Some(editor) = panes
+            .iter()
+            .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
+        else {
+            return Ok(());
+        };
+        let Some(after) = pane_area_share(pane, editor, axis) else {
+            return Ok(());
+        };
+        if after.abs_diff(target) <= TOLERANCE_PERCENT {
+            return Ok(());
+        }
+        if after.abs_diff(target) >= diff && !coarse {
+            let undo = if current > target {
+                "increase"
+            } else {
+                "decrease"
+            };
+            let _ = resize_pane(zellij, pane_id, undo, Some(grow_border));
+            return Ok(());
+        }
     }
+
     Ok(())
 }
 
@@ -753,31 +837,43 @@ mod tests {
     }
 
     #[test]
-    fn pane_cache_respects_ttl() {
-        let cache = PaneCache::new();
-        let zellij = Path::new("/usr/bin/zellij");
+    fn pane_area_share_percent() {
+        let terminal = PaneInfo {
+            id: 2,
+            is_plugin: false,
+            is_floating: false,
+            is_fullscreen: false,
+            title: TERMINAL_PANE.to_string(),
+            tab_id: 0,
+            pane_columns: 80,
+            pane_rows: 15,
+        };
+        let editor = PaneInfo {
+            id: 1,
+            is_plugin: false,
+            is_floating: false,
+            is_fullscreen: false,
+            title: EDITOR_PANE.to_string(),
+            tab_id: 0,
+            pane_columns: 80,
+            pane_rows: 85,
+        };
+        assert_eq!(pane_area_share(&terminal, &editor, Axis::Rows), Some(15));
+        assert_eq!(pane_area_share(&terminal, &editor, Axis::Columns), Some(50));
+    }
 
-        // Add data with an expired timestamp
+    #[test]
+    fn pane_cache_invalidate_clears_data() {
+        let cache = PaneCache::new();
         {
             let mut guard = cache.data.write().unwrap();
             *guard = Some(CachedPanes {
-                timestamp: Instant::now() - Duration::from_millis(PANE_CACHE_TTL_MS + 1),
-                panes: vec![PaneInfo {
-                    id: 1,
-                    is_plugin: false,
-                    is_floating: false,
-                    is_fullscreen: false,
-                    title: "editor".to_string(),
-                    tab_id: 0,
-                    pane_columns: 80,
-                    pane_rows: 24,
-                }],
-                zellij_path: zellij.to_path_buf(),
+                timestamp: Instant::now(),
+                panes: vec![],
+                zellij_path: PathBuf::from("/usr/bin/zellij"),
             });
         }
-
-        // Cache should be considered stale and not returned
-        // (We can't fully test this without mocking fetch_panes, but the logic is there)
-        assert!(cache.data.read().unwrap().is_some());
+        cache.invalidate();
+        assert!(cache.data.read().unwrap().is_none());
     }
 }

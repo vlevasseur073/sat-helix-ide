@@ -402,9 +402,9 @@ Daemon Lifecycle:
 ```
 
 **PID File Strategy**:
-- **Location**: `<socket_directory>/daemon.pid` (socket-specific)
-- **Content**: Process ID of the daemon
-- **Purpose**: Allows cleanup code to find and kill the daemon process
+- **Location**: `sat-hx-ide-{project_hash}.pid` alongside the matching socket in `XDG_RUNTIME_DIR`
+- **Content**: Process ID of the daemon for that project
+- **Purpose**: Allows cleanup code to find and kill the correct daemon process
 - **Cleanup**: Removed on graceful shutdown, panic, or explicit kill
 
 **Graceful Shutdown**:
@@ -495,23 +495,23 @@ Daemon Lifecycle:
 │  │   └── Parses subcommand "open"                            │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │ main.rs:138-146                                            │ │
-│  │   match Commands::FileManager { action } =>               │ │
-│  │     file_manager_action(&config, &config_path, action)   │ │
+│  │ main.rs: try_ipc_or_process()                              │ │
+│  │   ├── Daemon alive? send IPC request to app.rs             │ │
+│  │   └── On failure: file_manager_action() in actions.rs      │ │
 │  └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
        │
        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                file_manager_action() - actions.rs:46             │
+│  IPC path (app.rs) or fallback (actions.rs)                    │
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │ 1. Resolve Zellij executable                            │ │
-│  │ 2. List current panes (list_panes)                      │ │
+│  │ 1. Resolve Zellij executable (cached in daemon)           │ │
+│  │ 2. List current panes (cached in daemon, 500ms TTL)       │ │
 │  │ 3. Find existing file-manager pane                      │ │
 │  │ 4. Match on FileManagerAction::Open                    │ │
-│  │    ├─ If pane exists: focus it                          │ │
-│  │    └─ If not:                                           │ │
-│  │        ├─ Get current pane ID                          │ │
+│  │    ├─ If pane exists: focus it (IPC OK)                   │ │
+│  │    └─ If not: bail → process fallback                     │ │
+│  │        ├─ Get current pane ID (ZELLIJ_PANE_ID)             │ │
 │  │        ├─ Find editor pane                              │ │
 │  │        ├─ Rename current pane to "file-manager"         │ │
 │  │        └─ Run file manager (run_file_manager)          │ │

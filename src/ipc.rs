@@ -24,6 +24,11 @@ pub fn socket_path(project_dir: &Path) -> PathBuf {
     runtime_dir.join(format!("sat-hx-ide-{hash}.sock"))
 }
 
+/// PID file path paired with a project socket (`sat-hx-ide-{hash}.sock` → `.pid`).
+pub fn pid_path(socket: &Path) -> PathBuf {
+    socket.with_extension("pid")
+}
+
 /// Generate socket path for the current session based on project directory
 /// Falls back to session name if project directory cannot be determined
 pub fn current_socket_path() -> PathBuf {
@@ -91,6 +96,7 @@ pub async fn serve(
     let socket_clone = socket.clone();
 
     // Spawn the server task
+    let shutdown_for_loop = shutdown_sender.clone();
     let handle = tokio::spawn(async move {
         // Accept loop
         loop {
@@ -101,8 +107,9 @@ pub async fn serve(
                     match result {
                         Ok((stream, _)) => {
                             let app = std::sync::Arc::clone(&app);
+                            let shutdown = shutdown_for_loop.clone();
                             tokio::spawn(async move {
-                                if let Err(error) = handle_connection(stream, app).await {
+                                if let Err(error) = handle_connection(stream, app, shutdown).await {
                                     log::error!("IPC error: {error:#}");
                                 }
                             });
@@ -138,7 +145,11 @@ pub async fn serve_simple(socket: &PathBuf, app: std::sync::Arc<crate::app::App>
 }
 
 /// Handle a single IPC connection
-async fn handle_connection(stream: UnixStream, app: std::sync::Arc<crate::app::App>) -> Result<()> {
+async fn handle_connection(
+    stream: UnixStream,
+    app: std::sync::Arc<crate::app::App>,
+    shutdown: mpsc::Sender<()>,
+) -> Result<()> {
     let (reader, mut writer) = stream.into_split();
     let mut reader = BufReader::new(reader);
 
@@ -154,7 +165,13 @@ async fn handle_connection(stream: UnixStream, app: std::sync::Arc<crate::app::A
         .with_context(|| format!("failed to parse IPC request: {line}"))?;
 
     // Handle request
-    let response = app.handle_ipc(request).await;
+    let response = match &request {
+        Request::Shutdown => {
+            let _ = shutdown.send(()).await;
+            Response::Ok
+        }
+        _ => app.handle_ipc(request).await,
+    };
 
     // Send response
     let mut serialized = serde_json::to_vec(&response)?;
@@ -232,11 +249,39 @@ pub async fn is_daemon_alive(socket: &PathBuf) -> bool {
 }
 
 /// Spawn the daemon process
-pub fn spawn_daemon(executable: &std::path::Path, socket: &PathBuf) -> Result<()> {
+pub fn spawn_daemon(
+    executable: &std::path::Path,
+    socket: &Path,
+    config_path: &Path,
+    session_name: Option<&str>,
+) -> Result<()> {
     let mut command = std::process::Command::new(executable);
-    command.arg("daemon").arg("--socket").arg(socket);
+    command
+        .arg("daemon")
+        .arg("--socket")
+        .arg(socket)
+        .env("SAT_HX_IDE_CONFIG", config_path);
+    if let Some(session_name) = session_name {
+        command.env("ZELLIJ_SESSION_NAME", session_name);
+    }
 
     command.spawn().with_context(|| "failed to spawn daemon")?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn pid_path_pairs_with_socket_per_project() {
+        let sock_a = socket_path(Path::new("/home/user/project-a"));
+        let sock_b = socket_path(Path::new("/home/user/project-b"));
+        assert_ne!(sock_a, sock_b);
+        assert_eq!(pid_path(&sock_a), sock_a.with_extension("pid"));
+        assert_eq!(pid_path(&sock_b), sock_b.with_extension("pid"));
+        assert_ne!(pid_path(&sock_a), pid_path(&sock_b));
+    }
 }

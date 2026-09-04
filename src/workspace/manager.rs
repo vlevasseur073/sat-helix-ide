@@ -63,13 +63,13 @@ impl<'a> WorkspaceManager<'a> {
 
         if !ipc::is_daemon_alive(&socket_path).await {
             log::info!("Spawning daemon for session: {}", session_name);
-            std::process::Command::new(&executable)
-                .arg("daemon")
-                .arg("--socket")
-                .arg(&socket_path)
-                .env("ZELLIJ_SESSION_NAME", &session_name)
-                .spawn()
-                .context("Failed to spawn daemon")?;
+            ipc::spawn_daemon(
+                &executable,
+                &socket_path,
+                &self.app_config_path,
+                Some(&session_name),
+            )
+            .context("Failed to spawn daemon")?;
 
             // Wait for daemon to start listening (with timeout)
             for _ in 0..50 {
@@ -95,7 +95,7 @@ impl<'a> WorkspaceManager<'a> {
             self.config
                 .terminal
                 .enabled
-                .then_some(self.config.terminal.dock_percent),
+                .then_some(&self.config.terminal),
             &project_dir,
             status_bar,
         );

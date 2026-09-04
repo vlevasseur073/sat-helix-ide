@@ -40,6 +40,19 @@ $XDG_RUNTIME_DIR/sat-helix-ide/<session>/
 
 If `XDG_RUNTIME_DIR` is unavailable, the system temporary directory is used.
 
+### IPC daemon (hybrid mode)
+
+Since the IPC branch, `sat-hx-ide init` also starts a per-project daemon that
+handles keybinding actions over a Unix socket. A short-lived helper process still
+runs for each keypress, but action work (pane discovery, Zellij commands) is
+delegated to the daemon when available.
+
+- Socket: `$XDG_RUNTIME_DIR/sat-hx-ide-{project-hash}.sock`
+- PID file: `$XDG_RUNTIME_DIR/sat-hx-ide-{project-hash}.pid`
+- Falls back to the process model if the daemon is unavailable
+
+See [`docs/ipc.md`](docs/ipc.md) for troubleshooting and limitations.
+
 ## Requirements and installation
 
 Required:
@@ -154,7 +167,8 @@ Yazi/Helix width (28% by default):
 ### Terminal states
 
 The shell runs in a named `terminal` pane with no configured command — Zellij
-starts your `$SHELL`. Toggles use Zellij fullscreen so the process keeps
+starts your `$SHELL`. By default it is docked below Helix (`terminal.dock_position = "down"`);
+use `dock_position = "right"` to place it beside the editor. Toggles use Zellij fullscreen so the process keeps
 running:
 
 ```text
@@ -204,6 +218,7 @@ ai_by_default = true
 [terminal]
 enabled = true
 dock_percent = 15
+dock_position = "down"
 
 [keybindings]
 file_manager = "Ctrl y"

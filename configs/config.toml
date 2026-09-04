@@ -15,8 +15,10 @@ status_bar = false
 [terminal]
 # Dock a shell under Helix in the code tab. It runs Zellij's default shell.
 enabled = true
-# Height of that shell as a percentage of the code tab.
+# Share of the code tab given to the terminal (height when down, width when right).
 dock_percent = 15
+# Terminal placement relative to the editor: "down" (default) or "right".
+dock_position = "down"
 
 [keybindings]
 # Zellij key notation. Bindings are added to shared_except "locked".

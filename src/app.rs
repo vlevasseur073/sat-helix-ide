@@ -4,7 +4,7 @@ use crate::protocol::{Request, Response};
 use crate::resolve::resolve_executable;
 use anyhow::{Context, Result};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use tokio::process::Command;
 use tokio::sync::RwLock;
@@ -12,6 +12,7 @@ use tokio::sync::RwLock;
 // Constants from actions module
 const FILE_MANAGER_PANE: &str = "file-manager";
 const EDITOR_PANE: &str = "editor";
+const TERMINAL_PANE: &str = "terminal";
 
 /// Default TTL for pane cache in milliseconds
 const PANE_CACHE_TTL_MS: u64 = 500;
@@ -183,41 +184,55 @@ impl App {
 
         let editor = panes
             .iter()
-            .find(|p| !p.is_plugin && p.title == "editor")
+            .find(|p| !p.is_plugin && p.title == EDITOR_PANE)
             .ok_or_else(|| anyhow::anyhow!("Cannot find editor pane"))?;
 
-        let terminal = panes.iter().find(|p| !p.is_plugin && p.title == "terminal");
+        let Some(terminal) = panes
+            .iter()
+            .find(|p| !p.is_plugin && p.title == TERMINAL_PANE)
+        else {
+            return self.respawn_terminal(&zellij, editor).await;
+        };
 
         let hidden = editor.is_fullscreen;
-        let zoomed = terminal.is_some_and(|t| t.is_fullscreen);
+        let zoomed = terminal.is_fullscreen;
 
         match action {
             TerminalAction::Toggle if hidden => {
                 self.toggle_fullscreen(&zellij, editor).await?;
-                if let Some(terminal) = terminal {
-                    self.focus_pane(&zellij, terminal).await?;
-                }
+                self.focus_pane(&zellij, terminal).await?;
             }
             TerminalAction::Toggle => {
                 if zoomed {
-                    self.toggle_fullscreen(&zellij, terminal.unwrap()).await?;
+                    self.toggle_fullscreen(&zellij, terminal).await?;
                 }
                 self.toggle_fullscreen(&zellij, editor).await?;
             }
             TerminalAction::Zoom if zoomed => {
-                self.toggle_fullscreen(&zellij, terminal.unwrap()).await?;
+                self.toggle_fullscreen(&zellij, terminal).await?;
             }
             TerminalAction::Zoom => {
                 if hidden {
                     self.toggle_fullscreen(&zellij, editor).await?;
                 }
-                self.toggle_fullscreen(&zellij, terminal.unwrap()).await?;
+                self.toggle_fullscreen(&zellij, terminal).await?;
             }
         }
 
-        // Invalidate pane cache after state change
         self.invalidate_pane_cache().await;
 
+        Ok(())
+    }
+
+    /// Dock a fresh shell when the previous terminal pane was closed by the user.
+    async fn respawn_terminal(&self, zellij: &Path, editor: &PaneInfo) -> Result<()> {
+        let config = self.config.clone();
+        let zellij = zellij.to_path_buf();
+        let editor = editor.clone();
+        tokio::task::block_in_place(|| {
+            crate::actions::respawn_terminal(&config, &zellij, &editor)
+        })?;
+        self.invalidate_pane_cache().await;
         Ok(())
     }
 

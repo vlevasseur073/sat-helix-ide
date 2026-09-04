@@ -183,7 +183,8 @@ async fn try_ipc_or_process(command: Commands, config: &Config, config_path: &Pa
     } else {
         // Daemon not running, try to spawn it
         log::info!("No daemon running, attempting to spawn...");
-        if let Err(e) = spawn_daemon_and_wait(&socket).await {
+        let session_name = std::env::var("ZELLIJ_SESSION_NAME").ok();
+        if let Err(e) = spawn_daemon_and_wait(&socket, config_path, session_name.as_deref()).await {
             log::warn!("Failed to spawn daemon: {}", e);
         } else {
             // Daemon should be running now, try IPC again
@@ -251,16 +252,16 @@ async fn execute_command_process(
 }
 
 /// Spawn the daemon and wait for it to be ready
-async fn spawn_daemon_and_wait(socket: &PathBuf) -> Result<()> {
+async fn spawn_daemon_and_wait(
+    socket: &PathBuf,
+    config_path: &Path,
+    session_name: Option<&str>,
+) -> Result<()> {
     use std::time::Duration;
 
     let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
 
-    // Spawn the daemon using std::process to avoid tokio runtime conflicts
-    let mut command = std::process::Command::new(&executable);
-    command.arg("daemon").arg("--socket").arg(socket);
-
-    let _child = command.spawn().with_context(|| "failed to spawn daemon")?;
+    ipc::spawn_daemon(&executable, socket, config_path, session_name)?;
 
     // Wait for the daemon to start listening
     for _ in 0..50 {
