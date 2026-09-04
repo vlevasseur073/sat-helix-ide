@@ -34,6 +34,7 @@ Zellij bindings invoke hidden subcommands on the `sat-hx-ide` binary:
 | Alt-t | `__terminal toggle` | Hide/show terminal via fullscreen |
 | Alt-Shift-t | `__terminal zoom` | Zoom terminal or dock back |
 | Alt-g | `__git open` | Spawn configured Git TUI in floating pane |
+| Alt-r | `__review open` | Spawn configured review tool in floating pane (default: revdiff) |
 
 Helpers run in tiny floating panes (`close_on_exit true`) so Zellij keeps the
 keybinding helper's TTY for actions that need it (file-manager spawn).
@@ -47,6 +48,7 @@ All logic lives in [`src/actions.rs`](../src/actions.rs):
 - **Terminal** — Toggle fullscreen on editor/terminal panes; respawn terminal
   with layout-aware direction when the shell pane was closed.
 - **Git** — Spawn a floating pane on the code tab with the resolved Git client.
+- **Review** — Spawn a floating pane with the tool from `[tools.review]` (default `revdiff`).
 
 ## Pane cache
 

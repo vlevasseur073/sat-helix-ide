@@ -139,6 +139,7 @@ impl<'a> WorkspaceManager<'a> {
         check("Editor", &self.config.tools.editor)?;
         check_file_manager(&self.config.tools.file_manager.command)?;
         check("Git client", &self.config.tools.git)?;
+        check("Review", &self.config.tools.review)?;
         match self.config.tools.ai.as_ref() {
             Some(ai) => match resolve_executable(&ai.command) {
                 Ok(path) => println!("  ✓ AI: {}", path.display()),

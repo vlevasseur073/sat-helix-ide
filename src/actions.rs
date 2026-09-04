@@ -1,4 +1,4 @@
-use crate::config::{expand_tilde, Config, TerminalDockPosition};
+use crate::config::{expand_tilde, CommandConfig, Config, TerminalDockPosition};
 use crate::resolve::resolve_executable;
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
@@ -112,6 +112,11 @@ pub enum TerminalAction {
 
 #[derive(Debug, Clone, Copy)]
 pub enum GitAction {
+    Open,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ReviewAction {
     Open,
 }
 
@@ -738,6 +743,14 @@ fn zellij_status(command: &mut Command) -> Result<()> {
 }
 
 pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
+    spawn_floating_tool(config, "git", &config.tools.git)
+}
+
+pub fn review_action(config: &Config, _action: ReviewAction) -> Result<()> {
+    spawn_floating_tool(config, "review", &config.tools.review)
+}
+
+fn spawn_floating_tool(config: &Config, pane_name: &str, tool: &CommandConfig) -> Result<()> {
     let zellij = resolve(&config.tools.zellij.command)?;
     let panes = list_panes(&zellij)?;
     let editor = panes
@@ -745,12 +758,12 @@ pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
         .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
         .context("Cannot find the sat-hx-ide editor pane")?;
 
-    let git_command = resolve_executable(&config.tools.git.command)
-        .with_context(|| format!("Cannot find git client '{}'", config.tools.git.command))?;
+    let command = resolve_executable(&tool.command)
+        .with_context(|| format!("Cannot find '{}'", tool.command))?;
 
     let output = Command::new(zellij)
         .args(["action", "new-pane", "--close-on-exit"])
-        .args(["--name", "git", "--tab-id"])
+        .args(["--name", pane_name, "--tab-id"])
         .arg(editor.tab_id.to_string())
         .arg("--floating")
         .args(["--x", "0%", "--y", "0%"])
@@ -759,14 +772,14 @@ pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
         .arg("--height")
         .arg("100%")
         .arg("--")
-        .arg(&git_command)
-        .args(&config.tools.git.args)
+        .arg(&command)
+        .args(&tool.args)
         .output()
-        .context("Failed to create git pane")?;
+        .with_context(|| format!("Failed to create {pane_name} pane"))?;
 
     if !output.status.success() {
         bail!(
-            "Failed to create git pane: {}",
+            "Failed to create {pane_name} pane: {}",
             String::from_utf8_lossy(&output.stderr)
         );
     }

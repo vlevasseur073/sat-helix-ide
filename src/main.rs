@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use sat_helix_ide::actions::{
-    file_manager_action, git_action, terminal_action, FileManagerAction, GitAction, TerminalAction,
+    file_manager_action, git_action, review_action, terminal_action, FileManagerAction, GitAction,
+    ReviewAction, TerminalAction,
 };
 use sat_helix_ide::{Config, WorkspaceManager};
 use std::path::PathBuf;
@@ -79,6 +80,12 @@ enum Commands {
         #[command(subcommand)]
         action: GitCommands,
     },
+
+    #[command(name = "__review", hide = true)]
+    Review {
+        #[command(subcommand)]
+        action: ReviewCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -96,6 +103,11 @@ enum TerminalCommands {
 
 #[derive(Subcommand, Debug)]
 enum GitCommands {
+    Open,
+}
+
+#[derive(Subcommand, Debug)]
+enum ReviewCommands {
     Open,
 }
 
@@ -169,6 +181,13 @@ fn main() -> Result<()> {
                 GitCommands::Open => GitAction::Open,
             };
             git_action(&config, action)?;
+        }
+        Commands::Review { action } => {
+            let config = Config::load(&cli.config)?;
+            let action = match action {
+                ReviewCommands::Open => ReviewAction::Open,
+            };
+            review_action(&config, action)?;
         }
     }
     Ok(())

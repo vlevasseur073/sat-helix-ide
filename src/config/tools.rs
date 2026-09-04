@@ -70,6 +70,9 @@ pub struct ToolConfig {
     #[serde(default = "default_git")]
     pub git: CommandConfig,
 
+    #[serde(default = "default_review")]
+    pub review: CommandConfig,
+
     #[serde(default = "default_ai")]
     pub ai: Option<CommandConfig>,
 }
@@ -81,6 +84,7 @@ impl Default for ToolConfig {
             editor: default_editor(),
             file_manager: FileManagerConfig::default(),
             git: default_git(),
+            review: default_review(),
             ai: default_ai(),
         }
     }
@@ -96,6 +100,10 @@ fn default_editor() -> CommandConfig {
 
 fn default_git() -> CommandConfig {
     CommandConfig::new("lazygit")
+}
+
+fn default_review() -> CommandConfig {
+    CommandConfig::new("revdiff")
 }
 
 fn default_ai() -> Option<CommandConfig> {

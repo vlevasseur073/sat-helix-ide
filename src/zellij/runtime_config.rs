@@ -51,6 +51,7 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
         (&input.keys.file_manager, "file manager"),
         (&input.keys.file_manager_dock, "file-manager dock toggle"),
         (&input.keys.git, "Git client"),
+        (&input.keys.review, "Review"),
         (&input.keys.terminal, "terminal toggle"),
         (&input.keys.terminal_zoom, "terminal zoom toggle"),
     ];
@@ -99,6 +100,13 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
             input,
             &["__git", "open"],
             "sat-git-open",
+            false,
+        )?,
+        helper_binding(
+            &input.keys.review,
+            input,
+            &["__review", "open"],
+            "sat-review-open",
             false,
         )?,
     ];
@@ -286,6 +294,8 @@ mod tests {
         assert!(runtime.contains("bind \"Alt t\""));
         assert!(runtime.contains("bind \"Alt Shift t\""));
         assert!(runtime.contains("bind \"Alt g\""));
+        assert!(runtime.contains("bind \"Alt r\""));
+        assert!(runtime.contains("__review"));
     }
 
     #[test]
@@ -313,7 +323,15 @@ mod tests {
 
         assert_eq!(
             shared,
-            ["Ctrl p", "Ctrl y", "Alt y", "Alt t", "Alt Shift t", "Alt g"]
+            [
+                "Ctrl p",
+                "Ctrl y",
+                "Alt y",
+                "Alt t",
+                "Alt Shift t",
+                "Alt g",
+                "Alt r"
+            ]
         );
     }
 

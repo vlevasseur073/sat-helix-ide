@@ -125,6 +125,9 @@ pub struct KeybindingConfig {
     #[serde(default = "default_git_key")]
     pub git: String,
 
+    #[serde(default = "default_review_key")]
+    pub review: String,
+
     #[serde(default = "default_terminal_key")]
     pub terminal: String,
 
@@ -138,6 +141,7 @@ impl Default for KeybindingConfig {
             file_manager: default_file_manager_key(),
             file_manager_dock: default_file_manager_dock_key(),
             git: default_git_key(),
+            review: default_review_key(),
             terminal: default_terminal_key(),
             terminal_zoom: default_terminal_zoom_key(),
         }
@@ -158,6 +162,10 @@ fn default_file_manager_dock_key() -> String {
 
 fn default_git_key() -> String {
     "Alt g".to_string()
+}
+
+fn default_review_key() -> String {
+    "Alt r".to_string()
 }
 
 fn default_terminal_key() -> String {
