@@ -145,6 +145,22 @@ pub fn file_manager_ipc_capable(action: FileManagerAction, file_manager_exists: 
     )
 }
 
+/// IPC-only path: focus an existing file-manager pane.
+pub fn file_manager_focus(config: &Config) -> Result<()> {
+    let zellij = resolve(&config.tools.zellij.command)?;
+    let panes = list_panes(&zellij)?;
+    let existing = panes
+        .iter()
+        .find(|pane| !pane.is_plugin && pane.title == FILE_MANAGER_PANE);
+
+    if !file_manager_ipc_capable(FileManagerAction::Open, existing.is_some()) {
+        anyhow::bail!("file manager action must run in helper process");
+    }
+
+    let pane = existing.context("file-manager pane not found")?;
+    focus_pane(&zellij, pane)
+}
+
 pub fn file_manager_action(
     config: &Config,
     config_path: &Path,
