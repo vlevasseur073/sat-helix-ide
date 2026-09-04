@@ -94,7 +94,13 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
             "sat-terminal-zoom",
             false,
         )?,
-        git_binding(input)?,
+        helper_binding(
+            &input.keys.git,
+            input,
+            &["__git", "open"],
+            "sat-git-open",
+            false,
+        )?,
     ];
 
     set_session_name(&mut document, input.session_name)?;
@@ -162,34 +168,6 @@ fn helper_binding(
 }}"#,
         exe = input.executable.display().to_string(),
         config = input.app_config.display().to_string(),
-        cwd = input.project_dir.display().to_string(),
-    );
-    parse_single_node(&snippet)
-}
-
-fn git_binding(input: &RuntimeConfigInput<'_>) -> Result<KdlNode> {
-    let args = input
-        .git_args
-        .iter()
-        .map(|arg| format!(" {arg:?}"))
-        .collect::<String>();
-    let snippet = format!(
-        r#"bind {key:?} {{
-    Run {command:?}{args} {{
-        floating true
-        close_on_exit true
-        x "0%"
-        y "0%"
-        width {width:?}
-        height {height:?}
-        name "git"
-        cwd {cwd:?}
-    }}
-}}"#,
-        key = input.keys.git,
-        command = input.git_command.display().to_string(),
-        width = input.float_width,
-        height = input.float_height,
         cwd = input.project_dir.display().to_string(),
     );
     parse_single_node(&snippet)

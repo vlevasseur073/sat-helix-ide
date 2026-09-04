@@ -64,7 +64,7 @@ impl<'a> WorkspaceManager<'a> {
             self.config
                 .terminal
                 .enabled
-                .then_some(self.config.terminal.dock_percent),
+                .then_some(&self.config.terminal),
             &project_dir,
             status_bar,
         );

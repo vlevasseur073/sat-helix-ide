@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use sat_helix_ide::actions::{
-    file_manager_action, terminal_action, FileManagerAction, TerminalAction,
+    file_manager_action, git_action, terminal_action, FileManagerAction, GitAction, TerminalAction,
 };
 use sat_helix_ide::{Config, WorkspaceManager};
 use std::path::PathBuf;
@@ -73,6 +73,12 @@ enum Commands {
         #[command(subcommand)]
         action: TerminalCommands,
     },
+
+    #[command(name = "__git", hide = true)]
+    Git {
+        #[command(subcommand)]
+        action: GitCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -86,6 +92,11 @@ enum FileManagerCommands {
 enum TerminalCommands {
     Toggle,
     Zoom,
+}
+
+#[derive(Subcommand, Debug)]
+enum GitCommands {
+    Open,
 }
 
 impl Default for Commands {
@@ -151,6 +162,13 @@ fn main() -> Result<()> {
                 TerminalCommands::Zoom => TerminalAction::Zoom,
             };
             terminal_action(&config, action)?;
+        }
+        Commands::Git { action } => {
+            let config = Config::load(&cli.config)?;
+            let action = match action {
+                GitCommands::Open => GitAction::Open,
+            };
+            git_action(&config, action)?;
         }
     }
     Ok(())

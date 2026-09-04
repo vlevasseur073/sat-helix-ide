@@ -40,6 +40,9 @@ $XDG_RUNTIME_DIR/sat-helix-ide/<session>/
 
 If `XDG_RUNTIME_DIR` is unavailable, the system temporary directory is used.
 
+See [`docs/architecture.md`](docs/architecture.md) for init flow, helper commands,
+and the pane cache.
+
 ## Requirements and installation
 
 Required:
@@ -85,15 +88,21 @@ An existing project-named session is attached by default. Set
 
 ## Workspace
 
-The `code` tab runs Helix with your login shell docked underneath (15% height
-by default):
+The `code` tab runs Helix with your login shell docked beside it (15% by default,
+below the editor). Set `terminal.dock_position = "right"` for a vertical split:
 
 ```text
-┌─ code ────────────────────────────────────┐
+┌─ code (dock down) ────────────────────────┐
 │                  Helix                   │
 ├──────────────────────────────────────────┤
 │               shell (15%)                │
 └──────────────────────────────────────────┘
+
+┌─ code (dock right) ───────┬───────────────┐
+│                          │               │
+│          Helix           │  shell (15%)  │
+│                          │               │
+└──────────────────────────┴───────────────┘
 ```
 
 A second tab runs the configured AI agent whenever that command is on `PATH`:
@@ -120,7 +129,7 @@ Bindings are active in every Zellij mode except locked mode:
 | `Alt-y` | Toggle the same file-manager pane between full-screen floating and docked left of Helix |
 | `Alt-t` | Hide the terminal behind a fullscreen Helix, or show it again at the docked height |
 | `Alt-Shift-t` | Zoom the terminal to full tab height, or dock it back to `terminal.dock_percent` |
-| `Alt-g` | Open the configured Git client as a full-screen floating pane |
+| `Alt-g` | Open the configured Git client via `sat-hx-ide __git open` (floating pane) |
 | `Ctrl-g` | Existing Zellij lock/unlock binding; sat-hx-ide intentionally leaves it alone |
 
 The keys are configurable. sat-hx-ide refuses to launch if a selected key
@@ -204,6 +213,7 @@ ai_by_default = true
 [terminal]
 enabled = true
 dock_percent = 15
+# dock_position = "down"  # or "right" for a vertical editor/terminal split
 
 [keybindings]
 file_manager = "Ctrl y"

@@ -1,11 +1,11 @@
-use crate::config::CommandConfig;
+use crate::config::{CommandConfig, TerminalConfig};
 use std::path::Path;
 
 pub fn session_layout(
     editor: &CommandConfig,
     editor_path: &Path,
     ai: Option<(&CommandConfig, &Path)>,
-    terminal_percent: Option<u8>,
+    terminal: Option<&TerminalConfig>,
     project_dir: &Path,
     status_bar: bool,
 ) -> String {
@@ -21,9 +21,12 @@ pub fn session_layout(
     let tab = if status_bar { "status_tab" } else { "tab" };
     layout.push_str(&format!("    {tab}"));
     layout.push_str(" name=\"code\" focus=true {\n");
-    match terminal_percent {
-        Some(percent) => {
-            layout.push_str("        pane split_direction=\"horizontal\" {\n");
+    match terminal.filter(|terminal| terminal.enabled) {
+        Some(terminal) => {
+            layout.push_str(&format!(
+                "        pane split_direction={direction:?} {{\n",
+                direction = terminal.dock_position.zellij_split_direction()
+            ));
             layout.push_str(&command_pane(
                 "editor",
                 editor_path,
@@ -33,6 +36,7 @@ pub fn session_layout(
             ));
             layout.push_str(&format!(
                 "            pane name=\"terminal\" size=\"{percent}%\" cwd={cwd:?}\n",
+                percent = terminal.dock_percent,
                 cwd = project_dir.display().to_string(),
             ));
             layout.push_str("        }\n");
@@ -82,6 +86,15 @@ fn command_pane(name: &str, command: &Path, args: &[String], cwd: &Path, indent:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::TerminalDockPosition;
+
+    fn terminal_config(percent: u8, position: TerminalDockPosition) -> TerminalConfig {
+        TerminalConfig {
+            enabled: true,
+            dock_percent: percent,
+            dock_position: position,
+        }
+    }
 
     #[test]
     fn builds_code_only_layout() {
@@ -100,24 +113,6 @@ mod tests {
         assert!(!layout.contains("tab name=\"ai\""));
         assert!(!layout.contains("name=\"terminal\""));
     }
-
-    // #[test]
-    // fn builds_code_only_layout_with_status_bar() {
-    //     let editor = CommandConfig::new("hx");
-    //     let layout = session_layout(
-    //         &editor,
-    //         Path::new("/usr/bin/hx"),
-    //         None,
-    //         None,
-    //         Path::new("/work"),
-    //         true,
-    //     );
-
-    //     assert!(layout.contains("status_tab name=\"code\" focus=true"));
-    //     assert!(layout.contains("command=\"/usr/bin/hx\""));
-    //     assert!(!layout.contains("tab name=\"ai\""));
-    //     assert!(!layout.contains("name=\"terminal\""));
-    // }
 
     #[test]
     fn adds_configured_ai_tab() {
@@ -143,11 +138,12 @@ mod tests {
     #[test]
     fn docks_the_terminal_under_the_editor() {
         let editor = CommandConfig::new("hx");
+        let terminal = terminal_config(15, TerminalDockPosition::Down);
         let layout = session_layout(
             &editor,
             Path::new("/usr/bin/hx"),
             None,
-            Some(15),
+            Some(&terminal),
             Path::new("/work"),
             false,
         );
@@ -159,6 +155,29 @@ mod tests {
         assert!(
             editor_at < terminal_at,
             "terminal must sit below the editor"
+        );
+    }
+
+    #[test]
+    fn docks_the_terminal_right_of_the_editor() {
+        let editor = CommandConfig::new("hx");
+        let terminal = terminal_config(28, TerminalDockPosition::Right);
+        let layout = session_layout(
+            &editor,
+            Path::new("/usr/bin/hx"),
+            None,
+            Some(&terminal),
+            Path::new("/work"),
+            false,
+        );
+
+        assert!(layout.contains("split_direction=\"vertical\""));
+        assert!(layout.contains("pane name=\"terminal\" size=\"28%\" cwd=\"/work\""));
+        let editor_at = layout.find("name=\"editor\"").unwrap();
+        let terminal_at = layout.find("name=\"terminal\"").unwrap();
+        assert!(
+            editor_at < terminal_at,
+            "terminal must sit to the right of the editor"
         );
     }
 }
