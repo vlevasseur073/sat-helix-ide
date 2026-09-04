@@ -288,7 +288,8 @@ Following the pattern from helix-ide, sat-hx-ide implements a **hybrid IPC archi
 │    ✓ Tool Cache - RwLock<HashMap<tool_name, PathBuf>>          │
 │  Request Handling:                                              │
 │    ✓ handle_ipc() - Dispatch Request enum to handlers            │
-│    ✓ Action handlers for all supported actions                 │
+│    ✓ Thin wrappers: block_in_place → actions.rs (terminal, git,  │
+│      file_manager_focus); spawn paths bail → process fallback    │
 │    ✓ GetPaneList, GetContext for state queries                  │
 │    ✓ Ping, Shutdown for lifecycle management                    │
 └─────────────────────────────────────────────────────────────────┘
@@ -303,7 +304,7 @@ Following the pattern from helix-ide, sat-hx-ide implements a **hybrid IPC archi
 │                    Protocol (protocol.rs)                         │
 ├─────────────────────────────────────────────────────────────────┤
 │  Request Types (tagged enum with serde):                         │
-│    ✓ FileManagerOpen, FileManagerToggleDock, FileManagerRun    │
+│    ✓ FileManagerOpen/ToggleDock/Run { source_pane_id? }          │
 │    ✓ TerminalToggle, TerminalZoom                                │
 │    ✓ GitOpen                                                     │
 │    ✓ GetPaneList, GetContext                                     │
@@ -337,7 +338,7 @@ Following the pattern from helix-ide, sat-hx-ide implements a **hybrid IPC archi
 │  │  - Listens on Unix domain socket                              │    │
 │  │  - Loads config once at startup                               │    │
 │  │  - Caches pane state with TTL                                │    │
-│  │  - Handles all action requests                                │    │
+│  │  - Delegates actions to actions.rs (single source of truth)  │    │
 │  │  - Lives for entire Zellij session lifetime                 │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                     │
@@ -385,7 +386,7 @@ Daemon Lifecycle:
 │  1. SPAWN:                                                           │
 │     - Called during init_workspace() BEFORE Zellij starts           │
 │     - Creates Unix socket based on project directory hash          │
-│     - Writes PID to socket-specific PID file (daemon.pid)         │
+│     - Writes PID to sat-hx-ide-{hash}.pid (paired with socket)   │
 │     - Sets up panic hook to clean up PID file on crash             │
 │                                                                     │
 │  2. OPERATION:                                                      │
@@ -497,24 +498,24 @@ Daemon Lifecycle:
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │ main.rs: try_ipc_or_process()                              │ │
 │  │   ├── Daemon alive? send IPC request to app.rs             │ │
+│  │   │     Open + pane exists → file_manager_focus (IPC OK)   │ │
+│  │   │     Open spawn / toggle / run → Error → fallback       │ │
 │  │   └── On failure: file_manager_action() in actions.rs      │ │
 │  └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
        │
        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  IPC path (app.rs) or fallback (actions.rs)                    │
+│  IPC path (focus only) or fallback (actions.rs)                │
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │ 1. Resolve Zellij executable (cached in daemon)           │ │
-│  │ 2. List current panes (cached in daemon, 500ms TTL)       │ │
-│  │ 3. Find existing file-manager pane                      │ │
-│  │ 4. Match on FileManagerAction::Open                    │ │
-│  │    ├─ If pane exists: focus it (IPC OK)                   │ │
-│  │    └─ If not: bail → process fallback                     │ │
-│  │        ├─ Get current pane ID (ZELLIJ_PANE_ID)             │ │
-│  │        ├─ Find editor pane                              │ │
-│  │        ├─ Rename current pane to "file-manager"         │ │
-│  │        └─ Run file manager (run_file_manager)          │ │
+│  │ IPC (app.rs → file_manager_focus):                        │ │
+│  │    If pane exists: focus it                               │ │
+│  │    Else: bail → process fallback                          │ │
+│  │ Process fallback (file_manager_action):                   │ │
+│  │    ├─ Get current pane ID (ZELLIJ_PANE_ID or IPC field)  │ │
+│  │    ├─ Find editor pane                                    │ │
+│  │    ├─ Rename helper pane to "file-manager"               │ │
+│  │    └─ Run yazi in helper process (run_file_manager)      │ │
 │  └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
        │
@@ -567,12 +568,13 @@ Daemon Lifecycle:
        ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    CLI Dispatch                                  │
-│  main.rs:147-154 → terminal_action(&config, TerminalAction::Toggle)│
+│  main.rs: try_ipc_or_process() → terminal_action in actions.rs   │
+│  (IPC path: app.rs block_in_place → same terminal_action)        │
 └─────────────────────────────────────────────────────────────┘
        │
        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                terminal_action() - actions.rs:291                 │
+│                terminal_action() - actions.rs                     │
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │ 1. Resolve Zellij executable                            │ │
 │  │ 2. List current panes                                    │ │
@@ -717,6 +719,11 @@ Daemon Lifecycle:
 
 **Decision**: Implement a hybrid architecture with a long-running daemon for IPC communication, while maintaining the process-per-action model as a fallback.
 
+**Current state (implemented)**:
+- Daemon handles terminal, git, and file-manager focus via shared `actions.rs` logic
+- File manager spawn/toggle/run stay in the helper (TTY requirement)
+- Process fallback preserved for all actions when IPC fails
+
 **Rationale**:
 - **Performance**: Reduces action latency from ~25-40ms to ~5-10ms (3-5x improvement)
 - **Resource efficiency**: Single daemon process vs. per-action process spawning (~90% memory reduction)
@@ -758,7 +765,7 @@ Daemon Lifecycle:
 | **Shell Environment** | Keybindings use shell-like syntax but run through Zellij | Good validation and error handling |
 | **Single File Manager** | Currently only supports Yazi | Designed to be extensible to other managers |
 | **Runtime Files** | Creates temporary files in runtime directory | Files are cleaned up automatically |
-| **Limited IPC** | Communication between components is process-based | Sufficient for current use cases |
+| **Hybrid IPC overhead** | Helper still spawns per keypress; file manager spawn stays in helper | Terminal/git benefit from daemon cache |
 
 ### Design Trade-offs
 

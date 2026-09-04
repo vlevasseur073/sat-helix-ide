@@ -1,5 +1,10 @@
 # IPC Daemon Guide
 
+> **Status (Sep 2026):** Hybrid IPC is implemented on `feature/ipc-protocol`. Core
+> phases (protocol, daemon lifecycle, caching, CLI fallback) are complete. File manager
+> spawn paths intentionally stay in the helper process; terminal and git run fully via
+> IPC. Daemon handlers share logic with [`src/actions.rs`](../src/actions.rs).
+
 sat-hx-ide uses a **hybrid IPC architecture**: keybindings still spawn a short-lived
 `sat-hx-ide` helper process, but action execution is delegated to a long-running
 daemon when available. If the daemon is missing or cannot handle a request, the
@@ -74,6 +79,21 @@ started, leaving broken or extra panes.
 
 The process model in `actions.rs` handles all file-manager work when IPC returns an error
 or when the daemon is down.
+
+## Implementation status
+
+| Item | Status |
+|------|--------|
+| Per-project socket + PID files | Done |
+| Daemon spawn at init, cleanup on session end | Done |
+| Pane cache (500ms TTL) + tool cache in daemon | Done |
+| Terminal / git via IPC | Done |
+| File manager focus via IPC | Done |
+| File manager spawn via helper only | By design (TTY + `close_on_exit`) |
+| Shared action logic (`app.rs` → `actions.rs`) | Done |
+| Integration tests ([`tests/ipc.rs`](../tests/ipc.rs)) | Done |
+| Performance benchmarks | Not yet measured |
+| Config toggles (`ipc_enabled`, etc.) | Not implemented |
 
 ## Troubleshooting
 

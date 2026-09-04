@@ -935,9 +935,17 @@ Finally, remove process-per-action code path:
 - [x] Tool cache implemented
 - [x] Cache invalidation working
 
+### Post-implementation
+- [x] Per-socket PID files (`sat-hx-ide-{hash}.pid`)
+- [x] File manager IPC: focus-only; spawn in helper (TTY constraint documented)
+- [x] `source_pane_id` on file-manager protocol requests
+- [x] Daemon handlers deduplicated into `actions.rs` via `block_in_place`
+- [x] IPC integration tests (`tests/ipc.rs`)
+
 ### Testing
-- [ ] Unit tests pass (needs verification)
-- [ ] Integration tests pass (needs manual testing)
+- [x] Unit tests pass
+- [x] IPC integration tests pass (ping/shutdown, protocol, PID isolation)
+- [ ] Manual end-to-end smoke (file manager, terminal, git in live session)
 - [ ] Performance benchmarks show improvement (pending)
 - [x] No regressions in existing functionality (process model still works)
 
@@ -953,11 +961,13 @@ Finally, remove process-per-action code path:
 | 4. Daemon Integration | 1 week | Phase 3 | High | ✅ Complete |
 | 5. CLI Integration | 3-5 days | Phase 4 | High | ✅ Complete |
 | 6. Caching | 3-5 days | Phase 4 | Medium | ✅ Complete |
-| **Daemon Lifecycle** | **2 days** | Phase 4 | High | ✅ **NEW: Complete** |
-| Testing | 2 weeks | All phases | High | ⏳ Pending |
+| **Daemon Lifecycle** | **2 days** | Phase 4 | High | ✅ Complete |
+| **Post-impl (FM TTY, dedupe)** | **3 days** | Phase 5 | High | ✅ Complete |
+| Testing | 2 weeks | All phases | High | ⏳ Partial (auto tests done; benchmarks pending) |
 | **Total** | **6-8 weeks** | | | **Core Complete** |
 
-**Note**: Core IPC implementation is complete. Remaining work focuses on testing, performance validation, and edge case handling.
+**Note**: Core IPC implementation is complete. Remaining work: performance benchmarks,
+optional skip of pointless IPC round-trips for file-manager spawn, config toggles.
 
 ---
 

@@ -1,8 +1,8 @@
 # helix-ide vs sat-helix-ide: Architecture Comparison & IPC Assessment
 
-> **Note (2026):** sat-helix-ide now implements a **hybrid IPC daemon** on the
-> `feature/ipc-protocol` branch. Sections below that describe sat-helix-ide as
-> "process-only" reflect the pre-IPC baseline; see [`design.md`](design.md) and
+> **Note (2026):** sat-helix-ide implements a **hybrid IPC daemon** on
+> `feature/ipc-protocol`. Terminal and git use IPC when the daemon is running;
+> file manager spawn stays in the helper process. See [`design.md`](design.md) and
 > [`ipc.md`](ipc.md) for the current architecture.
 
 ## Table of Contents
@@ -22,15 +22,15 @@
 
 | Aspect | helix-ide | sat-helix-ide | Winner |
 |--------|-----------|---------------|--------|
-| **Architecture** | Daemon + Unix socket IPC | Process-per-action CLI | **helix-ide** (performance) |
-| **Startup Model** | Long-running daemon | New process per action | **helix-ide** (10-30ms faster) |
+| **Architecture** | Daemon + Unix socket IPC | Hybrid: daemon + helper fallback | **Tie** (both use daemon) |
+| **Startup Model** | Long-running daemon | Helper per keypress; daemon for hot path | **helix-ide** (no helper spawn) |
 | **Feature Set** | Basic component opening | Rich (pane discovery, smart toggle, session mgmt) | **sat-helix-ide** |
-| **IPC** | Unix sockets + JSON | CLI callbacks | **helix-ide** |
+| **IPC** | Unix sockets + JSON | Hybrid IPC + process fallback | **Tie** (sat-hx-ide now has IPC) |
 | **Session Mgmt** | Basic (start only) | Advanced (create/attach, project detection) | **sat-helix-ide** |
 
-**Verdict: YES, IPC is worth considering for sat-helix-ide's future.**
-
-helix-ide proves that daemon + IPC saves **~10-30ms per action** (3-5x faster) and **~5-10MB memory per action**. However, sat-helix-ide's richer features justify its current overhead for most users. **Hybrid approach recommended**: keep CLI for now, add optional IPC for power users.
+**Verdict: Hybrid IPC is implemented.** sat-helix-ide now matches helix-ide's daemon
+pattern for terminal and git. File manager still uses the helper for yazi (TTY
+constraint). Further gains need benchmarks and skipping IPC attempts on spawn paths.
 
 ---
 
@@ -482,114 +482,41 @@ sat-helix-ide (Rust)
 
 ## Implementation Roadmap
 
+> **Status (Sep 2026):** Phases 1–3 and caching are **done** on `feature/ipc-protocol`.
+> Phase 4 (rollout) is partial — automated tests pass; benchmarks pending.
+
 ### Phase 1: Research (1 week)
 
-- [x] Analyze helix-ide architecture (DONE)
-- [ ] Profile sat-helix-ide performance
-- [ ] Survey user requirements
-- [ ] Design hybrid IPC protocol
-- [ ] Document migration path
+- [x] Analyze helix-ide architecture
+- [ ] Profile sat-helix-ide performance (benchmarks pending)
+- [x] Design hybrid IPC protocol
+- [x] Document migration path ([`ipc.md`](ipc.md), [`design.md`](design.md))
 
 ### Phase 2: Current Architecture Optimization (1-2 weeks)
 
-**Quick Wins (High ROI, Low Risk):**
-
-1. **Pane caching**
-   ```rust
-   // Simple cache with TTL
-   use std::sync::RwLock;
-   use std::time::{Instant, Duration};
-
-   struct PaneCache {
-       data: RwLock<Option<(Instant, Vec<PaneInfo>)>>,
-       ttl: Duration,
-   }
-
-   impl PaneCache {
-       fn get(&self, zellij: &Path) -> Result<Vec<PaneInfo>> {
-           let mut guard = self.data.write()?;
-           if let Some((ts, panes)) = &*guard {
-               if ts.elapsed() < self.ttl {
-                   return Ok(panes.clone());
-               }
-           }
-           let panes = list_panes(zellij)?;
-           *guard = Some((Instant::now(), panes.clone()));
-           Ok(panes)
-       }
-   }
-   ```
-
-2. **Lazy config loading**
-   ```rust
-   // Load config only when needed
-   fn get_config() -> &'static Config {
-       static CONFIG: OnceLock<Config> = OnceLock::new();
-       CONFIG.get_or_init(|| Config::load().unwrap_or_default())
-   }
-   ```
-
-3. **Tool pre-resolution**
-   ```rust
-   // Resolve tools once at startup
-   struct ResolvedTools {
-       zellij: PathBuf,
-       editor: PathBuf,
-       file_manager: PathBuf,
-       git: PathBuf,
-   }
-   ```
+- [x] Pane caching (daemon + process-local TTL in `actions.rs`)
+- [x] Tool path cache in daemon
+- [ ] Lazy config loading (not implemented; config loaded once at daemon start)
 
 ### Phase 3: Hybrid IPC (2-4 weeks)
 
-**Files to Add:**
-```
-src/
-├── ipc.rs              # Socket server/client, connection management
-├── protocol.rs         # Request/Response types
-└── daemon.rs           # Daemon lifecycle, request handling
-```
-
-**Files to Modify:**
-```
-Cargo.toml             # Add tokio dependency
-src/main.rs            # Add daemon mode, IPC routing
-```
-
-**Protocol Definition:**
-```rust
-// In protocol.rs
-#[serde(tag = "command")]
-pub enum Request {
-    FileManager(FileManagerAction),
-    Terminal(TerminalAction),
-    GetPaneList,
-    Ping,
-    Shutdown,
-}
-
-#[serde(tag = "status")]
-pub enum Response {
-    Ok,
-    PaneList(Vec<PaneInfo>),
-    Error(String),
-    Pong,
-}
-```
+- [x] `ipc.rs`, `protocol.rs`, `daemon.rs`, `app.rs`
+- [x] Hybrid request logic in `main.rs` with fallback
+- [x] Daemon auto-spawn during `init_workspace()`
+- [x] Shared action logic in `actions.rs` (dedupe complete)
 
 ### Phase 4: Testing & Rollout (2 weeks)
 
-- Unit tests for IPC layer
-- Integration tests for daemon
-- Performance benchmarks
-- Gradual rollout to users
-- Documentation updates
+- [x] Unit tests for IPC layer
+- [x] Integration tests for daemon ([`tests/ipc.rs`](../tests/ipc.rs))
+- [ ] Performance benchmarks
+- [ ] Gradual rollout / merge to main
+- [x] Documentation updates ([`ipc.md`](ipc.md), [`design.md`](design.md), README)
 
-### Phase 5: Full Migration (Optional, 1-2 weeks)
+### Phase 5: Full Migration (Optional — not planned)
 
-- Make IPC primary
-- Remove process fallback (or keep for compatibility)
-- Add advanced features
+Hybrid model is the intended end state. Process fallback stays for file-manager
+spawn and daemon-down scenarios. Removing fallback is out of scope.
 
 ---
 

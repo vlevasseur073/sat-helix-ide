@@ -42,16 +42,26 @@ If `XDG_RUNTIME_DIR` is unavailable, the system temporary directory is used.
 
 ### IPC daemon (hybrid mode)
 
-Since the IPC branch, `sat-hx-ide init` also starts a per-project daemon that
-handles keybinding actions over a Unix socket. A short-lived helper process still
-runs for each keypress, but action work (pane discovery, Zellij commands) is
-delegated to the daemon when available.
+`sat-hx-ide init` starts a per-project daemon that handles keybinding actions over a
+Unix socket. A short-lived helper process still runs on each keypress; when the daemon
+can handle the request, work is delegated there instead of re-running it in the helper.
 
 - Socket: `$XDG_RUNTIME_DIR/sat-hx-ide-{project-hash}.sock`
 - PID file: `$XDG_RUNTIME_DIR/sat-hx-ide-{project-hash}.pid`
-- Falls back to the process model if the daemon is unavailable
+- Falls back to [`src/actions.rs`](src/actions.rs) if the daemon is down or declines the request
 
-See [`docs/ipc.md`](docs/ipc.md) for troubleshooting and limitations.
+| Action | IPC (daemon) | Process fallback (helper) |
+|--------|--------------|---------------------------|
+| Terminal toggle / zoom | Yes | If daemon unavailable |
+| Git open | Yes | If daemon unavailable |
+| File manager open (pane exists) | Yes (focus only) | — |
+| File manager open (first time) | No | Yes — yazi runs in helper TTY |
+| File manager toggle-dock / run | No | Yes — same TTY constraint |
+
+Daemon handlers delegate to the same functions as the process model (`terminal_action`,
+`git_action`, `file_manager_focus` in `actions.rs`).
+
+See [`docs/ipc.md`](docs/ipc.md) for protocol details and troubleshooting.
 
 ## Requirements and installation
 
