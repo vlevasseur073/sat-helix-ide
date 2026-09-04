@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use sat_helix_ide::actions::{FileManagerAction, GitAction, TerminalAction};
+use sat_helix_ide::actions::{parse_zellij_pane_id, FileManagerAction, GitAction, TerminalAction};
 use sat_helix_ide::config::Config;
 use sat_helix_ide::daemon;
 use sat_helix_ide::ipc::{self, send_request};
@@ -136,13 +136,33 @@ fn main() -> Result<()> {
         .block_on(async_main(cli))
 }
 
+/// Read the helper pane ID Zellij sets when a keybinding runs `sat-hx-ide`.
+fn zellij_source_pane_id() -> Option<u64> {
+    match std::env::var("ZELLIJ_PANE_ID") {
+        Ok(value) => match parse_zellij_pane_id(&value) {
+            Ok(id) => Some(id),
+            Err(e) => {
+                log::debug!("Invalid ZELLIJ_PANE_ID for IPC: {e}");
+                None
+            }
+        },
+        Err(_) => {
+            log::debug!("ZELLIJ_PANE_ID missing for IPC file-manager request");
+            None
+        }
+    }
+}
+
 /// Convert CLI command to IPC request
 fn command_to_request(command: &Commands) -> Option<Request> {
+    let source_pane_id = zellij_source_pane_id();
     match command {
         Commands::FileManager { action } => match action {
-            FileManagerCommands::Open => Some(Request::FileManagerOpen),
-            FileManagerCommands::ToggleDock => Some(Request::FileManagerToggleDock),
-            FileManagerCommands::Run => Some(Request::FileManagerRun),
+            FileManagerCommands::Open => Some(Request::FileManagerOpen { source_pane_id }),
+            FileManagerCommands::ToggleDock => {
+                Some(Request::FileManagerToggleDock { source_pane_id })
+            }
+            FileManagerCommands::Run => Some(Request::FileManagerRun { source_pane_id }),
         },
         Commands::Terminal { action } => match action {
             TerminalCommands::Toggle => Some(Request::TerminalToggle),
@@ -230,7 +250,7 @@ async fn execute_command_process(
                     FileManagerCommands::ToggleDock => FileManagerAction::ToggleDock,
                     FileManagerCommands::Run => FileManagerAction::Run,
                 };
-                file_manager_action(&config, &config_path, action)
+                file_manager_action(&config, &config_path, action, None)
             }
             Commands::Terminal { action } => {
                 let action = match action {

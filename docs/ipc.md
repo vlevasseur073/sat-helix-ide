@@ -45,6 +45,7 @@ Or enable verbose logging and look for `IPC daemon listening on ...` at init tim
 |----------|---------|
 | `SAT_HX_IDE_CONFIG` | Config path loaded by the daemon (set automatically at spawn) |
 | `ZELLIJ_SESSION_NAME` | Session key for pane cache (set at init spawn) |
+| `ZELLIJ_PANE_ID` | Helper pane ID; forwarded to the daemon for file-manager spawn/rename |
 | `XDG_RUNTIME_DIR` | Base directory for sockets and PID files |
 
 ## Protocol
@@ -53,16 +54,26 @@ Line-delimited JSON over a Unix domain socket. See [`src/protocol.rs`](../src/pr
 
 **Requests:** `file_manager_open`, `terminal_toggle`, `git_open`, `ping`, `shutdown`, …
 
+File-manager requests may include `source_pane_id` (from `ZELLIJ_PANE_ID`) for protocol
+forwarding; spawn paths still execute in the helper process after IPC fallback.
+
 **Responses:** `ok`, `pong`, `error`, `pane_list`, `context`
 
-## IPC limitations (Phase 1)
+## IPC coverage
 
-These actions **fall back to the process model** when the daemon cannot handle them:
+When the daemon is running, these actions are handled fully via IPC:
 
-- **File manager spawn** when no file-manager pane exists (needs `ZELLIJ_PANE_ID`)
-- **File manager toggle-dock** and **run** (same constraint)
+- **File manager** — focus an existing pane only (`Open` when yazi is already running)
+- **Terminal** — toggle and zoom (including respawn after close)
+- **Git** — open floating git client
 
-Terminal toggle/zoom and git open are handled fully via IPC when the daemon is running.
+**File manager spawn paths** (`Open` with no existing pane, `Run`, `ToggleDock`) must run in
+the keybinding helper process: that pane owns the TTY yazi needs, and it uses
+`close_on_exit`. If the daemon handled those requests, the helper would exit before yazi
+started, leaving broken or extra panes.
+
+The process model in `actions.rs` handles all file-manager work when IPC returns an error
+or when the daemon is down.
 
 ## Troubleshooting
 

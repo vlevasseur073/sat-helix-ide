@@ -10,7 +10,6 @@ use tokio::process::Command;
 use tokio::sync::RwLock;
 
 // Constants from actions module
-const FILE_MANAGER_PANE: &str = "file-manager";
 const EDITOR_PANE: &str = "editor";
 const TERMINAL_PANE: &str = "terminal";
 
@@ -44,9 +43,15 @@ impl App {
 
     pub async fn handle_ipc(&self, request: Request) -> Response {
         match request {
-            Request::FileManagerOpen => self.handle_file_manager_open().await,
-            Request::FileManagerToggleDock => self.handle_file_manager_toggle_dock().await,
-            Request::FileManagerRun => self.handle_file_manager_run().await,
+            Request::FileManagerOpen { source_pane_id } => {
+                self.handle_file_manager_open(source_pane_id).await
+            }
+            Request::FileManagerToggleDock { source_pane_id } => {
+                self.handle_file_manager_toggle_dock(source_pane_id).await
+            }
+            Request::FileManagerRun { source_pane_id } => {
+                self.handle_file_manager_run(source_pane_id).await
+            }
             Request::TerminalToggle => self.handle_terminal_toggle().await,
             Request::TerminalZoom => self.handle_terminal_zoom().await,
             Request::GitOpen => self.handle_git_open().await,
@@ -61,9 +66,9 @@ impl App {
     }
 
     // Handler implementations
-    async fn handle_file_manager_open(&self) -> Response {
+    async fn handle_file_manager_open(&self, source_pane_id: Option<u64>) -> Response {
         match self
-            .perform_file_manager_action(FileManagerAction::Open)
+            .perform_file_manager_action(FileManagerAction::Open, source_pane_id)
             .await
         {
             Ok(_) => Response::Ok,
@@ -73,9 +78,9 @@ impl App {
         }
     }
 
-    async fn handle_file_manager_toggle_dock(&self) -> Response {
+    async fn handle_file_manager_toggle_dock(&self, source_pane_id: Option<u64>) -> Response {
         match self
-            .perform_file_manager_action(FileManagerAction::ToggleDock)
+            .perform_file_manager_action(FileManagerAction::ToggleDock, source_pane_id)
             .await
         {
             Ok(_) => Response::Ok,
@@ -85,9 +90,9 @@ impl App {
         }
     }
 
-    async fn handle_file_manager_run(&self) -> Response {
+    async fn handle_file_manager_run(&self, source_pane_id: Option<u64>) -> Response {
         match self
-            .perform_file_manager_action(FileManagerAction::Run)
+            .perform_file_manager_action(FileManagerAction::Run, source_pane_id)
             .await
         {
             Ok(_) => Response::Ok,
@@ -151,31 +156,25 @@ impl App {
     }
 
     // Action implementations using cached panes
-    async fn perform_file_manager_action(&self, action: FileManagerAction) -> Result<()> {
+    async fn perform_file_manager_action(
+        &self,
+        action: FileManagerAction,
+        _source_pane_id: Option<u64>,
+    ) -> Result<()> {
         let zellij = self.resolved_tool("zellij").await?;
         let panes = self.get_panes().await?;
-
         let existing = panes
             .iter()
-            .find(|pane| !pane.is_plugin && pane.title == FILE_MANAGER_PANE);
+            .find(|pane| !pane.is_plugin && pane.title == "file-manager");
 
-        match action {
-            FileManagerAction::Open => {
-                if let Some(pane) = existing {
-                    self.focus_pane(&zellij, pane).await?;
-                    return Ok(());
-                }
-
-                // If no file manager exists, we cannot spawn one from daemon context
-                // because we don't have ZELLIJ_PANE_ID. Return error to fall back to process model.
-                anyhow::bail!("No file manager pane exists; cannot spawn from daemon")
-            }
-            // For ToggleDock and Run, we cannot handle them in daemon context
-            // because they require spawning new panes which needs ZELLIJ_PANE_ID
-            FileManagerAction::ToggleDock | FileManagerAction::Run => {
-                anyhow::bail!("File manager action requires process context")
-            }
+        if !crate::actions::file_manager_ipc_capable(action, existing.is_some()) {
+            anyhow::bail!("file manager action must run in helper process");
         }
+
+        let pane = existing.context("file-manager pane not found")?;
+        self.focus_pane(&zellij, pane).await?;
+        self.invalidate_pane_cache().await;
+        Ok(())
     }
 
     async fn perform_terminal_action(&self, action: TerminalAction) -> Result<()> {

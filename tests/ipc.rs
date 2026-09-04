@@ -21,6 +21,23 @@ fn protocol_roundtrip_serialization() {
     let request = serde_json::to_string(&Request::TerminalToggle).unwrap();
     assert!(request.contains("\"command\":\"terminal_toggle\""));
 
+    let with_pane = Request::FileManagerOpen {
+        source_pane_id: Some(42),
+    };
+    let encoded = serde_json::to_string(&with_pane).unwrap();
+    assert!(encoded.contains("\"command\":\"file_manager_open\""));
+    assert!(encoded.contains("\"source_pane_id\":42"));
+    let decoded: Request = serde_json::from_str(&encoded).unwrap();
+    assert_eq!(decoded, with_pane);
+
+    let legacy = serde_json::from_str::<Request>(r#"{"command":"file_manager_open"}"#).unwrap();
+    assert_eq!(
+        legacy,
+        Request::FileManagerOpen {
+            source_pane_id: None
+        }
+    );
+
     let response = serde_json::to_string(&Response::Pong).unwrap();
     assert!(response.contains("\"status\":\"pong\""));
 }

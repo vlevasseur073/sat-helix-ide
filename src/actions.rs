@@ -133,10 +133,23 @@ impl PaneInfo {
     }
 }
 
+/// Whether the daemon can handle this file-manager action without a helper TTY.
+///
+/// Open/run paths rename the keybinding helper pane and run yazi in that process.
+/// The background daemon must not execute those — it would exit the helper early
+/// (`close_on_exit`) while yazi never attaches to the pane.
+pub fn file_manager_ipc_capable(action: FileManagerAction, file_manager_exists: bool) -> bool {
+    matches!(
+        (action, file_manager_exists),
+        (FileManagerAction::Open, true)
+    )
+}
+
 pub fn file_manager_action(
     config: &Config,
     config_path: &Path,
     action: FileManagerAction,
+    source_pane_id: Option<u64>,
 ) -> Result<()> {
     let zellij = resolve(&config.tools.zellij.command)?;
     let panes = list_panes(&zellij)?;
@@ -168,7 +181,9 @@ pub fn file_manager_action(
         FileManagerAction::Run => {}
     }
 
-    let current_id = current_pane_id()?;
+    let current_id = source_pane_id
+        .or_else(|| current_pane_id().ok())
+        .context("ZELLIJ_PANE_ID is not set")?;
     let current = panes
         .iter()
         .find(|pane| !pane.is_plugin && pane.id == current_id);
@@ -710,6 +725,11 @@ fn list_panes(zellij: &Path) -> Result<Vec<PaneInfo>> {
 
 fn current_pane_id() -> Result<u64> {
     let value = std::env::var("ZELLIJ_PANE_ID").context("ZELLIJ_PANE_ID is not set")?;
+    parse_zellij_pane_id(&value)
+}
+
+/// Parse Zellij's `ZELLIJ_PANE_ID` value (`terminal_N` or bare `N`).
+pub fn parse_zellij_pane_id(value: &str) -> Result<u64> {
     value
         .trim_start_matches("terminal_")
         .parse()
@@ -800,6 +820,29 @@ mod tests {
         .unwrap();
         assert_eq!(panes[0].cli_id(), "terminal_4");
         assert!(panes[0].is_floating);
+    }
+
+    #[test]
+    fn file_manager_ipc_capable_only_for_focus() {
+        assert!(file_manager_ipc_capable(FileManagerAction::Open, true));
+        assert!(!file_manager_ipc_capable(FileManagerAction::Open, false));
+        assert!(!file_manager_ipc_capable(FileManagerAction::Run, true));
+        assert!(!file_manager_ipc_capable(
+            FileManagerAction::ToggleDock,
+            true
+        ));
+    }
+
+    #[test]
+    fn parse_zellij_pane_id_accepts_cli_form() {
+        assert_eq!(parse_zellij_pane_id("terminal_4").unwrap(), 4);
+        assert_eq!(parse_zellij_pane_id("42").unwrap(), 42);
+    }
+
+    #[test]
+    fn parse_zellij_pane_id_rejects_invalid_values() {
+        assert!(parse_zellij_pane_id("terminal_").is_err());
+        assert!(parse_zellij_pane_id("not-a-number").is_err());
     }
 
     #[test]
