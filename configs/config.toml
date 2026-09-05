@@ -13,16 +13,19 @@ ai_by_default = true
 status_bar = false
 
 [terminal]
-# Dock a shell under Helix in the code tab. It runs Zellij's default shell.
+# Dock a shell beside Helix in the code tab. It runs Zellij's default shell.
 enabled = true
-# Height of that shell as a percentage of the code tab.
+# Size of that shell as a percentage of the code tab (height when dock_position = "down", width when "right").
 dock_percent = 15
+# Terminal placement: "down" (default) or "right".
+# dock_position = "down"
 
 [keybindings]
 # Zellij key notation. Bindings are added to shared_except "locked".
 file_manager = "Ctrl y"
 file_manager_dock = "Alt y"
 git = "Alt g"
+review = "Alt r"
 # Hide the terminal behind a fullscreen Helix, or bring it back.
 terminal = "Alt t"
 # Switch the terminal between its docked height and fullscreen.
@@ -46,6 +49,10 @@ dock_percent = 28
 
 [tools.git]
 command = "lazygit"
+args = []
+
+[tools.review]
+command = "revdiff"
 args = []
 
 # The agent for the AI tab. Ignored when the command is not on PATH.

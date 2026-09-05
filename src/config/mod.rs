@@ -67,9 +67,41 @@ pub struct TerminalConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
 
-    /// Height of the docked terminal as a percentage of the code tab.
+    /// Height or width of the docked terminal as a percentage of the code tab,
+    /// depending on `dock_position`.
     #[serde(default = "default_terminal_percent")]
     pub dock_percent: u8,
+
+    /// Where the terminal sits relative to the editor: `down` (default) or `right`.
+    #[serde(default)]
+    pub dock_position: TerminalDockPosition,
+}
+
+/// Terminal placement relative to the editor in the code tab.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum TerminalDockPosition {
+    #[default]
+    Down,
+    Right,
+}
+
+impl TerminalDockPosition {
+    /// KDL `split_direction` for the editor/terminal split.
+    pub fn zellij_split_direction(self) -> &'static str {
+        match self {
+            Self::Down => "horizontal",
+            Self::Right => "vertical",
+        }
+    }
+
+    /// `zellij action new-pane --direction` when respawning a closed terminal.
+    pub fn zellij_new_pane_direction(self) -> &'static str {
+        match self {
+            Self::Down => "down",
+            Self::Right => "right",
+        }
+    }
 }
 
 impl Default for TerminalConfig {
@@ -77,6 +109,7 @@ impl Default for TerminalConfig {
         Self {
             enabled: true,
             dock_percent: default_terminal_percent(),
+            dock_position: TerminalDockPosition::Down,
         }
     }
 }
@@ -92,6 +125,9 @@ pub struct KeybindingConfig {
     #[serde(default = "default_git_key")]
     pub git: String,
 
+    #[serde(default = "default_review_key")]
+    pub review: String,
+
     #[serde(default = "default_terminal_key")]
     pub terminal: String,
 
@@ -105,6 +141,7 @@ impl Default for KeybindingConfig {
             file_manager: default_file_manager_key(),
             file_manager_dock: default_file_manager_dock_key(),
             git: default_git_key(),
+            review: default_review_key(),
             terminal: default_terminal_key(),
             terminal_zoom: default_terminal_zoom_key(),
         }
@@ -125,6 +162,10 @@ fn default_file_manager_dock_key() -> String {
 
 fn default_git_key() -> String {
     "Alt g".to_string()
+}
+
+fn default_review_key() -> String {
+    "Alt r".to_string()
 }
 
 fn default_terminal_key() -> String {
@@ -226,5 +267,23 @@ mod tests {
         assert_eq!(config.tools.editor.command, "/snap/bin/hx");
         assert_eq!(config.tools.file_manager.command, "yazi");
         assert_eq!(config.tools.git.command, "gitui");
+    }
+
+    #[test]
+    fn terminal_dock_position_deserializes() {
+        let config: Config = toml::from_str(
+            r#"
+            [terminal]
+            dock_position = "right"
+            "#,
+        )
+        .unwrap();
+        assert_eq!(config.terminal.dock_position, TerminalDockPosition::Right);
+
+        let default_config = Config::default();
+        assert_eq!(
+            default_config.terminal.dock_position,
+            TerminalDockPosition::Down
+        );
     }
 }

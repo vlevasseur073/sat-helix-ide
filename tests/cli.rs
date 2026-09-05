@@ -46,7 +46,7 @@ printf '%s\n' "$@" > '{}'
                 capture.display()
             ),
         );
-        for command in ["hx", "yazi", "lazygit"] {
+        for command in ["hx", "yazi", "lazygit", "revdiff"] {
             executable(&bin.join(command), "#!/bin/sh\nexit 0\n");
         }
         if with_ai {
@@ -75,6 +75,9 @@ command = "{}"
 [tools.git]
 command = "{}"
 
+[tools.review]
+command = "{}"
+
 [tools.ai]
 command = "{}"
 "#,
@@ -83,6 +86,7 @@ command = "{}"
                 bin.join("hx").display(),
                 bin.join("yazi").display(),
                 bin.join("lazygit").display(),
+                bin.join("revdiff").display(),
                 bin.join("agent").display(),
             ),
         )

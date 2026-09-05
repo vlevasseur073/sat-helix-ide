@@ -51,6 +51,7 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
         (&input.keys.file_manager, "file manager"),
         (&input.keys.file_manager_dock, "file-manager dock toggle"),
         (&input.keys.git, "Git client"),
+        (&input.keys.review, "Review"),
         (&input.keys.terminal, "terminal toggle"),
         (&input.keys.terminal_zoom, "terminal zoom toggle"),
     ];
@@ -94,7 +95,20 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
             "sat-terminal-zoom",
             false,
         )?,
-        git_binding(input)?,
+        helper_binding(
+            &input.keys.git,
+            input,
+            &["__git", "open"],
+            "sat-git-open",
+            false,
+        )?,
+        helper_binding(
+            &input.keys.review,
+            input,
+            &["__review", "open"],
+            "sat-review-open",
+            false,
+        )?,
     ];
 
     set_session_name(&mut document, input.session_name)?;
@@ -162,34 +176,6 @@ fn helper_binding(
 }}"#,
         exe = input.executable.display().to_string(),
         config = input.app_config.display().to_string(),
-        cwd = input.project_dir.display().to_string(),
-    );
-    parse_single_node(&snippet)
-}
-
-fn git_binding(input: &RuntimeConfigInput<'_>) -> Result<KdlNode> {
-    let args = input
-        .git_args
-        .iter()
-        .map(|arg| format!(" {arg:?}"))
-        .collect::<String>();
-    let snippet = format!(
-        r#"bind {key:?} {{
-    Run {command:?}{args} {{
-        floating true
-        close_on_exit true
-        x "0%"
-        y "0%"
-        width {width:?}
-        height {height:?}
-        name "git"
-        cwd {cwd:?}
-    }}
-}}"#,
-        key = input.keys.git,
-        command = input.git_command.display().to_string(),
-        width = input.float_width,
-        height = input.float_height,
         cwd = input.project_dir.display().to_string(),
     );
     parse_single_node(&snippet)
@@ -308,6 +294,8 @@ mod tests {
         assert!(runtime.contains("bind \"Alt t\""));
         assert!(runtime.contains("bind \"Alt Shift t\""));
         assert!(runtime.contains("bind \"Alt g\""));
+        assert!(runtime.contains("bind \"Alt r\""));
+        assert!(runtime.contains("__review"));
     }
 
     #[test]
@@ -335,7 +323,15 @@ mod tests {
 
         assert_eq!(
             shared,
-            ["Ctrl p", "Ctrl y", "Alt y", "Alt t", "Alt Shift t", "Alt g"]
+            [
+                "Ctrl p",
+                "Ctrl y",
+                "Alt y",
+                "Alt t",
+                "Alt Shift t",
+                "Alt g",
+                "Alt r"
+            ]
         );
     }
 
