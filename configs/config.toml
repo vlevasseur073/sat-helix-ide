@@ -55,6 +55,10 @@ args = []
 command = "revdiff"
 args = []
 
+[tools.workflow]
+command = "glab-tui"
+args = []
+
 # The agent for the AI tab. Ignored when the command is not on PATH.
 [tools.ai]
 command = "vibe"

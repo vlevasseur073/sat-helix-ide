@@ -128,6 +128,9 @@ pub struct KeybindingConfig {
     #[serde(default = "default_review_key")]
     pub review: String,
 
+    #[serde(default = "default_workflow_key")]
+    pub workflow: String,
+
     #[serde(default = "default_terminal_key")]
     pub terminal: String,
 
@@ -142,6 +145,7 @@ impl Default for KeybindingConfig {
             file_manager_dock: default_file_manager_dock_key(),
             git: default_git_key(),
             review: default_review_key(),
+            workflow: default_workflow_key(),
             terminal: default_terminal_key(),
             terminal_zoom: default_terminal_zoom_key(),
         }
@@ -166,6 +170,10 @@ fn default_git_key() -> String {
 
 fn default_review_key() -> String {
     "Alt r".to_string()
+}
+
+fn default_workflow_key() -> String {
+    "Alt w".to_string()
 }
 
 fn default_terminal_key() -> String {
@@ -260,6 +268,9 @@ mod tests {
 
             [tools.git]
             client = "gitui"
+
+            [tools.workflow]
+            command = "my-glab-tui"
             "#,
         )
         .unwrap();
@@ -267,6 +278,7 @@ mod tests {
         assert_eq!(config.tools.editor.command, "/snap/bin/hx");
         assert_eq!(config.tools.file_manager.command, "yazi");
         assert_eq!(config.tools.git.command, "gitui");
+        assert_eq!(config.tools.workflow.command, "my-glab-tui");
     }
 
     #[test]
@@ -285,5 +297,15 @@ mod tests {
             default_config.terminal.dock_position,
             TerminalDockPosition::Down
         );
+    }
+
+    #[test]
+    fn default_tool_commands_are_correct() {
+        let default_config = Config::default();
+        assert_eq!(default_config.tools.editor.command, "hx");
+        assert_eq!(default_config.tools.file_manager.command, "yazi");
+        assert_eq!(default_config.tools.git.command, "lazygit");
+        assert_eq!(default_config.tools.review.command, "revdiff");
+        assert_eq!(default_config.tools.workflow.command, "glab-tui");
     }
 }

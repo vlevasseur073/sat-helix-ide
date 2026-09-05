@@ -52,6 +52,7 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
         (&input.keys.file_manager_dock, "file-manager dock toggle"),
         (&input.keys.git, "Git client"),
         (&input.keys.review, "Review"),
+        (&input.keys.workflow, "Workflow"),
         (&input.keys.terminal, "terminal toggle"),
         (&input.keys.terminal_zoom, "terminal zoom toggle"),
     ];
@@ -107,6 +108,13 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
             input,
             &["__review", "open"],
             "sat-review-open",
+            false,
+        )?,
+        helper_binding(
+            &input.keys.workflow,
+            input,
+            &["__workflow", "open"],
+            "sat-workflow-open",
             false,
         )?,
     ];
@@ -295,6 +303,7 @@ mod tests {
         assert!(runtime.contains("bind \"Alt Shift t\""));
         assert!(runtime.contains("bind \"Alt g\""));
         assert!(runtime.contains("bind \"Alt r\""));
+        assert!(runtime.contains("bind \"Alt w\""));
         assert!(runtime.contains("__review"));
     }
 
@@ -330,7 +339,8 @@ mod tests {
                 "Alt t",
                 "Alt Shift t",
                 "Alt g",
-                "Alt r"
+                "Alt r",
+                "Alt w"
             ]
         );
     }
