@@ -1,22 +1,36 @@
 # sat-helix-ide
-A workspace orchestrator for a full IDE based on Helix + Zellij + Yazi + lazygit/gitui + git-delta
+A workspace orchestrator for a full IDE.
 
-[Helix](https://helix-editor.com/), [Zellij](https://zellij.dev/), [Yazi](https://yazi-rs.github.io/), and [Lazygit](https://github.com/jesseduffield/lazygit) or [GitUI](https://github.com/gitui-org/gitui) as one terminal IDE.
+`sat-hx-ide` is a small [Zellij](https://zellij.dev/) session composer for a [Helix](https://helix-editor.com/)-centered workflow.
+enhanced with multiple additional tools among which:
+[Yazi](https://yazi-rs.github.io/) +
+[Lazygit](https://github.com/jesseduffield/lazygit)/[GitUI](https://github.com/gitui-org/gitui) +
+[revdiff](https://github.com/umputun/revdiff) +
+[glab-tui](https://github.com/rcieri/glab-tui)
+for instance
 
+The features/tools currently implemented in `sat-helix-ide` are:
+- a *File-Manager* (Default: Yazi)
+- a *Git TUI* (Default: lazygit, tested with lazygit and gitui)
+- a *review TUI* (Default: revdiff, tested with revdiff and `git diff`, possibly including git-delta)
+- a *workflow TUI*; this should be understood as any kind of project management tool such as Github/Gitlab, jira, ... (Default: glab-tui, )
 
-`sat-hx-ide` is a small Zellij session composer for a Helix-centered workflow.
-It starts a project session with:
+`sat-hx-ide` starts a project session with:
 
 - a `code` tab with Helix and a docked shell below it;
 - an `ai` tab running the configured agent when it is installed;
+
+Then, the different tools are accessible via zellij keybindings:
 - `Ctrl-y` to open or focus Yazi in a full-screen floating pane;
 - `Alt-y` to dock Yazi on the left of Helix, or float it again;
 - `Alt-t` to hide the terminal behind fullscreen Helix, or show it again;
 - `Alt-Shift-t` to zoom the terminal to full tab height, or dock it back;
 - `Alt-g` to open Lazygit, GitUI, or another Git TUI in a floating pane;
 - `Alt-r` to open the configured review tool (revdiff by default) in a floating pane.
+- `Alt-w` to open the configured workflow tool (glab-tui by default) in a floating pane.
 
-It is deliberately **not** a dotfile manager or tool installer.
+
+`sat-hx-ide` is deliberately **not** a dotfile manager or tool installer.
 
 > sat-hx-ide never writes your Zellij, Helix, Yazi, Lazygit, GitUI, or global
 > Git configuration.

@@ -120,6 +120,11 @@ pub enum ReviewAction {
     Open,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum WorkflowAction {
+    Open,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct PaneInfo {
     id: u64,
@@ -748,6 +753,10 @@ pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
 
 pub fn review_action(config: &Config, _action: ReviewAction) -> Result<()> {
     spawn_floating_tool(config, "review", &config.tools.review)
+}
+
+pub fn workflow_action(config: &Config, _action: WorkflowAction) -> Result<()> {
+    spawn_floating_tool(config, "workflow", &config.tools.workflow)
 }
 
 fn spawn_floating_tool(config: &Config, pane_name: &str, tool: &CommandConfig) -> Result<()> {

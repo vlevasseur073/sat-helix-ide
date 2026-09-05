@@ -73,6 +73,9 @@ pub struct ToolConfig {
     #[serde(default = "default_review")]
     pub review: CommandConfig,
 
+    #[serde(default = "default_workflow")]
+    pub workflow: CommandConfig,
+
     #[serde(default = "default_ai")]
     pub ai: Option<CommandConfig>,
 }
@@ -85,6 +88,7 @@ impl Default for ToolConfig {
             file_manager: FileManagerConfig::default(),
             git: default_git(),
             review: default_review(),
+            workflow: default_workflow(),
             ai: default_ai(),
         }
     }
@@ -104,6 +108,10 @@ fn default_git() -> CommandConfig {
 
 fn default_review() -> CommandConfig {
     CommandConfig::new("revdiff")
+}
+
+fn default_workflow() -> CommandConfig {
+    CommandConfig::new("glab-tui")
 }
 
 fn default_ai() -> Option<CommandConfig> {
