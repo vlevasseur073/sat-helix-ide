@@ -1,0 +1,804 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Troubleshooting - sat-helix-ide User Manual &amp; Design Document</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-e8ea0b06.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-e36cfd3f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-26df6826.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">sat-helix-ide User Manual &amp; Design Document</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/vlevasseur073/sat-helix-ide" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h1>
+<p>This chapter covers common issues and their solutions when using <code>sat-helix-ide</code>.</p>
+<h2 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h2>
+<h3 id="installation-issues"><a class="header" href="#installation-issues">Installation Issues</a></h3>
+<h4 id="command-not-found-after-installation"><a class="header" href="#command-not-found-after-installation">“Command not found” after installation</a></h4>
+<p><strong>Problem</strong>: After running <code>cargo install --path .</code>, the <code>sat-hx-ide</code> command is not found.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Cargo’s bin directory</strong>:</p>
+<pre><code class="language-bash"># Find where Cargo installs binaries
+echo $CARGO_HOME/bin
+
+# Add to PATH if not already there
+export PATH="$CARGO_HOME/bin:$PATH"
+</code></pre>
+</li>
+<li>
+<p><strong>Verify installation</strong>:</p>
+<pre><code class="language-bash"># Check if binary exists
+ls ~/.cargo/bin/sat-hx-ide
+
+# If it exists, add cargo bin to your shell's PATH
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' &gt;&gt; ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc
+</code></pre>
+</li>
+<li>
+<p><strong>Reinstall</strong>:</p>
+<pre><code class="language-bash">cargo install --path . --force
+</code></pre>
+</li>
+</ol>
+<h4 id="missing-required-tools"><a class="header" href="#missing-required-tools">Missing Required Tools</a></h4>
+<p><strong>Problem</strong>: <code>sat-hx-ide doctor</code> reports missing required tools.</p>
+<p><strong>Solution</strong>: Install the missing tools:</p>
+<ul>
+<li><strong>Zellij</strong>: Follow <a href="https://zellij.dev/documentation/installation.html">Zellij installation</a></li>
+<li><strong>Helix</strong>: Follow <a href="https://helix-editor.com/">Helix installation</a></li>
+<li><strong>Yazi</strong>: Follow <a href="https://yazi-rs.github.io/docs/installation">Yazi installation</a></li>
+</ul>
+<p>Verify each tool is in your PATH:</p>
+<pre><code class="language-bash">which zellij
+which hx
+which yazi
+</code></pre>
+<h3 id="session-issues"><a class="header" href="#session-issues">Session Issues</a></h3>
+<h4 id="session-fails-to-start"><a class="header" href="#session-fails-to-start">Session fails to start</a></h4>
+<p><strong>Problem</strong>: <code>sat-hx-ide init .</code> fails with an error.</p>
+<p><strong>Common causes and solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Keybinding conflicts</strong>:</p>
+<pre><code class="language-bash"># Check for conflicts
+RUST_LOG=debug sat-hx-ide init .
+
+# Solution: Change conflicting keybindings in your config
+hx ~/.config/sat-helix-ide/config.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Missing tools</strong>:</p>
+<pre><code class="language-bash"># Run doctor to check
+sat-hx-ide doctor
+
+# Install any missing tools
+</code></pre>
+</li>
+<li>
+<p><strong>Permission issues</strong>:</p>
+<pre><code class="language-bash"># Check runtime directory permissions
+ls -la $XDG_RUNTIME_DIR/sat-helix-ide/
+
+# Create runtime directory if missing
+mkdir -p $XDG_RUNTIME_DIR/sat-helix-ide/
+</code></pre>
+</li>
+</ol>
+<h4 id="session-starts-but-tools-dont-work"><a class="header" href="#session-starts-but-tools-dont-work">Session starts but tools don’t work</a></h4>
+<p><strong>Problem</strong>: The Zellij session starts, but keybindings don’t work or tools don’t open.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Zellij logs</strong>:</p>
+<pre><code class="language-bash">ZELLIJ_LOG=debug zellij attach &lt;session&gt;
+</code></pre>
+</li>
+<li>
+<p><strong>Verify keybindings</strong>:</p>
+<ul>
+<li>Ensure you’re not in locked mode (press <code>Ctrl-g</code> to unlock)</li>
+<li>Check that you’re in normal mode</li>
+<li>Verify keybindings are loaded:
+<pre><code class="language-bash"># Look for sat-hx-ide bindings in your runtime config
+cat $XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/config.kdl | grep "sat-hx-ide"
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Restart session</strong>:</p>
+<pre><code class="language-bash"># Quit and restart
+zellij kill-session &lt;session&gt;
+sat-hx-ide init .
+</code></pre>
+</li>
+</ol>
+<h3 id="keybinding-issues"><a class="header" href="#keybinding-issues">Keybinding Issues</a></h3>
+<h4 id="keybindings-dont-work"><a class="header" href="#keybindings-dont-work">Keybindings don’t work</a></h4>
+<p><strong>Problem</strong>: Pressing the configured keys doesn’t trigger any action.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Zellij mode</strong>:</p>
+<ul>
+<li>Keybindings only work in normal mode, not locked mode</li>
+<li>Press <code>Ctrl-g</code> to toggle lock mode</li>
+<li>Look for mode indicators in Zellij’s status bar</li>
+</ul>
+</li>
+<li>
+<p><strong>Test keybindings manually</strong>:</p>
+<pre><code class="language-bash"># Run helper commands directly to test
+sat-hx-ide __file-manager open
+sat-hx-ide __terminal toggle
+</code></pre>
+</li>
+<li>
+<p><strong>Check for conflicts</strong>:</p>
+<pre><code class="language-bash"># List all keybindings in your Zellij config
+zellij --config /dev/null run -c 'list-keybindings'
+</code></pre>
+</li>
+</ol>
+<h4 id="custom-keybindings-not-working"><a class="header" href="#custom-keybindings-not-working">Custom keybindings not working</a></h4>
+<p><strong>Problem</strong>: Custom keybindings in configuration are not working.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Validate keybinding syntax</strong>:</p>
+<pre><code class="language-toml"># Good
+file_manager = "Ctrl y"
+
+# Bad (extra spaces)
+file_manager = " Ctrl y "
+</code></pre>
+</li>
+<li>
+<p><strong>Check for conflicts</strong>:</p>
+<pre><code class="language-bash"># Test with debug logging
+RUST_LOG=debug sat-hx-ide init .
+
+# Look for conflict messages
+</code></pre>
+</li>
+<li>
+<p><strong>Try a different keybinding</strong>:</p>
+<pre><code class="language-toml">[keybindings]
+file_manager = "Ctrl f"  # Try a different key
+</code></pre>
+</li>
+</ol>
+<h3 id="terminal-issues"><a class="header" href="#terminal-issues">Terminal Issues</a></h3>
+<h4 id="terminal-doesnt-appear"><a class="header" href="#terminal-doesnt-appear">Terminal doesn’t appear</a></h4>
+<p><strong>Problem</strong>: The terminal pane is missing from the layout.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check configuration</strong>:</p>
+<pre><code class="language-toml">[terminal]
+enabled = true  # Make sure this is true
+</code></pre>
+</li>
+<li>
+<p><strong>Verify terminal command</strong>:</p>
+<pre><code class="language-bash"># Check if your shell is valid
+which $SHELL
+
+# Test your shell directly
+$SHELL --version
+</code></pre>
+</li>
+<li>
+<p><strong>Try with explicit terminal settings</strong>:</p>
+<pre><code class="language-toml">[terminal]
+enabled = true
+dock_percent = 20
+dock_position = "down"
+</code></pre>
+</li>
+</ol>
+<h4 id="terminal-exits-immediately"><a class="header" href="#terminal-exits-immediately">Terminal exits immediately</a></h4>
+<p><strong>Problem</strong>: The terminal appears but exits immediately.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check shell configuration</strong>:</p>
+<ul>
+<li>Some shells (like <code>fish</code>) may exit if they detect they’re not interactive</li>
+<li>Try with <code>bash</code> or <code>zsh</code>:
+<pre><code class="language-bash"># Test with bash
+ZELLIJ_SHELL=/bin/bash sat-hx-ide init .
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Check for errors in shell startup files</strong>:</p>
+<pre><code class="language-bash"># Test your shell startup files
+bash --login -c "echo Shell started successfully"
+</code></pre>
+</li>
+</ol>
+<h3 id="file-manager-issues"><a class="header" href="#file-manager-issues">File Manager Issues</a></h3>
+<h4 id="yazi-doesnt-open"><a class="header" href="#yazi-doesnt-open">Yazi doesn’t open</a></h4>
+<p><strong>Problem</strong>: Pressing <code>Ctrl-y</code> doesn’t open Yazi.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Yazi installation</strong>:</p>
+<pre><code class="language-bash">which yazi
+yazi --version
+</code></pre>
+</li>
+<li>
+<p><strong>Test Yazi directly</strong>:</p>
+<pre><code class="language-bash"># Run Yazi manually
+yazi
+</code></pre>
+</li>
+<li>
+<p><strong>Check file manager configuration</strong>:</p>
+<pre><code class="language-toml">[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+</code></pre>
+</li>
+</ol>
+<h4 id="files-dont-open-in-helix"><a class="header" href="#files-dont-open-in-helix">Files don’t open in Helix</a></h4>
+<p><strong>Problem</strong>: Selecting files in Yazi doesn’t open them in Helix.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Helix installation</strong>:</p>
+<pre><code class="language-bash">which hx
+hx --version
+</code></pre>
+</li>
+<li>
+<p><strong>Test file opening manually</strong>:</p>
+<pre><code class="language-bash"># Try opening a file with Helix
+hx /path/to/file.rs
+</code></pre>
+</li>
+<li>
+<p><strong>Check if Helix pane exists</strong>:</p>
+<ul>
+<li>The file should open in the existing named Helix pane</li>
+<li>Make sure you haven’t closed the Helix pane</li>
+</ul>
+</li>
+</ol>
+<h3 id="git-tui-issues"><a class="header" href="#git-tui-issues">Git TUI Issues</a></h3>
+<h4 id="lazygitgitui-doesnt-open"><a class="header" href="#lazygitgitui-doesnt-open">Lazygit/GitUI doesn’t open</a></h4>
+<p><strong>Problem</strong>: Pressing <code>Alt-g</code> doesn’t open the Git TUI.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Git TUI installation</strong>:</p>
+<pre><code class="language-bash">which lazygit  # or gitui
+lazygit --version
+</code></pre>
+</li>
+<li>
+<p><strong>Test Git TUI directly</strong>:</p>
+<pre><code class="language-bash"># Run in the project directory
+cd /your/project
+lazygit
+</code></pre>
+</li>
+<li>
+<p><strong>Check configuration</strong>:</p>
+<pre><code class="language-toml">[tools.git]
+command = "lazygit"  # or "gitui"
+args = []
+</code></pre>
+</li>
+</ol>
+<h4 id="git-tui-cant-find-git-repository"><a class="header" href="#git-tui-cant-find-git-repository">Git TUI can’t find Git repository</a></h4>
+<p><strong>Problem</strong>: The Git TUI opens but reports no repository found.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check current directory</strong>:</p>
+<ul>
+<li>The Git TUI runs in the current working directory of the Zellij session</li>
+<li>Make sure you’re in a Git repository</li>
+</ul>
+</li>
+<li>
+<p><strong>Verify Git repository</strong>:</p>
+<pre><code class="language-bash">git status
+</code></pre>
+</li>
+<li>
+<p><strong>Restart session in correct directory</strong>:</p>
+<pre><code class="language-bash">cd /path/to/your/git/repo
+sat-hx-ide init .
+</code></pre>
+</li>
+</ol>
+<h3 id="configuration-issues"><a class="header" href="#configuration-issues">Configuration Issues</a></h3>
+<h4 id="configuration-file-not-found"><a class="header" href="#configuration-file-not-found">Configuration file not found</a></h4>
+<p><strong>Problem</strong>: <code>sat-hx-ide</code> reports that the configuration file is not found.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check configuration locations</strong>:</p>
+<pre><code class="language-bash"># Default location
+ls ~/.config/sat-helix-ide/config.toml
+
+# Custom location
+ls /path/to/your/config.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Specify configuration file</strong>:</p>
+<pre><code class="language-bash">sat-hx-ide init . --config /path/to/config.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Create default configuration</strong>:</p>
+<pre><code class="language-bash">mkdir -p ~/.config/sat-helix-ide
+cp /path/to/sat-helix-ide/configs/config.toml ~/.config/sat-helix-ide/
+</code></pre>
+</li>
+</ol>
+<h4 id="configuration-validation-errors"><a class="header" href="#configuration-validation-errors">Configuration validation errors</a></h4>
+<p><strong>Problem</strong>: <code>sat-hx-ide</code> reports configuration validation errors.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check for syntax errors</strong>:</p>
+<pre><code class="language-bash"># Validate TOML syntax
+python3 -c "import tomllib; tomllib.loads(open('.config/sat-helix-ide/config.toml', 'rb').read())"
+</code></pre>
+</li>
+<li>
+<p><strong>Check for invalid values</strong>:</p>
+<ul>
+<li><code>dock_percent</code> must be between 1 and 99</li>
+<li><code>dock_position</code> must be “down” or “right”</li>
+<li>Command paths must exist</li>
+</ul>
+</li>
+<li>
+<p><strong>Use defaults</strong>:</p>
+<pre><code class="language-bash"># Temporarily use bundled defaults
+mv ~/.config/sat-helix-ide/config.toml ~/.config/sat-helix-ide/config.toml.bak
+sat-hx-ide init .
+</code></pre>
+</li>
+</ol>
+<h2 id="debug-mode"><a class="header" href="#debug-mode">Debug Mode</a></h2>
+<h3 id="enabling-debug-logging"><a class="header" href="#enabling-debug-logging">Enabling Debug Logging</a></h3>
+<p>Use the <code>RUST_LOG</code> environment variable to enable debug logging:</p>
+<pre><code class="language-bash"># Basic debug logging
+RUST_LOG=debug sat-hx-ide init .
+
+# Detailed trace logging
+RUST_LOG=trace sat-hx-ide init .
+
+# Only show info from specific modules
+RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide init .
+</code></pre>
+<h3 id="debug-log-levels"><a class="header" href="#debug-log-levels">Debug Log Levels</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Level</th><th>Description</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td><code>error</code></td><td>Only errors</td><td>Production troubleshooting</td></tr>
+<tr><td><code>warn</code></td><td>Warnings and errors</td><td>General troubleshooting</td></tr>
+<tr><td><code>info</code></td><td>Informational messages</td><td>Understanding flow</td></tr>
+<tr><td><code>debug</code></td><td>Detailed debug info</td><td>Deep troubleshooting</td></tr>
+<tr><td><code>trace</code></td><td>Very verbose, all details</td><td>Development debugging</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="debugging-specific-operations"><a class="header" href="#debugging-specific-operations">Debugging Specific Operations</a></h3>
+<h4 id="debug-session-initialization"><a class="header" href="#debug-session-initialization">Debug Session Initialization</a></h4>
+<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide init . --session debug-session
+</code></pre>
+<p>This shows:</p>
+<ul>
+<li>Configuration file loading</li>
+<li>Layout generation</li>
+<li>Zellij session creation</li>
+<li>Keybinding injection</li>
+</ul>
+<h4 id="debug-action-execution"><a class="header" href="#debug-action-execution">Debug Action Execution</a></h4>
+<pre><code class="language-bash"># Start a session
+sat-hx-ide init .
+
+# In another terminal, debug a specific action
+RUST_LOG=trace sat-hx-ide __file-manager open
+</code></pre>
+<h4 id="debug-zellij-integration"><a class="header" href="#debug-zellij-integration">Debug Zellij Integration</a></h4>
+<pre><code class="language-bash"># Enable Zellij logging
+ZELLIJ_LOG=debug zellij attach &lt;session&gt;
+
+# Or set in environment
+export ZELLIJ_LOG=debug
+zellij attach &lt;session&gt;
+</code></pre>
+<h2 id="environment-specific-issues"><a class="header" href="#environment-specific-issues">Environment-Specific Issues</a></h2>
+<h3 id="running-on-different-platforms"><a class="header" href="#running-on-different-platforms">Running on Different Platforms</a></h3>
+<h4 id="linux"><a class="header" href="#linux">Linux</a></h4>
+<p><strong>Issue</strong>: Runtime directory permissions.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Create runtime directory with proper permissions
+mkdir -p ~/.local/share/sat-helix-ide
+chmod 700 ~/.local/share/sat-helix-ide
+</code></pre>
+<h4 id="macos"><a class="header" href="#macos">macOS</a></h4>
+<p><strong>Issue</strong>: No <code>XDG_RUNTIME_DIR</code> on macOS.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Set XDG_RUNTIME_DIR for macOS
+export XDG_RUNTIME_DIR=/tmp
+sat-hx-ide init .
+</code></pre>
+<h4 id="windows-wsl"><a class="header" href="#windows-wsl">Windows (WSL)</a></h4>
+<p><strong>Issue</strong>: Windows paths don’t work with Linux tools.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Use WSL paths
+[tools.editor]
+command = "hx.exe"
+</code></pre>
+<h3 id="terminal-emulator-issues"><a class="header" href="#terminal-emulator-issues">Terminal Emulator Issues</a></h3>
+<h4 id="colors-dont-display-correctly"><a class="header" href="#colors-dont-display-correctly">Colors don’t display correctly</a></h4>
+<p><strong>Problem</strong>: Terminal colors are wrong or missing.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check terminal color support</strong>:</p>
+<pre><code class="language-bash"># Test color support
+echo -e "\033[31mRed\033[0m"
+</code></pre>
+</li>
+<li>
+<p><strong>Set proper TERM variable</strong>:</p>
+<pre><code class="language-bash">export TERM=xterm-256color
+</code></pre>
+</li>
+<li>
+<p><strong>Check Zellij color configuration</strong>:</p>
+<ul>
+<li>Ensure your Zellij config has proper color settings</li>
+<li>Check Zellij’s theme configuration</li>
+</ul>
+</li>
+</ol>
+<h4 id="font-rendering-issues"><a class="header" href="#font-rendering-issues">Font rendering issues</a></h4>
+<p><strong>Problem</strong>: Characters don’t display correctly.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Use a proper font</strong>:</p>
+<ul>
+<li>Nerd Fonts (recommended for icons)</li>
+<li>Fira Code</li>
+<li>JetBrains Mono</li>
+</ul>
+</li>
+<li>
+<p><strong>Check terminal font settings</strong>:</p>
+<ul>
+<li>Ensure your terminal is using a monospace font</li>
+<li>Set font size appropriately</li>
+</ul>
+</li>
+</ol>
+<h2 id="known-limitations"><a class="header" href="#known-limitations">Known Limitations</a></h2>
+<h3 id="zellij-version-compatibility"><a class="header" href="#zellij-version-compatibility">Zellij Version Compatibility</a></h3>
+<p><strong>Issue</strong>: Different Zellij versions may have different features or behaviors.</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Use the latest stable version of Zellij</li>
+<li>Check Zellij’s changelog for breaking changes</li>
+<li>Report compatibility issues to the sat-helix-ide repository</li>
+</ul>
+<h3 id="tool-version-compatibility"><a class="header" href="#tool-version-compatibility">Tool Version Compatibility</a></h3>
+<p><strong>Issue</strong>: Different versions of integrated tools (Helix, Yazi, Lazygit) may behave differently.</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Use reasonably recent versions of all tools</li>
+<li>Check tool-specific documentation for version requirements</li>
+<li>Report compatibility issues</li>
+</ul>
+<h3 id="wayland-support"><a class="header" href="#wayland-support">Wayland Support</a></h3>
+<p><strong>Issue</strong>: Some features may not work perfectly under Wayland.</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Most functionality should work under Wayland</li>
+<li>Some clipboard or focus issues may occur</li>
+<li>Try running under X11 if you encounter issues</li>
+</ul>
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<h3 id="checking-system-information"><a class="header" href="#checking-system-information">Checking System Information</a></h3>
+<p>To diagnose issues, gather the following information:</p>
+<pre><code class="language-bash"># System info
+echo "OS: $(uname -a)"
+echo "Shell: $SHELL"
+echo "Zellij: $(zellij --version 2&gt;&amp;1)"
+echo "Helix: $(hx --version 2&gt;&amp;1)"
+echo "Yazi: $(yazi --version 2&gt;&amp;1)"
+echo "Lazygit: $(lazygit --version 2&gt;&amp;1 || echo 'Not installed')"
+echo "sat-hx-ide: $(sat-hx-ide version 2&gt;&amp;1)"
+
+# Configuration
+cat ~/.config/sat-helix-ide/config.toml 2&gt;/dev/null || echo "No custom config"
+
+# Environment
+env | grep -E "(XDG|TERM|PATH|ZELLIJ)" | head -10
+</code></pre>
+<h3 id="reporting-issues"><a class="header" href="#reporting-issues">Reporting Issues</a></h3>
+<p>When reporting issues on GitHub, include:</p>
+<ol>
+<li><strong>sat-hx-ide version</strong>: <code>sat-hx-ide version</code></li>
+<li><strong>Tool versions</strong>: Zellij, Helix, Yazi, Git TUI</li>
+<li><strong>OS and platform</strong>: Linux/macOS/Windows, distribution</li>
+<li><strong>Configuration</strong>: Your <code>config.toml</code> (if custom)</li>
+<li><strong>Steps to reproduce</strong>: What you did to trigger the issue</li>
+<li><strong>Expected vs actual behavior</strong>: What should happen vs what happened</li>
+<li><strong>Debug logs</strong>: Output with <code>RUST_LOG=debug</code> if applicable</li>
+</ol>
+<h3 id="creating-a-minimal-reproduction"><a class="header" href="#creating-a-minimal-reproduction">Creating a Minimal Reproduction</a></h3>
+<p>To help diagnose issues, create a minimal reproduction:</p>
+<ol>
+<li>Start with a fresh configuration</li>
+<li>Use only the default settings</li>
+<li>Reproduce the issue with minimal steps</li>
+<li>Document the exact steps to reproduce</li>
+</ol>
+<h2 id="troubleshooting-checklist"><a class="header" href="#troubleshooting-checklist">Troubleshooting Checklist</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"> Run <code>sat-hx-ide doctor</code> for system check</li>
+<li><input disabled="" type="checkbox"> Check <code>RUST_LOG=debug sat-hx-ide init .</code> for debug output</li>
+<li><input disabled="" type="checkbox"> Verify all required tools are installed and in PATH</li>
+<li><input disabled="" type="checkbox"> Test each tool individually (zellij, hx, yazi, lazygit)</li>
+<li><input disabled="" type="checkbox"> Check configuration file syntax and values</li>
+<li><input disabled="" type="checkbox"> Try with default configuration (no custom config)</li>
+<li><input disabled="" type="checkbox"> Test in a fresh directory/session</li>
+<li><input disabled="" type="checkbox"> Check for keybinding conflicts</li>
+<li><input disabled="" type="checkbox"> Verify terminal emulator compatibility</li>
+<li><input disabled="" type="checkbox"> Search existing issues on GitHub</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./appendix.html">Appendix</a> - Command reference and additional resources</li>
+<li><a href="https://github.com/vlevasseur073/sat-helix-ide/issues">GitHub Issues</a> - Report or browse issues</li>
+<li><a href="https://github.com/vlevasseur073/sat-helix-ide/discussions">Discussions</a> - Ask questions and share ideas</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="development.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="appendix.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="development.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="appendix.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/custom-983d56f0.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

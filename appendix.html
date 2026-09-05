@@ -1,0 +1,816 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Appendix - sat-helix-ide User Manual &amp; Design Document</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-e8ea0b06.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-e36cfd3f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-26df6826.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">sat-helix-ide User Manual &amp; Design Document</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/vlevasseur073/sat-helix-ide" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="appendix"><a class="header" href="#appendix">Appendix</a></h1>
+<p>This appendix contains reference information, environment variables, related projects, and additional resources for <code>sat-helix-ide</code>.</p>
+<h2 id="command-reference"><a class="header" href="#command-reference">Command Reference</a></h2>
+<h3 id="main-commands"><a class="header" href="#main-commands">Main Commands</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th><th>Usage</th></tr>
+</thead>
+<tbody>
+<tr><td><code>init</code></td><td>Initialize a new Zellij session</td><td><code>sat-hx-ide init [PATH] [--session NAME] [--no-ai] [--no-attach]</code></td></tr>
+<tr><td><code>doctor</code></td><td>Check system requirements and configuration</td><td><code>sat-hx-ide doctor</code></td></tr>
+<tr><td><code>config</code></td><td>Display current configuration</td><td><code>sat-hx-ide config [--config PATH]</code></td></tr>
+<tr><td><code>version</code></td><td>Display version information</td><td><code>sat-hx-ide version</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="helper-commands-internal"><a class="header" href="#helper-commands-internal">Helper Commands (Internal)</a></h3>
+<p>These commands are invoked internally by Zellij keybindings and are not typically called directly by users.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th><th>Trigger</th></tr>
+</thead>
+<tbody>
+<tr><td><code>__file-manager open</code></td><td>Open or focus file manager</td><td><code>Ctrl-y</code></td></tr>
+<tr><td><code>__file-manager toggle-dock</code></td><td>Toggle file manager between floating and docked</td><td><code>Alt-y</code></td></tr>
+<tr><td><code>__terminal toggle</code></td><td>Hide/show terminal</td><td><code>Alt-t</code></td></tr>
+<tr><td><code>__terminal zoom</code></td><td>Zoom terminal to full height or restore</td><td><code>Alt-Shift-t</code></td></tr>
+<tr><td><code>__git open</code></td><td>Open Git TUI in floating pane</td><td><code>Alt-g</code></td></tr>
+<tr><td><code>__review open</code></td><td>Open review tool in floating pane</td><td><code>Alt-r</code></td></tr>
+<tr><td><code>__workflow open</code></td><td>Open workflow tool in floating pane</td><td><code>Alt-w</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="command-line-options"><a class="header" href="#command-line-options">Command-Line Options</a></h3>
+<h4 id="init-command-options"><a class="header" href="#init-command-options"><code>init</code> Command Options</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[PATH]</code></td><td>Project directory</td><td>Current directory</td></tr>
+<tr><td><code>--session NAME</code></td><td>Session name override</td><td>Directory name</td></tr>
+<tr><td><code>--no-ai</code></td><td>Skip AI tab</td><td><code>false</code></td></tr>
+<tr><td><code>--no-attach</code></td><td>Don’t attach to existing session</td><td><code>false</code></td></tr>
+<tr><td><code>--config PATH</code></td><td>Custom configuration file</td><td><code>~/.config/sat-helix-ide/config.toml</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Initialize in current directory
+sat-hx-ide init .
+
+# Initialize in specific directory with custom session name
+sat-hx-ide init ~/projects/myapp --session myapp-dev
+
+# Initialize without AI tab
+sat-hx-ide init . --no-ai
+
+# Initialize with custom config
+sat-hx-ide init . --config /path/to/config.toml
+</code></pre>
+<h4 id="config-command-options"><a class="header" href="#config-command-options"><code>config</code> Command Options</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--config PATH</code></td><td>Custom configuration file</td><td><code>~/.config/sat-helix-ide/config.toml</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Show current configuration
+sat-hx-ide config
+
+# Show configuration from custom file
+sat-hx-ide config --config /path/to/config.toml
+</code></pre>
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<h3 id="sat-helix-ide-variables"><a class="header" href="#sat-helix-ide-variables">sat-helix-ide Variables</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variable</th><th>Description</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code>RUST_LOG</code></td><td>Logging level for sat-hx-ide</td><td><code>info</code></td></tr>
+<tr><td><code>XDG_RUNTIME_DIR</code></td><td>Directory for runtime files</td><td><code>/run/user/&lt;uid&gt;/</code> (Linux)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="zellij-variables"><a class="header" href="#zellij-variables">Zellij Variables</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variable</th><th>Description</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ZELLIJ_CONFIG_FILE</code></td><td>Path to Zellij configuration</td><td>Overrides <code>session.zellij_config</code></td></tr>
+<tr><td><code>ZELLIJ_LOG</code></td><td>Zellij logging level</td><td>Controls Zellij’s own logging</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="tool-variables"><a class="header" href="#tool-variables">Tool Variables</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variable</th><th>Tool</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SHELL</code></td><td>Terminal</td><td>Default shell for terminal panes</td></tr>
+<tr><td><code>HELIX_EDITOR</code></td><td>Helix</td><td>Helix configuration directory (if needed)</td></tr>
+<tr><td><code>YAZI_CONFIG</code></td><td>Yazi</td><td>Yazi configuration directory</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="file-locations"><a class="header" href="#file-locations">File Locations</a></h2>
+<h3 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Purpose</th><th>Location</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>User Config</td><td><code>~/.config/sat-helix-ide/config.toml</code></td><td>Main configuration file</td></tr>
+<tr><td>Sample Config</td><td><code>&lt;repo&gt;/configs/config.toml</code></td><td>Sample configuration for reference</td></tr>
+<tr><td>Runtime Config</td><td><code>$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/config.kdl</code></td><td>Merged Zellij config</td></tr>
+<tr><td>Runtime Layout</td><td><code>$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/layout.kdl</code></td><td>Session layout</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="default-configuration"><a class="header" href="#default-configuration">Default Configuration</a></h3>
+<p>The default configuration is embedded in the binary. When no user configuration file exists, these defaults are used:</p>
+<pre><code class="language-toml">[session]
+attach_existing = true
+ai_by_default = true
+
+[terminal]
+enabled = true
+dock_percent = 15
+dock_position = "down"
+
+[keybindings]
+file_manager = "Ctrl y"
+file_manager_dock = "Alt y"
+git = "Alt g"
+review = "Alt r"
+workflow = "Alt w"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+
+[tools.zellij]
+command = "zellij"
+args = []
+
+[tools.editor]
+command = "hx"
+args = []
+
+[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+float_width = "100%"
+float_height = "100%"
+dock_percent = 28
+
+[tools.git]
+command = "lazygit"
+args = []
+
+[tools.review]
+command = "revdiff"
+args = []
+
+[tools.workflow]
+command = "glab-tui"
+args = []
+
+[tools.ai]
+command = "cursor-agent"
+args = []
+</code></pre>
+<h2 id="keyboard-shortcuts-summary"><a class="header" href="#keyboard-shortcuts-summary">Keyboard Shortcuts Summary</a></h2>
+<h3 id="default-keybindings"><a class="header" href="#default-keybindings">Default Keybindings</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Action</th><th>Component</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Ctrl-y</code></td><td>Open/focus file manager</td><td>File Manager</td></tr>
+<tr><td><code>Alt-y</code></td><td>Toggle file manager dock</td><td>File Manager</td></tr>
+<tr><td><code>Alt-t</code></td><td>Toggle terminal visibility</td><td>Terminal</td></tr>
+<tr><td><code>Alt-Shift-t</code></td><td>Zoom terminal</td><td>Terminal</td></tr>
+<tr><td><code>Alt-g</code></td><td>Open Git TUI</td><td>Git</td></tr>
+<tr><td><code>Alt-r</code></td><td>Open review tool</td><td>Review</td></tr>
+<tr><td><code>Alt-w</code></td><td>Open workflow tool</td><td>Workflow</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="zellij-default-keybindings-still-active"><a class="header" href="#zellij-default-keybindings-still-active">Zellij Default Keybindings (Still Active)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Action</th><th>Mode</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Ctrl-q</code></td><td>Quit Zellij</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-g</code></td><td>Toggle lock mode</td><td>All</td></tr>
+<tr><td><code>Ctrl-n</code></td><td>New pane</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-h/j/k/l</code></td><td>Move focus</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-Shift-h/j/k/l</code></td><td>Move pane</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-p</code></td><td>Previous tab</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-n</code></td><td>Next tab</td><td>Normal</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="configuration-reference"><a class="header" href="#configuration-reference">Configuration Reference</a></h2>
+<h3 id="all-configuration-options"><a class="header" href="#all-configuration-options">All Configuration Options</a></h3>
+<h4 id="session"><a class="header" href="#session"><code>[session]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>attach_existing</code></td><td>Boolean</td><td><code>true</code></td><td>Attach to existing session</td></tr>
+<tr><td><code>ai_by_default</code></td><td>Boolean</td><td><code>true</code></td><td>Include AI tab</td></tr>
+<tr><td><code>zellij_config</code></td><td>String</td><td>Auto</td><td>Custom Zellij config path</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="terminal"><a class="header" href="#terminal"><code>[terminal]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>Boolean</td><td><code>true</code></td><td>Include terminal pane</td></tr>
+<tr><td><code>dock_percent</code></td><td>Integer</td><td><code>15</code></td><td>Terminal size percentage</td></tr>
+<tr><td><code>dock_position</code></td><td>String</td><td><code>"down"</code></td><td>Terminal position (<code>"down"</code> or <code>"right"</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="keybindings"><a class="header" href="#keybindings"><code>[keybindings]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>file_manager</code></td><td>String</td><td><code>"Ctrl y"</code></td><td>File manager key</td></tr>
+<tr><td><code>file_manager_dock</code></td><td>String</td><td><code>"Alt y"</code></td><td>File manager dock toggle</td></tr>
+<tr><td><code>git</code></td><td>String</td><td><code>"Alt g"</code></td><td>Git TUI key</td></tr>
+<tr><td><code>review</code></td><td>String</td><td><code>"Alt r"</code></td><td>Review tool key</td></tr>
+<tr><td><code>workflow</code></td><td>String</td><td><code>"Alt w"</code></td><td>Workflow tool key</td></tr>
+<tr><td><code>terminal</code></td><td>String</td><td><code>"Alt t"</code></td><td>Terminal toggle key</td></tr>
+<tr><td><code>terminal_zoom</code></td><td>String</td><td><code>"Alt Shift t"</code></td><td>Terminal zoom key</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolszellij"><a class="header" href="#toolszellij"><code>[tools.zellij]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"zellij"</code></td><td>Zellij executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Zellij arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolseditor"><a class="header" href="#toolseditor"><code>[tools.editor]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"hx"</code></td><td>Editor executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Editor arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsfile_manager"><a class="header" href="#toolsfile_manager"><code>[tools.file_manager]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>adapter</code></td><td>String</td><td><code>"yazi"</code></td><td>File manager adapter</td></tr>
+<tr><td><code>command</code></td><td>String</td><td><code>"yazi"</code></td><td>File manager executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>File manager arguments</td></tr>
+<tr><td><code>float_width</code></td><td>String</td><td><code>"100%"</code></td><td>Floating width</td></tr>
+<tr><td><code>float_height</code></td><td>String</td><td><code>"100%"</code></td><td>Floating height</td></tr>
+<tr><td><code>dock_percent</code></td><td>Integer</td><td><code>28</code></td><td>Docked width percentage</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsgit"><a class="header" href="#toolsgit"><code>[tools.git]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"lazygit"</code></td><td>Git TUI executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Git TUI arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsreview"><a class="header" href="#toolsreview"><code>[tools.review]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"revdiff"</code></td><td>Review tool executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Review tool arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsworkflow"><a class="header" href="#toolsworkflow"><code>[tools.workflow]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"glab-tui"</code></td><td>Workflow tool executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Workflow tool arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsai"><a class="header" href="#toolsai"><code>[tools.ai]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"cursor-agent"</code></td><td>AI agent executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>AI agent arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="related-projects"><a class="header" href="#related-projects">Related Projects</a></h2>
+<h3 id="terminal-multiplexers"><a class="header" href="#terminal-multiplexers">Terminal Multiplexers</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Zellij</strong></td><td>Terminal workspace multiplexer (used by sat-hx-ide)</td><td><a href="https://zellij.dev">zellij.dev</a></td></tr>
+<tr><td>tmux</td><td>Terminal multiplexer</td><td><a href="https://tmux.github.io">tmux.github.io</a></td></tr>
+<tr><td>screen</td><td>Terminal multiplexer</td><td><a href="https://www.gnu.org/software/screen/">GNU Screen</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="editors"><a class="header" href="#editors">Editors</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Helix</strong></td><td>Modal text editor (used by sat-hx-ide)</td><td><a href="https://helix-editor.com">helix-editor.com</a></td></tr>
+<tr><td>Neovim</td><td>Vim-fork with modern features</td><td><a href="https://neovim.io">neovim.io</a></td></tr>
+<tr><td>Kakoune</td><td>Modal, multiple-selections editor</td><td><a href="https://kakoune.org">kakoune.org</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="file-managers"><a class="header" href="#file-managers">File Managers</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Yazi</strong></td><td>Terminal file manager (used by sat-hx-ide)</td><td><a href="https://yazi-rs.github.io">yazi-rs.github.io</a></td></tr>
+<tr><td>Ranger</td><td>Console file manager</td><td><a href="https://ranger.github.io">ranger.github.io</a></td></tr>
+<tr><td>lf</td><td>Terminal file manager</td><td><a href="https://github.com/gokcehan/lf">github.com/gokcehan/lf</a></td></tr>
+<tr><td>nnn</td><td>Fast terminal file manager</td><td><a href="https://github.com/jarun/nnn">github.com/jarun/nnn</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="git-tuis"><a class="header" href="#git-tuis">Git TUIs</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Lazygit</strong></td><td>Simple Git TUI (used by sat-hx-ide)</td><td><a href="https://github.com/jesseduffield/lazygit">github.com/jesseduffield/lazygit</a></td></tr>
+<tr><td><strong>GitUI</strong></td><td>Alternative Git TUI</td><td><a href="https://github.com/gitui-org/gitui">github.com/gitui-org/gitui</a></td></tr>
+<tr><td>Tig</td><td>Text-mode interface for Git</td><td><a href="https://jonas.github.io/tig/">jonas.github.io/tig</a></td></tr>
+<tr><td>Magit</td><td>Emacs Git interface</td><td><a href="https://magit.vc">magit.vc</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="review-tools"><a class="header" href="#review-tools">Review Tools</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>revdiff</strong></td><td>Smart diff viewer (used by sat-hx-ide)</td><td><a href="https://github.com/umputun/revdiff">github.com/umputun/revdiff</a></td></tr>
+<tr><td>git-delta</td><td>Syntax-highlighting pager for git</td><td><a href="https://github.com/dandavison/delta">github.com/dandavison/delta</a></td></tr>
+<tr><td>Diff So Fancy</td><td>Good-lookin’ diffs</td><td><a href="https://github.com/so-fancy/diff-so-fancy">github.com/so-fancy/diff-so-fancy</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="workflow-tools"><a class="header" href="#workflow-tools">Workflow Tools</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>glab-tui</strong></td><td>GitLab/GitHub TUI (used by sat-hx-ide)</td><td><a href="https://github.com/rcieri/glab-tui">github.com/rcieri/glab-tui</a></td></tr>
+<tr><td>Gh CLI</td><td>GitHub CLI</td><td><a href="https://cli.github.com">cli.github.com</a></td></tr>
+<tr><td>Lab</td><td>GitLab CLI</td><td><a href="https://github.com/zaquestion/lab">github.com/zaquestion/lab</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="ai-agents"><a class="header" href="#ai-agents">AI Agents</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td>Cursor Agent</td><td>AI code assistant</td><td><a href="https://cursor.com">cursor.com</a></td></tr>
+<tr><td>GitHub Copilot CLI</td><td>GitHub Copilot in CLI</td><td><a href="https://github.com/github/copilot-cli">github.com/github/copilot-cli</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="similar-projects"><a class="header" href="#similar-projects">Similar Projects</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td>Zellij IDE</td><td>Zellij-based IDE</td><td><a href="https://github.com/mattsse/zellij-ide">github.com/mattsse/zellij-ide</a></td></tr>
+<tr><td>Tmux IDE</td><td>Tmux-based IDE configurations</td><td>Various</td></tr>
+<tr><td>Neovim Remote</td><td>Neovim remote editing</td><td>Built-in</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="resources"><a class="header" href="#resources">Resources</a></h2>
+<h3 id="official-resources"><a class="header" href="#official-resources">Official Resources</a></h3>
+<ul>
+<li><strong>Repository</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide">github.com/vlevasseur073/sat-helix-ide</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide/issues">github.com/vlevasseur073/sat-helix-ide/issues</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide/discussions">github.com/vlevasseur073/sat-helix-ide/discussions</a></li>
+</ul>
+<h3 id="zellij-resources"><a class="header" href="#zellij-resources">Zellij Resources</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://zellij.dev/documentation">zellij.dev/documentation</a></li>
+<li><strong>GitHub</strong>: <a href="https://github.com/zellij-org/zellij">github.com/zellij-org/zellij</a></li>
+<li><strong>Discord</strong>: Zellij Discord server</li>
+</ul>
+<h3 id="helix-resources"><a class="header" href="#helix-resources">Helix Resources</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://helix-editor.com/docs">helix-editor.com/docs</a></li>
+<li><strong>GitHub</strong>: <a href="https://github.com/helix-editor/helix">github.com/helix-editor/helix</a></li>
+<li><strong>Matrix</strong>: Helix Matrix channel</li>
+</ul>
+<h3 id="yazi-resources"><a class="header" href="#yazi-resources">Yazi Resources</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://yazi-rs.github.io/docs">yazi-rs.github.io/docs</a></li>
+<li><strong>GitHub</strong>: <a href="https://github.com/sxyazi/yazi">github.com/sxyazi/yazi</a></li>
+</ul>
+<h3 id="lazygit-resources"><a class="header" href="#lazygit-resources">Lazygit Resources</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://github.com/jesseduffield/lazygit">github.com/jesseduffield/lazygit</a></li>
+<li><strong>Config Guide</strong>: <a href="https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md">github.com/jesseduffield/lazygit/blob/master/docs/Config.md</a></li>
+</ul>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="optimizing-startup-time"><a class="header" href="#optimizing-startup-time">Optimizing Startup Time</a></h3>
+<ol>
+<li><strong>Pre-load Zellij</strong>: Keep a Zellij session running</li>
+<li><strong>Use SSD</strong>: Faster disk I/O for configuration loading</li>
+<li><strong>Reduce config complexity</strong>: Simplify your Zellij configuration</li>
+<li><strong>Cache runtime files</strong>: Runtime files are cached across sessions</li>
+</ol>
+<h3 id="optimizing-runtime-performance"><a class="header" href="#optimizing-runtime-performance">Optimizing Runtime Performance</a></h3>
+<ol>
+<li><strong>Use pane cache</strong>: The built-in pane cache reduces Zellij queries</li>
+<li><strong>Avoid frequent resizes</strong>: Resize operations bypass the cache</li>
+<li><strong>Use efficient shells</strong>: Some shells start faster than others</li>
+<li><strong>Limit AI tab</strong>: Disable AI tab if not needed (<code>--no-ai</code>)</li>
+</ol>
+<h3 id="memory-usage"><a class="header" href="#memory-usage">Memory Usage</a></h3>
+<ul>
+<li><strong>No daemon</strong>: No persistent memory usage</li>
+<li><strong>Short-lived processes</strong>: Minimal memory footprint per action</li>
+<li><strong>Cleanup</strong>: Runtime files are automatically cleaned up</li>
+</ul>
+<h2 id="integration-examples"><a class="header" href="#integration-examples">Integration Examples</a></h2>
+<h3 id="integrating-with-shell-aliases"><a class="header" href="#integrating-with-shell-aliases">Integrating with Shell Aliases</a></h3>
+<pre><code class="language-bash"># Add to your .bashrc or .zshrc
+alias ide="sat-hx-ide init ."
+alias ide-no-ai="sat-hx-ide init . --no-ai"
+
+# Usage
+ide        # Start session in current directory
+ide-no-ai  # Start session without AI tab
+</code></pre>
+<h3 id="integrating-with-project-specific-configs"><a class="header" href="#integrating-with-project-specific-configs">Integrating with Project-Specific Configs</a></h3>
+<pre><code class="language-bash"># In your project's .env file or shell profile
+if [ -d ".sat-hx-ide" ]; then
+    export SAT_HX_IDE_CONFIG=".sat-hx-ide/config.toml"
+fi
+
+# Then use
+sat-hx-ide init . --config $SAT_HX_IDE_CONFIG
+</code></pre>
+<h3 id="integrating-with-makefile"><a class="header" href="#integrating-with-makefile">Integrating with Makefile</a></h3>
+<pre><code class="language-makefile">.PHONY: ide
+ide:
+	sat-hx-ide init .
+
+.PHONY: ide-debug
+ide-debug:
+	RUST_LOG=debug sat-hx-ide init .
+</code></pre>
+<h3 id="integrating-with-justfile"><a class="header" href="#integrating-with-justfile">Integrating with Justfile</a></h3>
+<pre><code class="language-just"># Start IDE
+ide:
+    sat-hx-ide init .
+
+# Start IDE with debugging
+ide-debug:
+    RUST_LOG=debug sat-hx-ide init .
+
+# Run doctor
+check:
+    sat-hx-ide doctor
+</code></pre>
+<h2 id="version-history"><a class="header" href="#version-history">Version History</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>Date</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>0.1.0</td><td>Current</td><td>Initial release</td></tr>
+</tbody>
+</table>
+</div>
+<p><em>Check the GitHub repository for the latest version and changelog.</em></p>
+<h2 id="license"><a class="header" href="#license">License</a></h2>
+<p><code>sat-helix-ide</code> is licensed under the MIT License. See the <a href="https://github.com/vlevasseur073/sat-helix-ide/blob/main/LICENSE">LICENSE</a> file for details.</p>
+<h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
+<p>See <a href="./development.html">Development</a> for information on contributing to <code>sat-helix-ide</code>.</p>
+<h2 id="support"><a class="header" href="#support">Support</a></h2>
+<ul>
+<li><strong>GitHub Issues</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide/issues">github.com/vlevasseur073/sat-helix-ide/issues</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide/discussions">github.com/vlevasseur073/sat-helix-ide/discussions</a></li>
+<li><strong>Contributing</strong>: Pull requests welcome!</li>
+</ul>
+<hr>
+<p>This concludes the <code>sat-helix-ide</code> User Manual &amp; Design Document. We hope this comprehensive guide helps you get the most out of this powerful development tool.</p>
+<ul>
+<li><a href="./introduction.html">Back to Introduction</a> - Start over</li>
+<li><a href="./quick-start.html">Quick Start</a> - Get started quickly</li>
+<li><a href="./user-manual.html">User Manual</a> - Learn how to use</li>
+<li><a href="./configuration.html">Configuration</a> - Customize your setup</li>
+<li><a href="./architecture.html">Architecture</a> - Understand the design</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="troubleshooting.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="troubleshooting.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/custom-983d56f0.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

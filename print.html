@@ -1,0 +1,3557 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>sat-helix-ide User Manual &amp; Design Document</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-e8ea0b06.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-e36cfd3f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-26df6826.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">sat-helix-ide User Manual &amp; Design Document</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/vlevasseur073/sat-helix-ide" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<h2 id="what-is-sat-helix-ide"><a class="header" href="#what-is-sat-helix-ide">What is sat-helix-ide?</a></h2>
+<p><code>sat-helix-ide</code> is a <strong>workspace orchestrator</strong> that transforms <a href="https://zellij.dev/">Zellij</a> into a full-fledged IDE centered around the <a href="https://helix-editor.com/">Helix</a> editor. It composes a development environment by integrating multiple powerful terminal-based tools into a cohesive workflow.</p>
+<p>At its core, <code>sat-helix-ide</code> is a small command-line tool that creates and manages Zellij sessions with pre-configured layouts, keybindings, and tool integrations. Each keybinding spawns a short-lived <code>sat-helix-ide</code> helper process that drives Zellij CLI actions and exits — there is <strong>no background daemon</strong>.</p>
+<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<p><code>sat-helix-ide</code> provides a unified interface to several best-in-class terminal tools:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Category</th><th>Default Tool</th><th>Alternatives</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Editor</strong></td><td>Helix (<code>hx</code>)</td><td>-</td><td>Modern modal text editor</td></tr>
+<tr><td><strong>File Manager</strong></td><td><a href="https://yazi-rs.github.io/">Yazi</a></td><td>-</td><td>Feature-rich terminal file manager</td></tr>
+<tr><td><strong>Git TUI</strong></td><td><a href="https://github.com/jesseduffield/lazygit">Lazygit</a></td><td><a href="https://github.com/gitui-org/gitui">GitUI</a></td><td>Interactive Git client</td></tr>
+<tr><td><strong>Review Tool</strong></td><td><a href="https://github.com/umputun/revdiff">revdiff</a></td><td><code>git diff</code>, git-delta</td><td>Code review interface</td></tr>
+<tr><td><strong>Workflow Tool</strong></td><td><a href="https://github.com/rcieri/glab-tui">glab-tui</a></td><td>-</td><td>GitHub/GitLab project management</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="core-features"><a class="header" href="#core-features">Core Features</a></h3>
+<ul>
+<li><strong>Automatic Workspace Setup</strong>: Create a Zellij session with Helix editor and optional AI assistant tab</li>
+<li><strong>Docked Terminal</strong>: Integrated shell pane that can be toggled or zoomed</li>
+<li><strong>File Manager Integration</strong>: Open Yazi in floating or docked mode with smart focus management</li>
+<li><strong>Git Integration</strong>: Launch Git TUI clients in floating panes</li>
+<li><strong>Review Tools</strong>: Open diff tools for code review workflows</li>
+<li><strong>Workflow Tools</strong>: Access project management TUIs (GitHub, GitLab, etc.)</li>
+<li><strong>Configuration Flexibility</strong>: Customize every aspect without modifying your global configs</li>
+<li><strong>Non-Intrusive</strong>: Never writes to your global Zellij, Helix, or tool configurations</li>
+</ul>
+<h2 id="project-philosophy"><a class="header" href="#project-philosophy">Project Philosophy</a></h2>
+<p><code>sat-helix-ide</code> follows several key principles:</p>
+<ol>
+<li><strong>Composition over Integration</strong>: Rather than creating a monolithic IDE, it composes existing excellent tools</li>
+<li><strong>Non-Intrusive</strong>: It reads your configurations but never modifies them</li>
+<li><strong>Short-Lived Processes</strong>: Helper commands run briefly and exit, avoiding daemon complexity</li>
+<li><strong>Configuration Safety</strong>: Refuses to start if keybindings would conflict with your existing setup</li>
+<li><strong>Graceful Degradation</strong>: Missing optional tools (like AI agents) are handled gracefully</li>
+</ol>
+<blockquote>
+<p><strong>Important</strong>: <code>sat-helix-ide</code> is <strong>not</strong> a dotfile manager or tool installer. You need to have the required tools (Zellij, Helix, Yazi, etc.) installed and configured separately.</p>
+</blockquote>
+<p>The project aims to provide a professional-grade development environment that feels native to terminal users while offering the convenience of an IDE.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
+<p>This chapter will get you up and running with <code>sat-helix-ide</code> in just a few minutes.</p>
+<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<p>Before installing <code>sat-helix-ide</code>, ensure you have the following tools installed:</p>
+<h3 id="required-tools"><a class="header" href="#required-tools">Required Tools</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Tool</th><th>Purpose</th><th>Installation</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Zellij</strong></td><td>Terminal workspace multiplexer</td><td><a href="https://zellij.dev/documentation/installation.html">Installation Guide</a></td></tr>
+<tr><td><strong>Helix</strong></td><td>Modal text editor</td><td><a href="https://helix-editor.com/">Installation Guide</a></td></tr>
+<tr><td><strong>Yazi</strong></td><td>Terminal file manager</td><td><a href="https://yazi-rs.github.io/docs/installation">Installation Guide</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="recommended-tools"><a class="header" href="#recommended-tools">Recommended Tools</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Tool</th><th>Purpose</th><th>Installation</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Lazygit</strong></td><td>Git TUI client</td><td><a href="https://github.com/jesseduffield/lazygit/releases">GitHub Releases</a></td></tr>
+<tr><td><strong>GitUI</strong></td><td>Alternative Git TUI</td><td><a href="https://github.com/gitui-org/gitui/releases">GitHub Releases</a></td></tr>
+<tr><td><strong>revdiff</strong></td><td>Code review tool</td><td><a href="https://github.com/umputun/revdiff/releases">GitHub Releases</a></td></tr>
+<tr><td><strong>glab-tui</strong></td><td>GitHub/GitLab workflow</td><td><a href="https://github.com/rcieri/glab-tui/releases">GitHub Releases</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="build-requirements-for-building-from-source"><a class="header" href="#build-requirements-for-building-from-source">Build Requirements (for building from source)</a></h3>
+<ul>
+<li>Rust toolchain (stable)</li>
+<li>Cargo</li>
+</ul>
+<p>Verify your setup:</p>
+<pre><code class="language-bash"># Check Zellij
+zellij --version
+
+# Check Helix
+hx --version
+
+# Check Yazi
+yazi --version
+</code></pre>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<h3 id="option-1-install-from-source-recommended"><a class="header" href="#option-1-install-from-source-recommended">Option 1: Install from Source (Recommended)</a></h3>
+<pre><code class="language-bash"># Clone the repository
+git clone https://github.com/vlevasseur073/sat-helix-ide.git
+cd sat-helix-ide
+
+# Build and install
+cargo install --path .
+
+# Verify installation
+sat-hx-ide version
+</code></pre>
+<h3 id="option-2-install-via-cargo-when-published"><a class="header" href="#option-2-install-via-cargo-when-published">Option 2: Install via Cargo (when published)</a></h3>
+<pre><code class="language-bash">cargo install sat-helix-ide
+</code></pre>
+<h3 id="post-installation-check"><a class="header" href="#post-installation-check">Post-Installation Check</a></h3>
+<p>Run the doctor command to verify your setup:</p>
+<pre><code class="language-bash">sat-hx-ide doctor
+</code></pre>
+<p>This will check that all required tools are installed and accessible.</p>
+<h2 id="first-session"><a class="header" href="#first-session">First Session</a></h2>
+<p>Let’s start your first <code>sat-helix-ide</code> session:</p>
+<pre><code class="language-bash"># Navigate to your project directory
+cd /path/to/your/project
+
+# Initialize a new session
+sat-hx-ide init .
+</code></pre>
+<p>This command will:</p>
+<ol>
+<li>Resolve your project directory</li>
+<li>Create a Zellij session named after your project</li>
+<li>Write runtime configuration files to <code>$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/</code></li>
+<li>Launch Zellij with the configured layout</li>
+</ol>
+<h3 id="what-youll-see"><a class="header" href="#what-youll-see">What You’ll See</a></h3>
+<p>After running <code>sat-hx-ide init .</code>, you should see:</p>
+<ul>
+<li>A Zellij session with a <strong><code>code</code></strong> tab containing:
+<ul>
+<li>Helix editor in the main pane</li>
+<li>A docked terminal below (15% height by default)</li>
+</ul>
+</li>
+<li>An <strong><code>ai</code></strong> tab (if the configured AI agent is installed)</li>
+</ul>
+<h3 id="basic-navigation"><a class="header" href="#basic-navigation">Basic Navigation</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Action</th><th>Keybinding</th></tr>
+</thead>
+<tbody>
+<tr><td>Open file manager (Yazi)</td><td><code>Ctrl-y</code></td></tr>
+<tr><td>Toggle file manager dock</td><td><code>Alt-y</code></td></tr>
+<tr><td>Toggle terminal visibility</td><td><code>Alt-t</code></td></tr>
+<tr><td>Zoom terminal</td><td><code>Alt-Shift-t</code></td></tr>
+<tr><td>Open Git TUI</td><td><code>Alt-g</code></td></tr>
+<tr><td>Open review tool</td><td><code>Alt-r</code></td></tr>
+<tr><td>Open workflow tool</td><td><code>Alt-w</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="exiting-the-session"><a class="header" href="#exiting-the-session">Exiting the Session</a></h3>
+<ul>
+<li>Use Zellij’s default <code>Ctrl-q</code> to quit the session</li>
+<li>Or <code>Ctrl-d</code> to exit the current pane</li>
+</ul>
+<h3 id="reattaching-to-session"><a class="header" href="#reattaching-to-session">Reattaching to Session</a></h3>
+<p>If you exit and want to reattach:</p>
+<pre><code class="language-bash"># List existing sessions
+zellij list-sessions
+
+# Reattach to your project session
+sat-hx-ide init .
+</code></pre>
+<p>By default, <code>sat-hx-ide</code> will attach to an existing session with the same name. To disable this behavior:</p>
+<pre><code class="language-bash">sat-hx-ide init . --no-attach
+</code></pre>
+<p>Or configure it permanently in your <code>config.toml</code>:</p>
+<pre><code class="language-toml">[session]
+attach_existing = false
+</code></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="#user-manual">User Manual</a> - Detailed guide to using all features</li>
+<li><a href="#configuration-3">Configuration</a> - Customize your setup</li>
+<li><a href="#keybindings">Keybindings</a> - Learn all available shortcuts</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="user-manual"><a class="header" href="#user-manual">User Manual</a></h1>
+<p>This chapter provides a comprehensive guide to using <code>sat-helix-ide</code> effectively.</p>
+<h2 id="workspace-layout"><a class="header" href="#workspace-layout">Workspace Layout</a></h2>
+<p><code>sat-helix-ide</code> creates a Zellij workspace with a carefully designed layout optimized for development workflows.</p>
+<h3 id="default-layout"><a class="header" href="#default-layout">Default Layout</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│  Tabs: [ code* ] [ ai ]                                         │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │                                                         │ │
+│  │                    Helix Editor                       │ │
+│  │                                                         │ │
+│  │                                                         │ │
+│  ├─────────────────────────────────────────────────────────┤ │
+│  │                    Terminal (15%)                       │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="tab-structure"><a class="header" href="#tab-structure">Tab Structure</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Tab Name</th><th>Content</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><strong><code>code</code></strong></td><td>Helix + Terminal</td><td>Primary development workspace</td></tr>
+<tr><td><strong><code>ai</code></strong></td><td>AI Agent</td><td>Optional AI assistant (when configured)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="workspace-states"><a class="header" href="#workspace-states">Workspace States</a></h3>
+<p>The workspace adapts dynamically based on your actions:</p>
+<ul>
+<li><strong>Normal State</strong>: Helix editor with docked terminal visible</li>
+<li><strong>Terminal Hidden</strong>: Helix takes full tab height, terminal hidden but still running</li>
+<li><strong>Terminal Zoomed</strong>: Terminal takes full tab height, Helix hidden</li>
+<li><strong>File Manager Floating</strong>: Yazi opens as full-screen floating pane</li>
+<li><strong>File Manager Docked</strong>: Yazi docked to the left of Helix</li>
+</ul>
+<h2 id="keybindings"><a class="header" href="#keybindings">Keybindings</a></h2>
+<p><code>sat-helix-ide</code> supports <strong>two keybinding strategies</strong> with different trade-offs:</p>
+<h3 id="keybinding-strategies-comparison"><a class="header" href="#keybinding-strategies-comparison">Keybinding Strategies Comparison</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Aspect</th><th>Zellij Keybindings</th><th>Helix Keybindings</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Scope</strong></td><td>Works in any pane (file manager, terminal, etc.)</td><td>Only works in editor pane</td></tr>
+<tr><td><strong>Mode Requirement</strong></td><td>Requires Zellij normal mode (not locked)</td><td>Works in any mode (locked or not)</td></tr>
+<tr><td><strong>Availability</strong></td><td>Available everywhere in Zellij session</td><td>Only in Helix editor</td></tr>
+<tr><td><strong>Flexibility</strong></td><td>Can trigger any <code>sat-hx-ide</code> action</td><td>Limited to Helix commands</td></tr>
+<tr><td><strong>Integration</strong></td><td>Native Zellij integration</td><td>Uses Helix’s keybinding system</td></tr>
+<tr><td><strong>Best For</strong></td><td>Global workspace actions (file manager, terminal, tools)</td><td>Editor-specific actions</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="strategy-details"><a class="header" href="#strategy-details">Strategy Details</a></h4>
+<h5 id="zellij-keybindings-primary-strategy"><a class="header" href="#zellij-keybindings-primary-strategy">Zellij Keybindings (Primary Strategy)</a></h5>
+<p>All <code>sat-helix-ide</code> keybindings use <strong>Zellij keybindings</strong> as the primary strategy:</p>
+<ul>
+<li>Keybindings are active in <strong>Zellij’s normal mode</strong> (not in locked mode)</li>
+<li>They work from <strong>any pane</strong> in the Zellij session</li>
+<li>They can trigger any <code>sat-hx-ide</code> helper command</li>
+<li>Press <code>Ctrl-g</code> to toggle Zellij’s lock mode</li>
+</ul>
+<p><strong>Example</strong>: <code>Alt-y</code> to toggle file manager works whether you’re in the editor, terminal, or any other pane.</p>
+<h5 id="helix-keybindings-alternative-strategy"><a class="header" href="#helix-keybindings-alternative-strategy">Helix Keybindings (Alternative Strategy)</a></h5>
+<p>Alternatively, you can configure keybindings directly in <strong>Helix</strong> for editor-specific actions:</p>
+<ul>
+<li>Keybindings work <strong>only in the Helix editor pane</strong></li>
+<li>They work <strong>regardless of Zellij’s lock mode</strong></li>
+<li>They use Helix’s native keybinding system</li>
+<li>Limited to actions that can be expressed as Helix commands</li>
+</ul>
+<p><strong>Example</strong>: You could bind <code>Alt-y</code> in Helix to open Yazi, but it would only work from the editor pane:</p>
+<pre><code class="language-toml">[keys.normal.space.i]
+f = ":sh sat-hx-ide __file-manager toggle-dock"
+g = ":sh sat-hx-ide __git open"
+t = ":sh sat-hx-ide __terminal toggle"
+T = ":sh sat-hx-ide __terminal zoom"
+r = ":sh sat-hx-ide __review open"
+w = ":sh sat-hx-ide __workflow open"
+</code></pre>
+<p>This will work from your Helix editor in <code>sat-helix-ide</code>. It will also work if you run <code>hx</code> standalone inside any Zellij session.</p>
+<h3 id="primary-keybindings"><a class="header" href="#primary-keybindings">Primary Keybindings</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Action</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Ctrl-y</code></td><td>File Manager Open</td><td>Open/focus Yazi in full-screen floating pane</td></tr>
+<tr><td><code>Alt-y</code></td><td>File Manager Toggle</td><td>Toggle Yazi between floating and docked left of Helix</td></tr>
+<tr><td><code>Alt-t</code></td><td>Terminal Toggle</td><td>Hide/show terminal via fullscreen</td></tr>
+<tr><td><code>Alt-Shift-t</code></td><td>Terminal Zoom</td><td>Zoom terminal to full tab height or dock back</td></tr>
+<tr><td><code>Alt-g</code></td><td>Git Open</td><td>Spawn Git TUI in floating pane</td></tr>
+<tr><td><code>Alt-r</code></td><td>Review Open</td><td>Spawn review tool in floating pane</td></tr>
+<tr><td><code>Alt-w</code></td><td>Workflow Open</td><td>Spawn workflow tool in floating pane</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="keybinding-behavior-details"><a class="header" href="#keybinding-behavior-details">Keybinding Behavior Details</a></h3>
+<h4 id="file-manager-ctrl-y-and-alt-y"><a class="header" href="#file-manager-ctrl-y-and-alt-y">File Manager (<code>Ctrl-y</code> and <code>Alt-y</code>)</a></h4>
+<p>The file manager (Yazi by default) has two states:</p>
+<pre><code class="language-text">Ctrl-y behavior:
+  No file manager pane exists -&gt; Open Yazi in full-screen floating pane
+  File manager pane exists    -&gt; Focus the existing pane
+
+Alt-y behavior:
+  No file manager pane exists   -&gt; Open Yazi in full-screen floating pane
+  File manager is floating     -&gt; Dock Yazi to the left of Helix
+  File manager is docked left  -&gt; Float Yazi full-screen
+</code></pre>
+<p>When docked, Yazi takes 28% of the combined width by default (configurable via <code>tools.file_manager.dock_percent</code>).</p>
+<pre><code class="language-text">┌──────────────┬─────────────────────────────────┐
+│              │                                 │
+│     Yazi     │              Helix              │
+│    (28%)     │              (72%)              │
+│              │                                 │
+└──────────────┴─────────────────────────────────┘
+</code></pre>
+<p><strong>File Selection Behavior:</strong></p>
+<ul>
+<li>Floating Yazi: Exits after file selection, opens file in Helix</li>
+<li>Docked Yazi: Reopens after handing the path to Helix, stays visible</li>
+<li>Quitting Yazi without selection closes it in either state</li>
+</ul>
+<h4 id="terminal-alt-t-and-alt-shift-t"><a class="header" href="#terminal-alt-t-and-alt-shift-t">Terminal (<code>Alt-t</code> and <code>Alt-Shift-t</code>)</a></h4>
+<p>The terminal runs in a named <code>terminal</code> pane with your <code>$SHELL</code>.</p>
+<pre><code class="language-text">Alt-t behavior:
+  Terminal visible  -&gt; Hide it (Helix fullscreen, terminal stays alive)
+  Terminal hidden   -&gt; Show it (restore split, focus terminal)
+
+Alt-Shift-t behavior:
+  Terminal docked  -&gt; Zoom to full tab height
+  Terminal zoomed  -&gt; Dock back to terminal.dock_percent
+</code></pre>
+<p><strong>Terminal Respawn:</strong>
+If you exit the shell (e.g., <code>exit</code> or <code>Ctrl-d</code>), using <code>Alt-t</code> or <code>Alt-Shift-t</code> will spawn a fresh terminal with the same configuration.</p>
+<h4 id="git-tui-alt-g"><a class="header" href="#git-tui-alt-g">Git TUI (<code>Alt-g</code>)</a></h4>
+<p>Opens the configured Git client (default: Lazygit) in a floating pane on the code tab. The Git TUI runs in its own process and can be closed independently.</p>
+<h4 id="review-tool-alt-r"><a class="header" href="#review-tool-alt-r">Review Tool (<code>Alt-r</code>)</a></h4>
+<p>Opens the configured review tool (default: revdiff) in a floating pane. Useful for viewing diffs, commits, or code reviews.</p>
+<h4 id="workflow-tool-alt-w"><a class="header" href="#workflow-tool-alt-w">Workflow Tool (<code>Alt-w</code>)</a></h4>
+<p>Opens the configured workflow tool (default: glab-tui) in a floating pane. This provides access to project management features like PR/MR management, issues, CI/CD, etc.</p>
+<h2 id="file-manager-integration"><a class="header" href="#file-manager-integration">File Manager Integration</a></h2>
+<h3 id="yazi-integration"><a class="header" href="#yazi-integration">Yazi Integration</a></h3>
+<p><code>sat-helix-ide</code> integrates tightly with Yazi for file management:</p>
+<ol>
+<li><strong>Opening Files</strong>: Selected files in Yazi are automatically opened in the Helix pane</li>
+<li><strong>Smart Focus</strong>: After file selection, focus returns appropriately</li>
+<li><strong>State Management</strong>: Yazi’s pane state (floating/docked) is preserved across actions</li>
+</ol>
+<h3 id="configuration-options"><a class="header" href="#configuration-options">Configuration Options</a></h3>
+<pre><code class="language-toml">[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+float_width = "100%"
+float_height = "100%"
+dock_percent = 28
+</code></pre>
+<h2 id="terminal-integration"><a class="header" href="#terminal-integration">Terminal Integration</a></h2>
+<p>The integrated terminal provides seamless access to your shell while maintaining the editor workflow.</p>
+<h3 id="terminal-configuration"><a class="header" href="#terminal-configuration">Terminal Configuration</a></h3>
+<pre><code class="language-toml">[terminal]
+enabled = true
+dock_percent = 15
+dock_position = "down"  # or "right" for vertical split
+</code></pre>
+<h3 id="terminal-layout-options"><a class="header" href="#terminal-layout-options">Terminal Layout Options</a></h3>
+<p><strong>Horizontal Split (Default):</strong></p>
+<pre><code class="language-text">┌─ code (dock down) ────────────────────────┐
+│                  Helix                   │
+├──────────────────────────────────────────┤
+│               shell (15%)                │
+└──────────────────────────────────────────┘
+</code></pre>
+<p><strong>Vertical Split:</strong></p>
+<pre><code class="language-text">┌─ code (dock right) ───────┬───────────────┐
+│                          │               │
+│          Helix           │  shell (15%)  │
+│                          │               │
+└──────────────────────────┴───────────────┘
+</code></pre>
+<h3 id="terminal-states-visual-guide"><a class="header" href="#terminal-states-visual-guide">Terminal States Visual Guide</a></h3>
+<pre><code class="language-text">Normal State:
+┌─────────────────────────────────────┐
+│             Helix                     │
+├─────────────────────────────────────┤
+│            Terminal                   │
+└─────────────────────────────────────┘
+
+Alt-t (Hide Terminal):
+┌─────────────────────────────────────┐
+│             Helix                     │
+│          (full height)                │
+└─────────────────────────────────────┘
+
+Alt-Shift-t (Zoom Terminal):
+┌─────────────────────────────────────┐
+│            Terminal                   │
+│          (full height)                │
+└─────────────────────────────────────┘
+</code></pre>
+<h2 id="git-integration"><a class="header" href="#git-integration">Git Integration</a></h2>
+<p><code>sat-helix-ide</code> provides seamless integration with Git TUI clients.</p>
+<h3 id="supported-git-clients"><a class="header" href="#supported-git-clients">Supported Git Clients</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Client</th><th>Description</th><th>Installation</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Lazygit</strong></td><td>Feature-rich Git TUI</td><td><a href="https://github.com/jesseduffield/lazygit">GitHub</a></td></tr>
+<tr><td><strong>GitUI</strong></td><td>Alternative Git TUI</td><td><a href="https://github.com/gitui-org/gitui">GitHub</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="configuration"><a class="header" href="#configuration">Configuration</a></h3>
+<pre><code class="language-toml">[tools.git]
+command = "lazygit"  # or "gitui"
+args = []
+</code></pre>
+<h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
+<ol>
+<li>Press <code>Alt-g</code> in any Zellij pane</li>
+<li>A floating pane opens with the Git TUI</li>
+<li>Perform Git operations as usual</li>
+<li>Close the pane when done (the Git TUI continues running if needed)</li>
+</ol>
+<h3 id="git-tui-features-via-integration"><a class="header" href="#git-tui-features-via-integration">Git TUI Features via Integration</a></h3>
+<ul>
+<li>View repository status</li>
+<li>Stage/unstage changes</li>
+<li>Commit changes</li>
+<li>View commit history</li>
+<li>Create and manage branches</li>
+<li>Resolve merge conflicts</li>
+<li>View diffs</li>
+<li>And more…</li>
+</ul>
+<h2 id="review-tools"><a class="header" href="#review-tools">Review Tools</a></h2>
+<p>Review tools help you examine code changes and perform code reviews.</p>
+<h3 id="supported-review-tools"><a class="header" href="#supported-review-tools">Supported Review Tools</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Tool</th><th>Description</th><th>Installation</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>revdiff</strong></td><td>Smart diff viewer</td><td><a href="https://github.com/umputun/revdiff">GitHub</a></td></tr>
+<tr><td><strong>git diff</strong></td><td>Standard Git diff</td><td>Built-in</td></tr>
+<tr><td><strong>git-delta</strong></td><td>Enhanced diff syntax highlighting</td><td><a href="https://github.com/dandavison/delta">GitHub</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h3>
+<pre><code class="language-toml">[tools.review]
+command = "revdiff"
+args = []
+</code></pre>
+<h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
+<ol>
+<li>Press <code>Alt-r</code> in any Zellij pane</li>
+<li>A floating pane opens with the review tool</li>
+<li>Navigate through changes, diffs, or commits</li>
+<li>Close the pane when done</li>
+</ol>
+<h2 id="workflow-tools"><a class="header" href="#workflow-tools">Workflow Tools</a></h2>
+<p>Workflow tools provide access to project management and CI/CD features.</p>
+<h3 id="supported-workflow-tools"><a class="header" href="#supported-workflow-tools">Supported Workflow Tools</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Tool</th><th>Description</th><th>Installation</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>glab-tui</strong></td><td>GitLab/GitHub TUI</td><td><a href="https://github.com/rcieri/glab-tui">GitHub</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="configuration-2"><a class="header" href="#configuration-2">Configuration</a></h3>
+<pre><code class="language-toml">[tools.workflow]
+command = "glab-tui"
+args = []
+</code></pre>
+<h3 id="workflow-tool-features"><a class="header" href="#workflow-tool-features">Workflow Tool Features</a></h3>
+<ul>
+<li>View and manage pull requests / merge requests</li>
+<li>Browse and manage issues</li>
+<li>View CI/CD pipeline status</li>
+<li>Interact with project boards</li>
+<li>Manage repository settings</li>
+<li>And more…</li>
+</ul>
+<h2 id="using-sat-helix-ide-to-edit-itself"><a class="header" href="#using-sat-helix-ide-to-edit-itself">Using sat-helix-ide to Edit Itself</a></h2>
+<p>This section demonstrates how <code>sat-helix-ide</code> can be used to edit its own codebase, which is the basis for the screenshots in this documentation.</p>
+<h3 id="starting-a-development-session"><a class="header" href="#starting-a-development-session">Starting a Development Session</a></h3>
+<pre><code class="language-bash"># Navigate to the sat-helix-ide repository
+cd ~/Codes/sat-helix-ide
+
+# Start a development session
+sat-hx-ide init . --session sat-helix-ide-dev
+</code></pre>
+<h3 id="typical-development-workflow"><a class="header" href="#typical-development-workflow">Typical Development Workflow</a></h3>
+<ol>
+<li><strong>Open the project in Helix</strong>: The editor opens automatically with the repository</li>
+<li><strong>Navigate with file manager</strong>: <code>Ctrl-y</code> opens Yazi to browse the codebase</li>
+<li><strong>Edit files</strong>: Open files from Yazi or use Helix’s file picker</li>
+<li><strong>Run tests</strong>: Use the terminal (<code>Alt-t</code> to toggle visibility) to run <code>cargo test</code></li>
+<li><strong>Check Git status</strong>: <code>Alt-g</code> opens Lazygit to view changes</li>
+<li><strong>Review changes</strong>: <code>Alt-r</code> opens revdiff to see what you’ve modified</li>
+<li><strong>Commit changes</strong>: Use Lazygit to stage, commit, and push</li>
+</ol>
+<h3 id="multi-pane-development"><a class="header" href="#multi-pane-development">Multi-Pane Development</a></h3>
+<p>With the file manager docked (<code>Alt-y</code>):</p>
+<pre><code class="language-text">┌──────────────┬─────────────────────────────────┐
+│              │                                 │
+│   Yazi       │              Helix              │
+│  (browsing   │           (editing)              │
+│   files)     │                                 │
+│              │                                 │
+└──────────────┴─────────────────────────────────┘
+       ▲
+       │ Terminal docked below (hidden for now)
+└─────────────────────────────────────────────────┘
+</code></pre>
+<p>This setup allows you to:</p>
+<ul>
+<li>Browse files in Yazi</li>
+<li>Edit the selected file in Helix</li>
+<li>Quickly toggle the terminal for builds and tests</li>
+<li>Access Git and review tools as needed</li>
+</ul>
+<h2 id="advanced-usage-patterns"><a class="header" href="#advanced-usage-patterns">Advanced Usage Patterns</a></h2>
+<h3 id="working-with-multiple-projects"><a class="header" href="#working-with-multiple-projects">Working with Multiple Projects</a></h3>
+<pre><code class="language-bash"># Project 1 in one session
+cd ~/projects/project-a
+sat-hx-ide init . --session project-a
+
+# In another terminal:
+cd ~/projects/project-b
+sat-hx-ide init . --session project-b
+</code></pre>
+<p>Switch between sessions with Zellij:</p>
+<pre><code class="language-bash">zellij attach project-a
+zellij attach project-b
+</code></pre>
+<h3 id="custom-session-names"><a class="header" href="#custom-session-names">Custom Session Names</a></h3>
+<pre><code class="language-bash"># Use a custom session name
+sat-hx-ide init ~/src/myproject --session myproject-dev
+
+# This creates a session named 'myproject-dev' instead of 'myproject'
+</code></pre>
+<h3 id="disabling-ai-tab"><a class="header" href="#disabling-ai-tab">Disabling AI Tab</a></h3>
+<p>For projects where you don’t need AI assistance:</p>
+<pre><code class="language-bash"># Temporarily for one session
+sat-hx-ide init . --no-ai
+
+# Permanently in configuration
+# In ~/.config/sat-helix-ide/config.toml:
+[session]
+ai_by_default = false
+</code></pre>
+<h2 id="tips-and-tricks"><a class="header" href="#tips-and-tricks">Tips and Tricks</a></h2>
+<ol>
+<li><strong>Quick file access</strong>: Use <code>Ctrl-y</code> to quickly open Yazi, select a file, and return to editing</li>
+<li><strong>Terminal shortcut</strong>: <code>Alt-t</code> quickly hides/shows the terminal without changing focus</li>
+<li><strong>Maximize editing space</strong>: <code>Alt-t</code> to hide terminal, giving Helix full height</li>
+<li><strong>Maximize terminal space</strong>: <code>Alt-Shift-t</code> to zoom terminal for complex commands</li>
+<li><strong>File manager dock</strong>: <code>Alt-y</code> to keep Yazi visible while editing for easy file navigation</li>
+<li><strong>Keybinding safety</strong>: If a keybinding conflicts, <code>sat-hx-ide</code> will refuse to start</li>
+</ol>
+<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<ul>
+<li><a href="#screenshots">Screenshots</a> - Visual examples of the workflow</li>
+<li><a href="#configuration-3">Configuration</a> - Customize your setup</li>
+<li><a href="#architecture--design">Architecture</a> - Understand how it works under the hood</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="screenshots"><a class="header" href="#screenshots">Screenshots</a></h1>
+<p>This chapter contains screenshots demonstrating <code>sat-helix-ide</code> in action, specifically showing the tool being used to edit its own project.</p>
+<blockquote>
+<p><strong>Note</strong>: The screenshots below are placeholders. To create actual screenshots, you can:</p>
+<ol>
+<li>Set up <code>sat-helix-ide</code> with the sat-helix-ide repository as the project</li>
+<li>Take screenshots of various workflows</li>
+<li>Add them to the <code>book/src/assets/</code> directory</li>
+<li>Update the image paths below</li>
+</ol>
+</blockquote>
+<h2 id="initial-workspace"><a class="header" href="#initial-workspace">Initial Workspace</a></h2>
+<p>When you first launch <code>sat-helix-ide init .</code> in the sat-helix-ide repository, you’ll see the default workspace:</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                       [ code* ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │  src/  configs/  docs/  Cargo.toml  README.md  .github/           │ │
+│  │  █                                                               │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐ │ │
+│  │  │ // sat-helix-ide main.rs                                    │ │ │
+│  │  │ use anyhow::{Context, Result};                              │ │ │
+│  │  │ use clap::{Parser, Subcommand};                              │ │ │
+│  │  │                                                                 │ │ │
+│  │  │ pub mod actions;                                              │ │ │
+│  │  │ pub mod config;                                               │ │ │
+│  │  │ pub mod layout;                                               │ │ │
+│  │  │                                                                 │ │ │
+│  │  └─────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                     │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────────────────────┤ │
+│  │ $ cargo build                                                      │ │
+│  │     Compiling sat-helix-ide v0.1.0 (/home/user/Codes/sat-helix-ide)│ │
+│  │     Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.34s│ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/initial-workspace.png" alt="Initial Workspace"><span class="img-wrapper"><img src="assets/initial-workspace.png" alt="Initial Workspace"></span></label></p>
+<p><em>Caption: Default workspace with Helix editor showing the project and terminal below</em></p>
+<h2 id="file-manager-in-action"><a class="header" href="#file-manager-in-action">File Manager in Action</a></h2>
+<h3 id="opening-yazi-with-ctrl-y"><a class="header" href="#opening-yazi-with-ctrl-y">Opening Yazi with Ctrl-y</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                               [ code ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │  ╭─────────────────────────────────────────────────────────────╮  │ │
+│  │  │  YAZI - File Manager                                            │  │ │
+│  │  │  ┌─────────────────────────────────────────────────────────┐  │ │
+│  │  │  │ 📁 sat-helix-ide                                             │  │ │
+│  │  │  │   ├── 📁 src/                                                 │  │ │
+│  │  │  │   │   ├── 📄 main.rs                                        │  │ │
+│  │  │  │   │   ├── 📄 actions.rs                                      │  │ │
+│  │  │  │   │   ├── 📄 config.rs                                       │  │ │
+│  │  │  │   │   └── 📄 layout.rs                                       │  │ │
+│  │  │  │   ├── 📁 configs/                                            │  │ │
+│  │  │  │   │   └── 📄 config.toml                                     │  │ │
+│  │  │  │   ├── 📁 docs/                                               │  │ │
+│  │  │  │   │   └── 📄 architecture.md                                 │  │ │
+│  │  │  │   ├── 📄 Cargo.toml                                         │  │ │
+│  │  │  │   ├── 📄 README.md                                           │  │ │
+│  │  │  │   └── 📄 LICENSE                                             │  │ │
+│  │  │  │  ──┘                                                         │  │ │
+│  │  │  │  Preview: main.rs                                            │  │ │
+│  │  │  │  ┌─────────────────────────────────────────────────────┐  │ │
+│  │  │  │  │ use anyhow::{Context, Result};                          │  │ │
+│  │  │  │  │ use clap::{Parser, Subcommand};                          │  │ │
+│  │  │  │  │                                                           │  │ │
+│  │  │  │  │ fn main() -&gt; Result&lt;()&gt; {                                │  │ │
+│  │  │  │  │     let cli = Cli::parse();                              │  │ │
+│  │  │  │  └─────────────────────────────────────────────────────┘  │ │
+│  │  │  └─────────────────────────────────────────────────────────┘  │ │
+│  │  ╰─────────────────────────────────────────────────────────────╯  │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/yazi-fullscreen.png" alt="Yazi Full Screen"><span class="img-wrapper"><img src="assets/yazi-fullscreen.png" alt="Yazi Full Screen"></span></label></p>
+<p><em>Caption: Yazi file manager opened in full-screen floating pane</em></p>
+<h3 id="docked-file-manager-with-alt-y"><a class="header" href="#docked-file-manager-with-alt-y">Docked File Manager with Alt-y</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                               [ code ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────┬─────────────────────────────────────────────┐ │
+│  │                  │                                                 │ │
+│  │  📁 sat-helix-ide │  ┌─────────────────────────────────────────┐ │ │
+│  │  ├── 📁 src/      │  │ // Editing actions.rs                              │ │ │
+│  │  │   ├── main.rs │  │ use anyhow::{Context, Result};                    │ │ │
+│  │  │   █ actions.rs│  │ pub mod actions {                                 │ │ │
+│  │  │   config.rs  │  │     use crate::config::Config;                      │ │ │
+│  │  │   layout.rs  │  │     use zellij_tile::prelude::*;                   │ │ │
+│  │  │              │  │ }                                                   │ │ │
+│  │  ├── 📁 configs/ │  │                                                 │ │ │
+│  │  │   └── config │  │                                                 │ │ │
+│  │  ├── 📁 docs/    │  │                                                 │ │ │
+│  │  └── README.md  │  └─────────────────────────────────────────┘ │ │
+│  │                  │                                                     │ │
+│  └──────────────────┴─────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────────────────────┤ │
+│  │ $ git status                                                     │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/yazi-docked.png" alt="Yazi Docked"><span class="img-wrapper"><img src="assets/yazi-docked.png" alt="Yazi Docked"></span></label></p>
+<p><em>Caption: Yazi docked to the left of Helix, allowing simultaneous file browsing and editing</em></p>
+<h2 id="terminal-toggle"><a class="header" href="#terminal-toggle">Terminal Toggle</a></h2>
+<h3 id="terminal-visible-default"><a class="header" href="#terminal-visible-default">Terminal Visible (Default)</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                               [ code ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │  // Editing main.rs                                                │ │
+│  │  use anyhow::{Context, Result};                                   │ │
+│  │  use clap::{Parser, Subcommand};                                   │ │
+│  │                                                                     │ │
+│  │  fn main() -&gt; Result&lt;()&gt; {                                         │ │
+│  │      let cli = Cli::parse();                                       │ │
+│  │      cli.command.execute()?;                                      │ │
+│  │  }                                                                 │ │
+│  └─────────────────────────────────────────────────────────────────┤ │
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │ $ cargo test                                                       │ │
+│  │     Running unittests src/main.rs (target/debug/deps/sat...   │ │
+│  │     test result: ok. 1 passed; 0 failed; 0 ignored                │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/terminal-visible.png" alt="Terminal Visible"><span class="img-wrapper"><img src="assets/terminal-visible.png" alt="Terminal Visible"></span></label></p>
+<h3 id="terminal-hidden-alt-t"><a class="header" href="#terminal-hidden-alt-t">Terminal Hidden (Alt-t)</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                               [ code ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │  // Editing main.rs                                                │ │
+│  │  use anyhow::{Context, Result};                                   │ │
+│  │  use clap::{Parser, Subcommand};                                   │ │
+│  │                                                                     │ │
+│  │  fn main() -&gt; Result&lt;()&gt; {                                         │ │
+│  │      let cli = Cli::parse();                                       │ │
+│  │      cli.command.execute()?;                                      │ │
+│  │                                                                     │ │
+│  │  // More code...                                                   │ │
+│  │                                                                     │ │
+│  │                                                                     │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────────────────────┤ │
+│  │ Terminal is hidden - Press Alt-t to show                           │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/terminal-hidden.png" alt="Terminal Hidden"><span class="img-wrapper"><img src="assets/terminal-hidden.png" alt="Terminal Hidden"></span></label></p>
+<p><em>Caption: Terminal hidden, giving Helix full editing space (Alt-t to show again)</em></p>
+<h3 id="terminal-zoomed-alt-shift-t"><a class="header" href="#terminal-zoomed-alt-shift-t">Terminal Zoomed (Alt-Shift-t)</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                               [ code ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │ $ cargo build --release                                            │ │
+│  │     Compiling sat-helix-ide v0.1.0                                │ │
+│  │     (release build)                                               │ │
+│  │     Finished `release` profile [optimized] target(s) in 25.69s     │ │
+│  │                                                                     │ │
+│  │ $ ./target/release/sat-hx-ide --version                           │ │
+│  │ sat-hx-ide 0.1.0                                                  │ │
+│  │                                                                     │ │
+│  │ $                                                                │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/terminal-zoomed.png" alt="Terminal Zoomed"><span class="img-wrapper"><img src="assets/terminal-zoomed.png" alt="Terminal Zoomed"></span></label></p>
+<p><em>Caption: Terminal zoomed to full tab height for complex commands (Alt-Shift-t to dock back)</em></p>
+<h2 id="git-tui-integration"><a class="header" href="#git-tui-integration">Git TUI Integration</a></h2>
+<h3 id="opening-lazygit-with-alt-g"><a class="header" href="#opening-lazygit-with-alt-g">Opening Lazygit with Alt-g</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                               [ code ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │  ┌─────────────────────────────────────────────────────────────┐ │ │
+│  │  │  Lazygit - sat-helix-ide                                        │ │ │
+│  │  │  ┌─────────────────────────────────────────────────────────┐ │ │ │
+│  │  │  │ Files                                                      │ │ │ │
+│  │  │  │ █ M src/main.rs                                            │ │ │ │
+│  │  │  │ █ M src/actions.rs                                          │ │ │ │
+│  │  │  │    README.md                                                │ │ │ │
+│  │  │  │    LICENSE                                                  │ │ │ │
+│  │  │  │                                                             │ │ │ │
+│  │  │  │ Local Changes                                               │ │ │ │
+│  │  │  │ 2 files changed                                             │ │ │ │
+│  │  │  │                                                             │ │ │ │
+│  │  │  │ Press 's' to stage, 'c' to commit, 'p' to push              │ │ │ │
+│  │  │  └─────────────────────────────────────────────────────────┘ │ │ │
+│  │  └─────────────────────────────────────────────────────────────┘ │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────────────────────┤ │
+│  │ Helix editor (paused)                                              │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/lazygit-integration.png" alt="Lazygit Integration"><span class="img-wrapper"><img src="assets/lazygit-integration.png" alt="Lazygit Integration"></span></label></p>
+<p><em>Caption: Lazygit opened in a floating pane, showing repository status and local changes</em></p>
+<h2 id="editing-sat-helix-ide-itself"><a class="header" href="#editing-sat-helix-ide-itself">Editing sat-helix-ide Itself</a></h2>
+<h3 id="multi-pane-development-workflow"><a class="header" href="#multi-pane-development-workflow">Multi-Pane Development Workflow</a></h3>
+<p>This screenshot shows the typical workflow when developing <code>sat-helix-ide</code> itself:</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide Development                                        [ code* ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┬─────────────────────────────────────────────────┐ │
+│  │              │                                                 │ │
+│  │  📁 src/      │  // Editing actions.rs                               │ │
+│  │  ├── main.rs │  pub fn handle_file_manager_open(                   │ │
+│  │  █ actions.rs│      pane_name: &amp;str,                                 │ │
+│  │  config.rs  │      panes: &amp;[PaneInfo],                             │ │
+│  │  layout.rs  │      config: &amp;Config,                                │ │
+│  │             │  ) -&gt; Result&lt;()&gt; {                                   │ │
+│  │  📁 tests/   │      // Implementation details...                    │ │
+│  │  └── test_  │  }                                                   │ │
+│  │              │                                                     │ │
+│  │              │  // More editing...                                  │ │
+│  │              │                                                     │ │
+│  └──────────────┴─────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────────────┤
+│  $ cargo test --locked                                                  │
+│      Compiling sat-helix-ide v0.1.0 (/home/user/Codes/sat-helix-ide)   │
+│      Finished `test` profile [unoptimized + debuginfo] target(s) in 5.42s│
+│      Running unittests src/main.rs (target/debug/deps/sat...          │
+│      test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured       │
+│      Running tests/test_actions.rs (target/debug/deps/tests...          │
+│      test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured        │
+│      Doc-tests sat-helix-ide                                             │
+│      test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured        │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/development-workflow.png" alt="Development Workflow"><span class="img-wrapper"><img src="assets/development-workflow.png" alt="Development Workflow"></span></label></p>
+<p><em>Caption: Full development workflow: Yazi docked for file navigation, Helix for editing, terminal for running tests</em></p>
+<h3 id="reviewing-changes-with-alt-r"><a class="header" href="#reviewing-changes-with-alt-r">Reviewing Changes with Alt-r</a></h3>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide Development                                        [ code ] [ ai ] │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │  ┌─────────────────────────────────────────────────────────────┐ │ │
+│  │  │  revdiff - Review Changes                                       │ │ │
+│  │  │  ┌─────────────────────────────────────────────────────────┐ │ │ │
+│  │  │  │ Commit: feat: add workflow tool support                    │ │ │ │
+│  │  │  │                                                             │ │ │ │
+│  │  │  │ diff --git a/src/actions.rs b/src/actions.rs               │ │ │ │
+│  │  │  │ index abc123..def456 100644                                  │ │ │ │
+│  │  │  │ +++ b/src/actions.rs                                         │ │ │ │
+│  │  │  │ @@ -100,6 +100,12 @@                                          │ │ │ │
+│  │  │  │  pub fn handle_workflow_open(                               │ │ │ │
+│  │  │  │ +    pane_name: &amp;str,                                        │ │ │ │
+│  │  │  │ +    panes: &amp;[PaneInfo],                                    │ │ │ │
+│  │  │  │ +    config: &amp;Config,                                       │ │ │ │
+│  │  │  │ +) -&gt; Result&lt;()&gt; {                                          │ │ │ │
+│  │  │  │ +    // New workflow implementation...                       │ │ │ │
+│  │  │  │ +}                                                          │ │ │ │
+│  │  │  │                                                             │ │ │ │
+│  │  │  │ [1/3] Showing commit 1 of 3                                  │ │ │ │
+│  │  │  └─────────────────────────────────────────────────────────┘ │ │ │
+│  │  └─────────────────────────────────────────────────────────────┘ │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────────────────────┤ │
+│  │ // Editing continues in Helix...                                   │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/review-workflow.png" alt="Review Workflow"><span class="img-wrapper"><img src="assets/review-workflow.png" alt="Review Workflow"></span></label></p>
+<p><em>Caption: Reviewing code changes with revdiff in a floating pane while continuing to edit</em></p>
+<h2 id="creating-your-own-screenshots"><a class="header" href="#creating-your-own-screenshots">Creating Your Own Screenshots</a></h2>
+<p>To create actual screenshots for this documentation:</p>
+<h3 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h3>
+<ol>
+<li>Install <code>sat-helix-ide</code></li>
+<li>Install all required tools (Zellij, Helix, Yazi, Lazygit, etc.)</li>
+<li>Have a terminal that supports screenshots (most modern terminals do)</li>
+</ol>
+<h3 id="steps"><a class="header" href="#steps">Steps</a></h3>
+<ol>
+<li>
+<p><strong>Start a session with the sat-helix-ide repository:</strong></p>
+<pre><code class="language-bash">cd /path/to/sat-helix-ide
+sat-hx-ide init . --session screenshots
+</code></pre>
+</li>
+<li>
+<p><strong>Set up the desired state:</strong></p>
+<ul>
+<li>For initial workspace: Just start the session</li>
+<li>For file manager: Press <code>Ctrl-y</code> for floating or <code>Alt-y</code> for docked</li>
+<li>For terminal states: Use <code>Alt-t</code> and <code>Alt-Shift-t</code></li>
+<li>For Git integration: Press <code>Alt-g</code></li>
+<li>For review: Press <code>Alt-r</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Take screenshots:</strong></p>
+<ul>
+<li>Use your system’s screenshot tool</li>
+<li>Or use terminal-specific screenshot capabilities</li>
+<li>Consider using a consistent color scheme and font for professional results</li>
+</ul>
+</li>
+<li>
+<p><strong>Save screenshots to the assets directory:</strong></p>
+<pre><code class="language-bash">mkdir -p book/src/assets
+# Copy your screenshots here with descriptive names
+</code></pre>
+</li>
+<li>
+<p><strong>Update the markdown:</strong></p>
+<ul>
+<li>Replace the placeholder <code>![Alt text](assets/filename.png)</code> with your actual images</li>
+<li>Ensure image paths are correct</li>
+<li>Add descriptive captions</li>
+</ul>
+</li>
+</ol>
+<h3 id="recommended-screenshot-states"><a class="header" href="#recommended-screenshot-states">Recommended Screenshot States</a></h3>
+<ol>
+<li><code>initial-workspace.png</code> - Default layout after <code>sat-hx-ide init .</code></li>
+<li><code>yazi-fullscreen.png</code> - Yazi in full-screen floating mode (<code>Ctrl-y</code>)</li>
+<li><code>yazi-docked.png</code> - Yazi docked to the left of Helix (<code>Alt-y</code>)</li>
+<li><code>terminal-visible.png</code> - Default terminal state</li>
+<li><code>terminal-hidden.png</code> - Terminal hidden with <code>Alt-t</code></li>
+<li><code>terminal-zoomed.png</code> - Terminal zoomed with <code>Alt-Shift-t</code></li>
+<li><code>lazygit-integration.png</code> - Lazygit opened with <code>Alt-g</code></li>
+<li><code>development-workflow.png</code> - Full development setup (Yazi + Helix + Terminal)</li>
+<li><code>review-workflow.png</code> - revdiff opened with <code>Alt-r</code></li>
+</ol>
+<h3 id="tips-for-good-screenshots"><a class="header" href="#tips-for-good-screenshots">Tips for Good Screenshots</a></h3>
+<ul>
+<li>Use a clean, readable font (Fira Code, JetBrains Mono, etc.)</li>
+<li>Ensure good contrast (light background with dark text or vice versa)</li>
+<li>Show realistic content (actual code from the project)</li>
+<li>Keep the terminal at a reasonable size for readability</li>
+<li>Consider adding subtle borders or shadows in post-processing</li>
+<li>Maintain consistent styling across all screenshots</li>
+</ul>
+<h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
+<ul>
+<li><a href="#configuration-3">Configuration</a> - Learn how to customize your setup</li>
+<li><a href="#architecture--design">Architecture</a> - Understand the design and implementation</li>
+<li>Try creating your own screenshots to document your workflow</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="configuration-3"><a class="header" href="#configuration-3">Configuration</a></h1>
+<p>This chapter covers all configuration options available in <code>sat-helix-ide</code>. The tool is designed to be highly configurable while maintaining safety and non-intrusiveness.</p>
+<h2 id="configuration-file"><a class="header" href="#configuration-file">Configuration File</a></h2>
+<p><code>sat-helix-ide</code> reads configuration from a TOML file located at:</p>
+<pre><code class="language-text">~/.config/sat-helix-ide/config.toml
+</code></pre>
+<h3 id="configuration-locations"><a class="header" href="#configuration-locations">Configuration Locations</a></h3>
+<p>The configuration file is searched in the following order:</p>
+<ol>
+<li>Path specified via <code>--config</code> flag</li>
+<li><code>~/.config/sat-helix-ide/config.toml</code> (default)</li>
+<li>If not found, bundled defaults are used in memory</li>
+</ol>
+<h3 id="getting-started-with-configuration"><a class="header" href="#getting-started-with-configuration">Getting Started with Configuration</a></h3>
+<p>To create a custom configuration:</p>
+<pre><code class="language-bash"># Create the config directory
+mkdir -p ~/.config/sat-helix-ide
+
+# Copy the sample configuration
+cp /path/to/sat-helix-ide/configs/config.toml ~/.config/sat-helix-ide/config.toml
+
+# Edit the configuration
+hx ~/.config/sat-helix-ide/config.toml
+</code></pre>
+<h3 id="sample-configuration"><a class="header" href="#sample-configuration">Sample Configuration</a></h3>
+<p>Here’s a complete sample configuration with all available options:</p>
+<pre><code class="language-toml">[session]
+# Whether to attach to existing sessions by default
+attach_existing = true
+
+# Whether to include the AI tab by default
+ai_by_default = true
+
+# Custom Zellij config path (optional)
+# zellij_config = "/home/user/.config/zellij/config.kdl"
+
+[terminal]
+# Whether to include a terminal pane in the layout
+enabled = true
+
+# Terminal height as percentage when docked below editor
+dock_percent = 15
+
+# Terminal position relative to editor: "down" (horizontal) or "right" (vertical)
+dock_position = "down"
+
+[keybindings]
+# File manager keybinding (default: Ctrl-y)
+file_manager = "Ctrl y"
+
+# File manager dock toggle keybinding (default: Alt-y)
+file_manager_dock = "Alt y"
+
+# Git TUI keybinding (default: Alt-g)
+git = "Alt g"
+
+# Review tool keybinding (default: Alt-r)
+review = "Alt r"
+
+# Workflow tool keybinding (default: Alt-w)
+workflow = "Alt w"
+
+# Terminal toggle keybinding (default: Alt-t)
+terminal = "Alt t"
+
+# Terminal zoom keybinding (default: Alt Shift t)
+terminal_zoom = "Alt Shift t"
+
+[tools.zellij]
+# Path to Zellij executable
+command = "zellij"
+args = []
+
+[tools.editor]
+# Path to Helix executable
+command = "hx"
+args = []
+
+[tools.file_manager]
+# File manager adapter (currently only "yazi" is supported)
+adapter = "yazi"
+
+# Path to file manager executable
+command = "yazi"
+args = []
+
+# Dimensions for floating file manager pane
+float_width = "100%"
+float_height = "100%"
+
+# Width percentage when docked (28% by default)
+dock_percent = 28
+
+[tools.git]
+# Git TUI client to use
+command = "lazygit"  # or "gitui"
+args = []
+
+[tools.review]
+# Code review tool to use
+command = "revdiff"  # or "git diff", "git-delta"
+args = []
+
+[tools.workflow]
+# Workflow/project management tool
+command = "glab-tui"
+args = []
+
+[tools.ai]
+# AI agent command (optional, skipped if not found)
+command = "cursor-agent"  # or any other AI agent
+args = []
+</code></pre>
+<h2 id="session-settings"><a class="header" href="#session-settings">Session Settings</a></h2>
+<p>Settings related to Zellij session management.</p>
+<h3 id="sessionattach_existing"><a class="header" href="#sessionattach_existing"><code>session.attach_existing</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Boolean</li>
+<li><strong>Default</strong>: <code>true</code></li>
+<li><strong>Description</strong>: Whether to attach to an existing session with the same name instead of creating a new one</li>
+</ul>
+<pre><code class="language-toml">[session]
+attach_existing = false  # Always create new session, fail if exists
+</code></pre>
+<h3 id="sessionai_by_default"><a class="header" href="#sessionai_by_default"><code>session.ai_by_default</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Boolean</li>
+<li><strong>Default</strong>: <code>true</code></li>
+<li><strong>Description</strong>: Whether to include the AI tab by default</li>
+</ul>
+<pre><code class="language-toml">[session]
+ai_by_default = false  # Don't create AI tab
+</code></pre>
+<h3 id="sessionzellij_config"><a class="header" href="#sessionzellij_config"><code>session.zellij_config</code></a></h3>
+<ul>
+<li><strong>Type</strong>: String (path)</li>
+<li><strong>Default</strong>: Auto-detected from Zellij’s configuration locations</li>
+<li><strong>Description</strong>: Custom path to Zellij configuration file</li>
+</ul>
+<pre><code class="language-toml">[session]
+zellij_config = "/path/to/custom/zellij/config.kdl"
+</code></pre>
+<p><strong>Auto-detection order:</strong></p>
+<ol>
+<li><code>session.zellij_config</code> if specified</li>
+<li><code>ZELLIJ_CONFIG_FILE</code> environment variable</li>
+<li><code>$XDG_CONFIG_HOME/zellij/config.kdl</code></li>
+<li><code>~/.config/zellij/config.kdl</code></li>
+</ol>
+<h2 id="terminal-settings"><a class="header" href="#terminal-settings">Terminal Settings</a></h2>
+<p>Configuration for the integrated terminal pane.</p>
+<h3 id="terminalenabled"><a class="header" href="#terminalenabled"><code>terminal.enabled</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Boolean</li>
+<li><strong>Default</strong>: <code>true</code></li>
+<li><strong>Description</strong>: Whether to include a terminal pane in the layout</li>
+</ul>
+<pre><code class="language-toml">[terminal]
+enabled = false  # No terminal pane
+</code></pre>
+<h3 id="terminaldock_percent"><a class="header" href="#terminaldock_percent"><code>terminal.dock_percent</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Integer</li>
+<li><strong>Default</strong>: <code>15</code></li>
+<li><strong>Description</strong>: Terminal height as percentage of the split when docked</li>
+<li><strong>Range</strong>: 1-99</li>
+</ul>
+<pre><code class="language-toml">[terminal]
+dock_percent = 20  # Terminal takes 20% of the split
+</code></pre>
+<h3 id="terminaldock_position"><a class="header" href="#terminaldock_position"><code>terminal.dock_position</code></a></h3>
+<ul>
+<li><strong>Type</strong>: String</li>
+<li><strong>Default</strong>: <code>"down"</code></li>
+<li><strong>Valid values</strong>: <code>"down"</code>, <code>"right"</code></li>
+<li><strong>Description</strong>: Position of terminal relative to editor</li>
+</ul>
+<p><strong>Horizontal Split (“down”):</strong></p>
+<pre><code class="language-text">┌─────────────────────────┐
+│      Editor             │
+├─────────────────────────┤
+│      Terminal           │
+└─────────────────────────┘
+</code></pre>
+<p><strong>Vertical Split (“right”):</strong></p>
+<pre><code class="language-text">┌─────────────┬────────────┐
+│   Editor     │  Terminal  │
+│              │             │
+└─────────────┴────────────┘
+</code></pre>
+<pre><code class="language-toml">[terminal]
+dock_position = "right"  # Vertical split
+</code></pre>
+<h2 id="tool-configuration"><a class="header" href="#tool-configuration">Tool Configuration</a></h2>
+<p>Each tool has its own configuration section with <code>command</code> and <code>args</code> fields.</p>
+<h3 id="toolszellij"><a class="header" href="#toolszellij"><code>tools.zellij</code></a></h3>
+<p>Configuration for the Zellij executable.</p>
+<pre><code class="language-toml">[tools.zellij]
+command = "zellij"
+args = ["--log-level", "warn"]  # Optional arguments
+</code></pre>
+<h3 id="toolseditor"><a class="header" href="#toolseditor"><code>tools.editor</code></a></h3>
+<p>Configuration for the editor (Helix by default).</p>
+<pre><code class="language-toml">[tools.editor]
+command = "hx"
+args = []
+
+# For Snap-installed Helix
+[tools.editor]
+command = "/snap/bin/hx"
+args = []
+</code></pre>
+<h3 id="toolsfile_manager"><a class="header" href="#toolsfile_manager"><code>tools.file_manager</code></a></h3>
+<p>Configuration for the file manager (Yazi by default).</p>
+<pre><code class="language-toml">[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+
+# Custom file manager dimensions
+float_width = "90%"
+float_height = "90%"
+dock_percent = 30
+</code></pre>
+<p><strong>Adapter</strong>: Currently only <code>"yazi"</code> is supported as the file manager adapter.</p>
+<h3 id="toolsgit"><a class="header" href="#toolsgit"><code>tools.git</code></a></h3>
+<p>Configuration for the Git TUI client.</p>
+<pre><code class="language-toml">[tools.git]
+command = "lazygit"  # or "gitui"
+args = []
+</code></pre>
+<h3 id="toolsreview"><a class="header" href="#toolsreview"><code>tools.review</code></a></h3>
+<p>Configuration for the code review tool.</p>
+<pre><code class="language-toml">[tools.review]
+command = "revdiff"  # or "git diff", "git-delta"
+args = []
+
+# For git-delta with specific options
+[tools.review]
+command = "git"
+args = ["diff", "--color=always", "--pager=delta"]
+</code></pre>
+<h3 id="toolsworkflow"><a class="header" href="#toolsworkflow"><code>tools.workflow</code></a></h3>
+<p>Configuration for the workflow/project management tool.</p>
+<pre><code class="language-toml">[tools.workflow]
+command = "glab-tui"
+args = []
+</code></pre>
+<h3 id="toolsai"><a class="header" href="#toolsai"><code>tools.ai</code></a></h3>
+<p>Configuration for the AI agent (optional).</p>
+<pre><code class="language-toml">[tools.ai]
+command = "cursor-agent"  # or any other AI agent command
+args = []
+
+# The AI tab is gracefully skipped if the command is not found
+</code></pre>
+<h2 id="keybinding-customization"><a class="header" href="#keybinding-customization">Keybinding Customization</a></h2>
+<p>All <code>sat-helix-ide</code> keybindings can be customized. The tool will <strong>refuse to start</strong> if your chosen keybindings conflict with existing Zellij keybindings.</p>
+<h3 id="available-keybindings"><a class="header" href="#available-keybindings">Available Keybindings</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>keybindings.file_manager</code></td><td><code>"Ctrl y"</code></td><td>Open/focus file manager</td></tr>
+<tr><td><code>keybindings.file_manager_dock</code></td><td><code>"Alt y"</code></td><td>Toggle file manager dock</td></tr>
+<tr><td><code>keybindings.git</code></td><td><code>"Alt g"</code></td><td>Open Git TUI</td></tr>
+<tr><td><code>keybindings.review</code></td><td><code>"Alt r"</code></td><td>Open review tool</td></tr>
+<tr><td><code>keybindings.workflow</code></td><td><code>"Alt w"</code></td><td>Open workflow tool</td></tr>
+<tr><td><code>keybindings.terminal</code></td><td><code>"Alt t"</code></td><td>Toggle terminal visibility</td></tr>
+<tr><td><code>keybindings.terminal_zoom</code></td><td><code>"Alt Shift t"</code></td><td>Zoom terminal</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="customizing-keybindings"><a class="header" href="#customizing-keybindings">Customizing Keybindings</a></h3>
+<pre><code class="language-toml">[keybindings]
+file_manager = "Ctrl f"
+file_manager_dock = "Alt f"
+git = "Alt g"
+review = "Alt d"
+workflow = "Alt p"
+terminal = "Alt m"
+terminal_zoom = "Alt Shift m"
+</code></pre>
+<h3 id="keybinding-format"><a class="header" href="#keybinding-format">Keybinding Format</a></h3>
+<p>Keybindings use Zellij’s keybinding syntax:</p>
+<ul>
+<li>Modifiers: <code>Ctrl</code>, <code>Alt</code>, <code>Shift</code></li>
+<li>Keys: Letter keys (<code>a</code>, <code>b</code>, <code>c</code>, etc.), number keys (<code>1</code>, <code>2</code>, etc.), function keys (<code>F1</code>, <code>F2</code>, etc.)</li>
+<li>Multiple modifiers: <code>Ctrl Alt t</code>, <code>Alt Shift r</code></li>
+<li>Space-separated: <code>"Ctrl y"</code>, <code>"Alt Shift t"</code></li>
+</ul>
+<h3 id="keybinding-safety"><a class="header" href="#keybinding-safety">Keybinding Safety</a></h3>
+<p><code>sat-helix-ide</code> performs the following safety checks:</p>
+<ol>
+<li><strong>Parses your existing Zellij config</strong> to detect all configured keybindings</li>
+<li><strong>Checks for conflicts</strong> with all <code>sat-helix-ide</code> keybindings</li>
+<li><strong>Refuses to start</strong> if any conflicts are found</li>
+<li><strong>Never silently replaces</strong> your existing keybindings</li>
+</ol>
+<p>This ensures that your existing Zellij workflow is never accidentally broken.</p>
+<h3 id="example-safe-keybinding-changes"><a class="header" href="#example-safe-keybinding-changes">Example: Safe Keybinding Changes</a></h3>
+<pre><code class="language-bash"># This will fail if Ctrl-f is already used in your Zellij config
+sat-hx-ide init . --config ~/.config/sat-helix-ide/config.toml
+
+# Error: Keybinding conflict: 'Ctrl f' is already bound in your Zellij config
+</code></pre>
+<p>To resolve conflicts:</p>
+<ol>
+<li>Change the <code>sat-helix-ide</code> keybinding</li>
+<li>Or remove the conflicting binding from your Zellij config</li>
+<li>Or choose a different Zellij config via <code>session.zellij_config</code></li>
+</ol>
+<h2 id="complete-configuration-example"><a class="header" href="#complete-configuration-example">Complete Configuration Example</a></h2>
+<p>Here’s a comprehensive example showing various customizations:</p>
+<pre><code class="language-toml">[session]
+attach_existing = true
+ai_by_default = true
+
+[terminal]
+enabled = true
+dock_percent = 20
+dock_position = "right"
+
+[keybindings]
+file_manager = "Ctrl f"
+file_manager_dock = "Alt f"
+git = "Alt g"
+review = "Alt d"
+workflow = "Alt p"
+terminal = "Alt m"
+terminal_zoom = "Alt Shift m"
+
+[tools.zellij]
+command = "zellij"
+args = []
+
+[tools.editor]
+command = "hx"
+args = []
+
+[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+float_width = "95%"
+float_height = "95%"
+dock_percent = 25
+
+[tools.git]
+command = "lazygit"
+args = []
+
+[tools.review]
+command = "git"
+args = ["diff", "--color=always"]
+
+[tools.workflow]
+command = "glab-tui"
+args = []
+
+[tools.ai]
+command = "vibe"
+args = []
+</code></pre>
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<p>While most configuration is done via the TOML file, a few aspects can be influenced by environment variables:</p>
+<h3 id="xdg_runtime_dir"><a class="header" href="#xdg_runtime_dir"><code>XDG_RUNTIME_DIR</code></a></h3>
+<ul>
+<li><strong>Default</strong>: <code>/run/user/&lt;uid&gt;/</code> on Linux</li>
+<li><strong>Purpose</strong>: Directory for runtime files (session configs, layouts)</li>
+<li><strong>Fallback</strong>: System temporary directory</li>
+</ul>
+<pre><code class="language-bash"># Override runtime directory
+export XDG_RUNTIME_DIR=/tmp/my-runtime
+sat-hx-ide init .
+</code></pre>
+<h3 id="zellij_config_file"><a class="header" href="#zellij_config_file"><code>ZELLIJ_CONFIG_FILE</code></a></h3>
+<ul>
+<li><strong>Purpose</strong>: Override Zellij configuration file path</li>
+<li><strong>Priority</strong>: Higher than <code>session.zellij_config</code></li>
+</ul>
+<pre><code class="language-bash"># Use a specific Zellij config
+export ZELLIJ_CONFIG_FILE=/path/to/zellij/config.kdl
+sat-hx-ide init .
+</code></pre>
+<h3 id="rust_log"><a class="header" href="#rust_log"><code>RUST_LOG</code></a></h3>
+<ul>
+<li><strong>Purpose</strong>: Control logging level for <code>sat-hx-ide</code></li>
+<li><strong>Valid values</strong>: <code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code>, <code>trace</code></li>
+</ul>
+<pre><code class="language-bash"># Enable debug logging
+RUST_LOG=debug sat-hx-ide init .
+
+# Enable trace logging for maximum detail
+RUST_LOG=trace sat-hx-ide init .
+</code></pre>
+<h2 id="configuration-validation"><a class="header" href="#configuration-validation">Configuration Validation</a></h2>
+<p><code>sat-helix-ide</code> validates your configuration on startup:</p>
+<ol>
+<li><strong>File existence</strong>: Checks that command executables exist and are accessible</li>
+<li><strong>Keybinding conflicts</strong>: Verifies no conflicts with Zellij bindings</li>
+<li><strong>Value ranges</strong>: Ensures numeric values are within valid ranges</li>
+<li><strong>Required tools</strong>: Validates that required tools (Zellij, Helix, Yazi) are available</li>
+</ol>
+<h3 id="running-configuration-check"><a class="header" href="#running-configuration-check">Running Configuration Check</a></h3>
+<pre><code class="language-bash"># Check your configuration
+sat-hx-ide config
+
+# This will show:
+# - Configuration file path
+# - All resolved settings
+# - Any warnings or errors
+</code></pre>
+<h3 id="doctor-command"><a class="header" href="#doctor-command">Doctor Command</a></h3>
+<p>The <code>doctor</code> command performs a comprehensive system check:</p>
+<pre><code class="language-bash">sat-hx-ide doctor
+</code></pre>
+<p>This checks:</p>
+<ul>
+<li>All required tools are installed</li>
+<li>Configuration file can be read</li>
+<li>Keybindings don’t conflict</li>
+<li>Runtime directory is writable</li>
+</ul>
+<h2 id="tips-for-configuration"><a class="header" href="#tips-for-configuration">Tips for Configuration</a></h2>
+<ol>
+<li><strong>Start with defaults</strong>: The bundled defaults work well for most users</li>
+<li><strong>Test changes</strong>: After modifying configuration, test with a new session</li>
+<li><strong>Check for conflicts</strong>: Use <code>sat-hx-ide doctor</code> to verify your setup</li>
+<li><strong>Backup your config</strong>: Keep a backup of working configurations</li>
+<li><strong>Document changes</strong>: Add comments to your config file explaining custom settings</li>
+</ol>
+<h2 id="example-development-configuration"><a class="header" href="#example-development-configuration">Example: Development Configuration</a></h2>
+<p>For development on <code>sat-helix-ide</code> itself:</p>
+<pre><code class="language-toml">[session]
+attach_existing = false  # Always create new session for development
+ai_by_default = false    # No AI tab for development
+
+[terminal]
+enabled = true
+dock_percent = 20
+dock_position = "down"
+
+[keybindings]
+# Keep defaults for development
+
+[tools.editor]
+command = "hx"
+args = []
+
+[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+dock_percent = 25
+
+[tools.git]
+command = "lazygit"
+args = []
+
+[tools.review]
+command = "revdiff"
+args = []
+
+[tools.workflow]
+command = "glab-tui"
+args = []
+
+# No AI for development
+[tools.ai]
+command = ""
+</code></pre>
+<h2 id="next-steps-3"><a class="header" href="#next-steps-3">Next Steps</a></h2>
+<ul>
+<li><a href="#architecture--design">Architecture</a> - Understand how <code>sat-helix-ide</code> works under the hood</li>
+<li><a href="#development">Development</a> - Learn about building and contributing</li>
+<li><a href="#troubleshooting">Troubleshooting</a> - Common issues and solutions</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="architecture--design"><a class="header" href="#architecture--design">Architecture &amp; Design</a></h1>
+<p>This chapter provides a detailed look at the architecture and design decisions behind <code>sat-helix-ide</code>. It explains how the tool works under the hood, the process model, and the various components that make up the system.</p>
+<h2 id="process-model"><a class="header" href="#process-model">Process Model</a></h2>
+<p><code>sat-helix-ide</code> follows a <strong>short-lived process</strong> model. Unlike traditional IDEs that run as long-running daemons, <code>sat-helix-ide</code> operates differently:</p>
+<h3 id="no-background-daemon"><a class="header" href="#no-background-daemon">No Background Daemon</a></h3>
+<ul>
+<li>Each keybinding spawns a short-lived <code>sat-hx-ide</code> helper process</li>
+<li>The helper process drives Zellij CLI actions and exits immediately</li>
+<li>There is no persistent background process</li>
+<li>This design simplifies error handling and resource management</li>
+</ul>
+<h3 id="process-flow"><a class="header" href="#process-flow">Process Flow</a></h3>
+<pre><code class="language-mermaid">flowchart TB
+    User[User presses key]
+    Zellij[Zellij keybinding]
+    Helper[sat-hx-ide helper process]
+    Action[Perform action via Zellij CLI]
+    Exit[Helper exits]
+
+    User --&gt; Zellij
+    Zellij --&gt; Helper
+    Helper --&gt; Action
+    Action --&gt; Exit
+</code></pre>
+<p>This approach has several advantages:</p>
+<ol>
+<li><strong>Reliability</strong>: No daemon to crash or hang</li>
+<li><strong>Simplicity</strong>: Each action is isolated and self-contained</li>
+<li><strong>Debuggability</strong>: Easy to trace and debug individual actions</li>
+<li><strong>Resource Efficiency</strong>: No persistent memory usage when idle</li>
+</ol>
+<h2 id="session-initialization"><a class="header" href="#session-initialization">Session Initialization</a></h2>
+<p>The session initialization process sets up the complete Zellij workspace with all configured tools and layouts.</p>
+<h3 id="init-flow"><a class="header" href="#init-flow">Init Flow</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    user[User: sat-hx-ide init] --&gt; wm[WorkspaceManager]
+    wm --&gt; layout[Write layout.kdl]
+    wm --&gt; kdl[Merge runtime config.kdl]
+    wm --&gt; zellij[Zellij create or attach]
+    layout --&gt; codeTab[code tab: editor + terminal]
+    kdl --&gt; bindings[Helper keybindings]
+</code></pre>
+<h3 id="step-by-step-initialization"><a class="header" href="#step-by-step-initialization">Step-by-Step Initialization</a></h3>
+<ol>
+<li>
+<p><strong>Resolve Project Directory and Session Name</strong></p>
+<ul>
+<li>Determine the project root from the provided path</li>
+<li>Generate a session name based on the directory name</li>
+<li>Allow override via <code>--session</code> flag</li>
+</ul>
+</li>
+<li>
+<p><strong>Write <code>layout.kdl</code></strong></p>
+<ul>
+<li>Create the Zellij layout definition</li>
+<li>Define the <code>code</code> tab with Helix and terminal</li>
+<li>Optionally create the <code>ai</code> tab with the configured agent</li>
+<li>Set up pane names and initial commands</li>
+</ul>
+</li>
+<li>
+<p><strong>Merge Keybindings</strong></p>
+<ul>
+<li>Read your existing Zellij config (read-only)</li>
+<li>Check for key collisions with <code>sat-hx-ide</code> bindings</li>
+<li>Inject <code>sat-hx-ide</code> bindings into a private runtime copy</li>
+<li>Write the merged config to runtime directory</li>
+</ul>
+</li>
+<li>
+<p><strong>Create or Attach Zellij Session</strong></p>
+<ul>
+<li>Launch Zellij with <code>--config &lt;runtime-copy&gt;</code></li>
+<li>Either create a new session or attach to existing one</li>
+<li>Pass all necessary environment and configuration</li>
+</ul>
+</li>
+</ol>
+<h3 id="runtime-files"><a class="header" href="#runtime-files">Runtime Files</a></h3>
+<p>All runtime files are stored under:</p>
+<pre><code class="language-text">$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/
+├── config.kdl          # Merged Zellij configuration
+└── layout.kdl          # Session layout definition
+</code></pre>
+<p><strong>Fallback</strong>: If <code>XDG_RUNTIME_DIR</code> is unavailable, the system temporary directory (<code>/tmp</code> on most systems) is used.</p>
+<h2 id="helper-commands"><a class="header" href="#helper-commands">Helper Commands</a></h2>
+<p>The core functionality of <code>sat-helix-ide</code> is implemented through <strong>helper commands</strong> that are invoked by Zellij keybindings.</p>
+<h3 id="command-structure"><a class="header" href="#command-structure">Command Structure</a></h3>
+<p>Zellij bindings invoke hidden subcommands on the <code>sat-hx-ide</code> binary:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key (default)</th><th>Command</th><th>Action</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Ctrl-y</code></td><td><code>__file-manager open</code></td><td>Open/focus Yazi</td></tr>
+<tr><td><code>Alt-y</code></td><td><code>__file-manager toggle-dock</code></td><td>Float or dock file manager</td></tr>
+<tr><td><code>Alt-t</code></td><td><code>__terminal toggle</code></td><td>Hide/show terminal via fullscreen</td></tr>
+<tr><td><code>Alt-Shift-t</code></td><td><code>__terminal zoom</code></td><td>Zoom terminal or dock back</td></tr>
+<tr><td><code>Alt-g</code></td><td><code>__git open</code></td><td>Spawn configured Git TUI in floating pane</td></tr>
+<tr><td><code>Alt-r</code></td><td><code>__review open</code></td><td>Spawn configured review tool in floating pane</td></tr>
+<tr><td><code>Alt-w</code></td><td><code>__workflow open</code></td><td>Spawn configured workflow tool in floating pane</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="helper-process-design"><a class="header" href="#helper-process-design">Helper Process Design</a></h3>
+<p>Helpers run in tiny floating panes with <code>close_on_exit true</code>, which means:</p>
+<ul>
+<li>Zellij keeps the keybinding helper’s TTY for actions that need it</li>
+<li>The pane automatically closes when the helper exits</li>
+<li>The process is completely isolated from the main session</li>
+</ul>
+<p>This design enables:</p>
+<ul>
+<li>File manager spawn (needs TTY for Yazi)</li>
+<li>Git TUI spawning</li>
+<li>Review tool execution</li>
+<li>Complex multi-step actions with proper cleanup</li>
+</ul>
+<h2 id="action-routing"><a class="header" href="#action-routing">Action Routing</a></h2>
+<p>All action logic is centralized in <a href="https://github.com/vlevasseur073/sat-helix-ide/blob/main/src/actions.rs"><code>src/actions.rs</code></a>. The action router handles different types of requests and delegates to appropriate handlers.</p>
+<h3 id="action-types"><a class="header" href="#action-types">Action Types</a></h3>
+<p>The main action categories are:</p>
+<ol>
+<li>
+<p><strong>File Manager Actions</strong></p>
+<ul>
+<li>Open: Create or focus file manager pane</li>
+<li>Toggle Dock: Switch between floating and docked states</li>
+<li>Handle file selection and opening in Helix</li>
+</ul>
+</li>
+<li>
+<p><strong>Terminal Actions</strong></p>
+<ul>
+<li>Toggle: Hide/show terminal via Zellij fullscreen</li>
+<li>Zoom: Maximize terminal or restore docked size</li>
+<li>Respawn: Create fresh terminal when previous one exits</li>
+</ul>
+</li>
+<li>
+<p><strong>Git Actions</strong></p>
+<ul>
+<li>Open: Spawn Git TUI in floating pane</li>
+<li>Manage pane lifecycle</li>
+</ul>
+</li>
+<li>
+<p><strong>Review Actions</strong></p>
+<ul>
+<li>Open: Spawn review tool in floating pane</li>
+<li>Handle various review workflows</li>
+</ul>
+</li>
+<li>
+<p><strong>Workflow Actions</strong></p>
+<ul>
+<li>Open: Spawn workflow tool in floating pane</li>
+<li>Manage project management integrations</li>
+</ul>
+</li>
+</ol>
+<h3 id="file-manager-logic"><a class="header" href="#file-manager-logic">File Manager Logic</a></h3>
+<pre><code class="language-text">File Manager Open Logic:
+If a `file-manager` pane exists:
+    -&gt; Focus it
+Else:
+    -&gt; Rename the helper pane to `file-manager`
+    -&gt; Run Yazi in-process (chooser loop, open in Helix)
+</code></pre>
+<p>The integration uses Yazi’s chooser loop to:</p>
+<ul>
+<li>Display the file selection interface</li>
+<li>Handle file selection</li>
+<li>Open selected files in the existing named Helix pane</li>
+<li>Manage pane focus and cleanup</li>
+</ul>
+<h3 id="terminal-logic"><a class="header" href="#terminal-logic">Terminal Logic</a></h3>
+<pre><code class="language-text">Terminal Toggle Logic:
+If terminal is visible:
+    -&gt; Apply fullscreen to editor/terminal panes
+    -&gt; Terminal stays alive but hidden
+Else (terminal is hidden):
+    -&gt; Restore split layout
+    -&gt; Focus terminal pane
+
+Terminal Respawn Logic:
+If terminal pane was closed:
+    -&gt; Spawn fresh terminal with layout-aware direction
+    -&gt; Size against the editor pane
+</code></pre>
+<h3 id="git-logic"><a class="header" href="#git-logic">Git Logic</a></h3>
+<p>Git integration is straightforward:</p>
+<pre><code class="language-text">Git Open Logic:
+-&gt; Spawn a floating pane on the code tab
+-&gt; Run the resolved Git client (lazygit/gitui) in the pane
+-&gt; Let the Git TUI manage its own lifecycle
+</code></pre>
+<h3 id="review-logic"><a class="header" href="#review-logic">Review Logic</a></h3>
+<p>Similar to Git, but for review tools:</p>
+<pre><code class="language-text">Review Open Logic:
+-&gt; Spawn a floating pane on the code tab
+-&gt; Run the tool from `[tools.review]` (default: revdiff)
+-&gt; Handle diff viewing and navigation
+</code></pre>
+<h2 id="pane-cache"><a class="header" href="#pane-cache">Pane Cache</a></h2>
+<p>To optimize performance and avoid repeated Zellij queries, <code>sat-helix-ide</code> implements a <strong>pane cache</strong> system.</p>
+<h3 id="cache-behavior"><a class="header" href="#cache-behavior">Cache Behavior</a></h3>
+<ul>
+<li><strong>Cache Duration</strong>: Within one helper invocation, <code>list-panes</code> results are cached for 500 ms</li>
+<li><strong>Cache Bypass</strong>: Resize loops bypass the cache (<code>fetch_panes</code>) so geometry stays fresh</li>
+<li><strong>Invalidation</strong>: Cache is invalidated after terminal respawn</li>
+</ul>
+<h3 id="why-caching-matters"><a class="header" href="#why-caching-matters">Why Caching Matters</a></h3>
+<p>Zellij CLI operations have some overhead. Without caching:</p>
+<ul>
+<li>Each action would query Zellij for the current pane layout</li>
+<li>Multi-step actions would make multiple queries</li>
+<li>Performance would degrade, especially with many panes</li>
+</ul>
+<p>With caching:</p>
+<ul>
+<li>First query populates the cache</li>
+<li>Subsequent queries within 500ms use cached data</li>
+<li>Critical operations (like resize) get fresh data</li>
+<li>Overall responsiveness is significantly improved</li>
+</ul>
+<h3 id="cache-implementation"><a class="header" href="#cache-implementation">Cache Implementation</a></h3>
+<p>The cache is implemented as:</p>
+<ul>
+<li>A timestamp-based validity check</li>
+<li>Automatic invalidation on terminal respawn</li>
+<li>Manual bypass for resize operations</li>
+<li>Per-helper-process lifetime (no cross-process state)</li>
+</ul>
+<h2 id="terminal-layout"><a class="header" href="#terminal-layout">Terminal Layout</a></h2>
+<p>The <code>[terminal]</code> section in configuration controls the docked shell in the code tab.</p>
+<h3 id="configuration-options-1"><a class="header" href="#configuration-options-1">Configuration Options</a></h3>
+<pre><code class="language-toml">[terminal]
+enabled = true      # Include terminal pane in layout
+dock_percent = 15   # Size as % of the split
+dock_position = "down"  # "down" (horizontal) or "right" (vertical)
+</code></pre>
+<h3 id="layout-behavior"><a class="header" href="#layout-behavior">Layout Behavior</a></h3>
+<p><strong>Horizontal Split (dock_position = “down”):</strong></p>
+<pre><code class="language-text">┌─────────────────────────────────────────┐
+│                    Helix                  │
+├─────────────────────────────────────────┤
+│                Terminal                   │
+│             (dock_percent %)              │
+└─────────────────────────────────────────┘
+</code></pre>
+<p><strong>Vertical Split (dock_position = “right”):</strong></p>
+<pre><code class="language-text">┌───────────────────┬───────────────────┐
+│                   │                   │
+│      Helix        │    Terminal       │
+│                   │  (dock_percent %) │
+│                   │                   │
+└───────────────────┴───────────────────┘
+</code></pre>
+<h3 id="respawn-behavior"><a class="header" href="#respawn-behavior">Respawn Behavior</a></h3>
+<p>When the terminal needs to be respawning (e.g., after user exits the shell):</p>
+<ol>
+<li><strong>Same Direction</strong>: Uses the same split direction as configured</li>
+<li><strong>Same Size</strong>: Resizes against the editor pane to maintain proportions</li>
+<li><strong>Fresh Process</strong>: Spawns a new shell instance with <code>$SHELL</code></li>
+</ol>
+<h2 id="configuration-merge"><a class="header" href="#configuration-merge">Configuration Merge</a></h2>
+<p>A critical design principle of <code>sat-helix-ide</code> is <strong>non-intrusiveness</strong>. The tool never modifies your global configurations.</p>
+<h3 id="merge-process"><a class="header" href="#merge-process">Merge Process</a></h3>
+<pre><code class="language-mermaid">flowchart TB
+    Source[Read source Zellij config]
+    Check[Check for key collisions]
+    Inject[Inject sat-hx-ide bindings]
+    Write[Write runtime copy]
+    Launch[Launch Zellij with --config]
+
+    Source --&gt; Check
+    Check --&gt;|No conflicts| Inject
+    Check --&gt;|Conflicts found| Fail[Refuse to start]
+    Inject --&gt; Write
+    Write --&gt; Launch
+</code></pre>
+<h3 id="safety-features"><a class="header" href="#safety-features">Safety Features</a></h3>
+<ol>
+<li><strong>Read-Only Source</strong>: Your global Zellij config is read but never modified</li>
+<li><strong>Collision Detection</strong>: All your existing keybindings are parsed and checked</li>
+<li><strong>Private Runtime Copy</strong>: Merged config is written to runtime directory only</li>
+<li><strong>Zellij CLI</strong>: Runtime config is passed via <code>--config</code> flag</li>
+</ol>
+<h3 id="keybinding-injection"><a class="header" href="#keybinding-injection">Keybinding Injection</a></h3>
+<p><code>sat-helix-ide</code> bindings are injected under:</p>
+<pre><code class="language-kdl">shared_except "locked"
+</code></pre>
+<p>This means:</p>
+<ul>
+<li>Bindings are active in all Zellij modes except locked mode</li>
+<li>They don’t interfere with your existing locked mode bindings</li>
+<li>They’re available in normal, resize, pane, tab, and scroll modes</li>
+</ul>
+<h3 id="example-merge"><a class="header" href="#example-merge">Example Merge</a></h3>
+<p><strong>Source Zellij Config:</strong></p>
+<pre><code class="language-kdl">layout {
+    pane split_direction="vertical" {
+        pane
+        pane
+    }
+}
+
+keybind "Ctrl n" { action = NewPane; }
+keybind "Ctrl q" { action = Quit; }
+</code></pre>
+<p><strong>Merged Runtime Config:</strong></p>
+<pre><code class="language-kdl">layout {
+    pane split_direction="vertical" {
+        pane
+        pane
+    }
+}
+
+keybind "Ctrl n" { action = NewPane; }
+keybind "Ctrl q" { action = Quit; }
+
+// sat-hx-ide bindings
+shared_except "locked" {
+    keybind "Ctrl y" { action = Run { command = "sat-hx-ide __file-manager open"; } }
+    keybind "Alt y" { action = Run { command = "sat-hx-ide __file-manager toggle-dock"; } }
+    keybind "Alt t" { action = Run { command = "sat-hx-ide __terminal toggle"; } }
+    keybind "Alt Shift t" { action = Run { command = "sat-hx-ide __terminal zoom"; } }
+    keybind "Alt g" { action = Run { command = "sat-hx-ide __git open"; } }
+    keybind "Alt r" { action = Run { command = "sat-hx-ide __review open"; } }
+    keybind "Alt w" { action = Run { command = "sat-hx-ide __workflow open"; } }
+}
+</code></pre>
+<h2 id="implementation-architecture"><a class="header" href="#implementation-architecture">Implementation Architecture</a></h2>
+<h3 id="code-organization"><a class="header" href="#code-organization">Code Organization</a></h3>
+<p>The <code>sat-helix-ide</code> codebase is organized into several modules:</p>
+<pre><code class="language-text">src/
+├── main.rs              # CLI entry point and command routing
+├── actions.rs           # Action handlers and core logic
+├── config.rs            # Configuration parsing and validation
+├── layout.rs            # Zellij layout generation
+└── error.rs             # Error types and handling
+</code></pre>
+<h3 id="main-components"><a class="header" href="#main-components">Main Components</a></h3>
+<ol>
+<li>
+<p><strong>CLI (main.rs)</strong></p>
+<ul>
+<li>Uses <code>clap</code> for command-line argument parsing</li>
+<li>Defines main commands: <code>init</code>, <code>doctor</code>, <code>config</code>, <code>version</code></li>
+<li>Routes to appropriate handlers</li>
+</ul>
+</li>
+<li>
+<p><strong>Actions (actions.rs)</strong></p>
+<ul>
+<li>Contains all helper command implementations</li>
+<li>Manages Zellij pane operations</li>
+<li>Handles file manager, terminal, Git, review, and workflow actions</li>
+<li>Implements the pane cache system</li>
+</ul>
+</li>
+<li>
+<p><strong>Configuration (config.rs)</strong></p>
+<ul>
+<li>Parses TOML configuration files</li>
+<li>Validates configuration values</li>
+<li>Merges Zellij configurations</li>
+<li>Handles default values and fallbacks</li>
+</ul>
+</li>
+<li>
+<p><strong>Layout (layout.rs)</strong></p>
+<ul>
+<li>Generates Zellij layout KDL</li>
+<li>Creates editor, terminal, and AI panes</li>
+<li>Manages layout templates and customization</li>
+</ul>
+</li>
+</ol>
+<h3 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h3>
+<p><code>sat-helix-ide</code> uses Rust’s <code>anyhow</code> crate for comprehensive error handling:</p>
+<ul>
+<li>All functions return <code>Result&lt;T, anyhow::Error&gt;</code></li>
+<li>Errors are context-rich with descriptive messages</li>
+<li>Configuration errors are caught early</li>
+<li>Runtime errors are properly propagated</li>
+</ul>
+<h2 id="design-decisions"><a class="header" href="#design-decisions">Design Decisions</a></h2>
+<h3 id="why-zellij"><a class="header" href="#why-zellij">Why Zellij?</a></h3>
+<p><code>sat-helix-ide</code> was built on Zellij because:</p>
+<ol>
+<li><strong>Maturity</strong>: Zellij is a stable, well-maintained terminal multiplexer</li>
+<li><strong>Flexibility</strong>: Excellent support for layouts, panes, and tabs</li>
+<li><strong>Plugin System</strong>: Support for custom keybindings and commands</li>
+<li><strong>Cross-Platform</strong>: Works on Linux, macOS, and Windows (WSL)</li>
+<li><strong>Rust-based</strong>: Written in Rust, matching the project’s language</li>
+</ol>
+<h3 id="why-short-lived-processes"><a class="header" href="#why-short-lived-processes">Why Short-Lived Processes?</a></h3>
+<p>The short-lived process model was chosen over a daemon because:</p>
+<ol>
+<li><strong>Simplicity</strong>: No need to manage daemon lifecycle</li>
+<li><strong>Isolation</strong>: Each action is independent and stateless</li>
+<li><strong>Reliability</strong>: No risk of daemon crashes affecting the workspace</li>
+<li><strong>Debuggability</strong>: Easy to debug individual actions</li>
+<li><strong>Resource Efficiency</strong>: No persistent resource usage</li>
+</ol>
+<h3 id="why-non-intrusive"><a class="header" href="#why-non-intrusive">Why Non-Intrusive?</a></h3>
+<p>The non-intrusive design ensures:</p>
+<ol>
+<li><strong>Safety</strong>: Your existing configurations are never modified</li>
+<li><strong>Compatibility</strong>: Works with any Zellij, Helix, or tool configuration</li>
+<li><strong>Reversibility</strong>: Easy to uninstall or disable without side effects</li>
+<li><strong>Trust</strong>: Users can verify exactly what the tool does</li>
+</ol>
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<h3 id="query-optimization"><a class="header" href="#query-optimization">Query Optimization</a></h3>
+<ul>
+<li><strong>Pane Cache</strong>: Reduces Zellij CLI calls during multi-step operations</li>
+<li><strong>Batched Operations</strong>: Combines multiple actions when possible</li>
+<li><strong>Lazy Evaluation</strong>: Only queries state when needed</li>
+</ul>
+<h3 id="memory-usage"><a class="header" href="#memory-usage">Memory Usage</a></h3>
+<ul>
+<li><strong>No Daemon</strong>: No persistent memory usage</li>
+<li><strong>Short Processes</strong>: Each helper process has minimal memory footprint</li>
+<li><strong>Clean Exit</strong>: Processes exit immediately after completing actions</li>
+</ul>
+<h3 id="startup-time"><a class="header" href="#startup-time">Startup Time</a></h3>
+<ul>
+<li><strong>Parallel Setup</strong>: Layout and config generation happens in parallel where possible</li>
+<li><strong>Lazy Loading</strong>: Some resources are loaded only when needed</li>
+<li><strong>Caching</strong>: Runtime files are cached across sessions</li>
+</ul>
+<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
+<h3 id="command-execution"><a class="header" href="#command-execution">Command Execution</a></h3>
+<ul>
+<li><strong>Controlled Execution</strong>: Only executes configured commands</li>
+<li><strong>Path Validation</strong>: Validates executable paths before execution</li>
+<li><strong>Argument Sanitization</strong>: Properly handles command arguments</li>
+</ul>
+<h3 id="configuration-safety"><a class="header" href="#configuration-safety">Configuration Safety</a></h3>
+<ul>
+<li><strong>Read-Only</strong>: Never writes to global configuration files</li>
+<li><strong>Validation</strong>: Validates all configuration before use</li>
+<li><strong>Fallback</strong>: Uses sensible defaults when configuration is missing</li>
+</ul>
+<h3 id="runtime-isolation"><a class="header" href="#runtime-isolation">Runtime Isolation</a></h3>
+<ul>
+<li><strong>Per-Session State</strong>: Runtime files are isolated per session</li>
+<li><strong>Temporary Files</strong>: Runtime files are cleaned up automatically</li>
+<li><strong>No Persistent State</strong>: No long-term state is maintained</li>
+</ul>
+<h2 id="future-architecture-directions"><a class="header" href="#future-architecture-directions">Future Architecture Directions</a></h2>
+<h3 id="potential-improvements"><a class="header" href="#potential-improvements">Potential Improvements</a></h3>
+<ol>
+<li><strong>IPC Protocol</strong>: Experimental IPC daemon for better performance (see <code>feature/ipc-protocol</code> branch)</li>
+<li><strong>Enhanced Caching</strong>: More aggressive caching for better performance</li>
+<li><strong>Plugin System</strong>: Support for custom tool integrations</li>
+<li><strong>Configuration GUI</strong>: Visual configuration editor</li>
+</ol>
+<h3 id="experimental-features"><a class="header" href="#experimental-features">Experimental Features</a></h3>
+<p>The <code>feature/ipc-protocol</code> branch contains experiments with:</p>
+<ul>
+<li>A persistent daemon for state management</li>
+<li>IPC-based communication between components</li>
+<li>Enhanced performance for rapid actions</li>
+</ul>
+<p>These are not currently merged but represent potential future directions.</p>
+<h2 id="related-documentation"><a class="header" href="#related-documentation">Related Documentation</a></h2>
+<ul>
+<li><a href="https://github.com/vlevasseur073/sat-helix-ide#readme">README</a> - Usage and requirements</li>
+<li><a href="#configuration-3">Configuration</a> - Configuration options and examples</li>
+<li><a href="#user-manual">User Manual</a> - Detailed usage guide</li>
+</ul>
+<h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
+<ul>
+<li><a href="#development">Development</a> - Learn about building and contributing</li>
+<li><a href="#troubleshooting">Troubleshooting</a> - Common issues and solutions</li>
+<li><a href="#appendix">Appendix</a> - Command reference and additional information</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="development"><a class="header" href="#development">Development</a></h1>
+<p>This chapter covers how to build, test, and contribute to <code>sat-helix-ide</code>.</p>
+<h2 id="building-from-source"><a class="header" href="#building-from-source">Building from Source</a></h2>
+<h3 id="prerequisites-1"><a class="header" href="#prerequisites-1">Prerequisites</a></h3>
+<ul>
+<li>Rust toolchain (stable recommended)</li>
+<li>Cargo</li>
+<li>Git</li>
+</ul>
+<p>Verify your Rust setup:</p>
+<pre><code class="language-bash">rustc --version
+cargo --version
+</code></pre>
+<h3 id="cloning-the-repository"><a class="header" href="#cloning-the-repository">Cloning the Repository</a></h3>
+<pre><code class="language-bash">git clone https://github.com/vlevasseur073/sat-helix-ide.git
+cd sat-helix-ide
+</code></pre>
+<h3 id="building"><a class="header" href="#building">Building</a></h3>
+<pre><code class="language-bash"># Development build (unoptimized, with debug info)
+cargo build
+
+# Release build (optimized)
+cargo build --release
+
+# Install locally
+cargo install --path .
+</code></pre>
+<h3 id="building-the-documentation"><a class="header" href="#building-the-documentation">Building the Documentation</a></h3>
+<pre><code class="language-bash"># Build this book
+cd book
+mdbook build
+
+# Serve the book locally for preview
+mdbook serve --open
+</code></pre>
+<p>The book will be available at <code>http://localhost:3000</code>.</p>
+<h2 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h2>
+<p><code>sat-helix-ide</code> has a comprehensive test suite.</p>
+<h3 id="running-all-tests"><a class="header" href="#running-all-tests">Running All Tests</a></h3>
+<pre><code class="language-bash">cargo test --locked
+</code></pre>
+<p>The <code>--locked</code> flag ensures that only the exact dependencies specified in <code>Cargo.lock</code> are used, providing reproducible builds.</p>
+<h3 id="running-specific-tests"><a class="header" href="#running-specific-tests">Running Specific Tests</a></h3>
+<pre><code class="language-bash"># Run tests in a specific module
+cargo test --locked actions
+
+# Run a single test
+cargo test --locked test_specific_function
+
+# Run tests with more verbose output
+cargo test --locked -- --nocapture
+</code></pre>
+<h3 id="test-coverage"><a class="header" href="#test-coverage">Test Coverage</a></h3>
+<p>To check test coverage (requires <code>cargo-tarpaulin</code>):</p>
+<pre><code class="language-bash"># Install tarpaulin
+cargo install cargo-tarpaulin
+
+# Run coverage analysis
+cargo tarpaulin --locked
+</code></pre>
+<h2 id="code-quality"><a class="header" href="#code-quality">Code Quality</a></h2>
+<h3 id="formatting"><a class="header" href="#formatting">Formatting</a></h3>
+<p><code>sat-helix-ide</code> uses <code>rustfmt</code> for code formatting:</p>
+<pre><code class="language-bash"># Format all code
+cargo fmt --all
+
+# Check formatting without applying
+cargo fmt --all -- --check
+</code></pre>
+<h3 id="linting"><a class="header" href="#linting">Linting</a></h3>
+<p>The project uses <code>clippy</code> for linting:</p>
+<pre><code class="language-bash"># Run clippy
+cargo clippy --locked --all-targets -- -D warnings
+</code></pre>
+<p>The <code>-D warnings</code> flag treats all warnings as errors, ensuring clean code.</p>
+<h3 id="pre-commit-hooks"><a class="header" href="#pre-commit-hooks">Pre-commit Hooks</a></h3>
+<p>The project includes a pre-commit configuration for automated quality checks:</p>
+<pre><code class="language-bash"># Install pre-commit
+pip install pre-commit
+
+# Install hooks
+pre-commit install
+
+# Run all pre-commit checks manually
+pre-commit run --all-files
+</code></pre>
+<p>The <code>.pre-commit-config.yaml</code> file defines checks for:</p>
+<ul>
+<li>Rust formatting</li>
+<li>Clippy linting</li>
+<li>Tests</li>
+<li>Documentation</li>
+</ul>
+<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
+<pre><code class="language-text">sat-helix-ide/
+├── Cargo.toml                 # Project metadata and dependencies
+├── Cargo.lock                # Dependency lock file
+├── README.md                 # Project README
+├── LICENSE                   # License file
+├── rust-toolchain.toml       # Rust toolchain specification
+├── .gitignore                # Git ignore patterns
+├── .pre-commit-config.yaml  # Pre-commit hooks
+├── .github/                  # GitHub configuration
+│   └── workflows/            # GitHub Actions workflows
+├── book/                     # This documentation
+│   ├── book.toml             # mdbook configuration
+│   └── src/                  # Book source files
+├── configs/                  # Sample configuration files
+│   └── config.toml           # Default configuration
+├── docs/                     # Additional documentation
+│   └── architecture.md       # Architecture document (now integrated into book)
+├── src/                      # Source code
+│   ├── main.rs               # CLI entry point
+│   ├── actions.rs            # Action handlers
+│   ├── config.rs             # Configuration handling
+│   ├── layout.rs             # Layout generation
+│   └── error.rs              # Error types
+└── tests/                    # Test files
+    └── test_*.rs              # Integration tests
+</code></pre>
+<h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
+<h3 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h3>
+<ol>
+<li>Fork the repository on GitHub</li>
+<li>Clone your fork locally</li>
+<li>Create a feature branch</li>
+<li>Make your changes</li>
+<li>Run tests and linting</li>
+<li>Commit your changes</li>
+<li>Push to your fork</li>
+<li>Open a pull request</li>
+</ol>
+<h3 id="pull-request-guidelines"><a class="header" href="#pull-request-guidelines">Pull Request Guidelines</a></h3>
+<ul>
+<li>Follow the existing code style</li>
+<li>Add tests for new functionality</li>
+<li>Update documentation for any user-facing changes</li>
+<li>Keep commits atomic and well-described</li>
+<li>Include a clear description of the changes in the PR</li>
+</ul>
+<h3 id="commit-messages"><a class="header" href="#commit-messages">Commit Messages</a></h3>
+<ul>
+<li>Use the imperative mood (“Add feature” not “Added feature”)</li>
+<li>Limit the first line to 72 characters</li>
+<li>Reference issues and pull requests when applicable</li>
+<li>Include a body describing the change if needed</li>
+</ul>
+<h3 id="code-review-process"><a class="header" href="#code-review-process">Code Review Process</a></h3>
+<ol>
+<li>All PRs must pass CI checks</li>
+<li>Code review is required before merging</li>
+<li>Address all review comments</li>
+<li>Update the PR with any requested changes</li>
+</ol>
+<h2 id="continuous-integration"><a class="header" href="#continuous-integration">Continuous Integration</a></h2>
+<p>The project uses GitHub Actions for CI/CD with the following workflows:</p>
+<h3 id="main-workflow"><a class="header" href="#main-workflow">Main Workflow</a></h3>
+<p>Located at <code>.github/workflows/ci.yml</code>, it runs on:</p>
+<ul>
+<li>Pushes to main branch</li>
+<li>Pull requests to main branch</li>
+</ul>
+<p>The workflow includes:</p>
+<ul>
+<li>Rust formatting check</li>
+<li>Clippy linting</li>
+<li>Tests</li>
+<li>Build verification</li>
+</ul>
+<h3 id="building-and-testing-locally"><a class="header" href="#building-and-testing-locally">Building and Testing Locally</a></h3>
+<p>To reproduce the CI environment locally:</p>
+<pre><code class="language-bash"># Format check
+cargo fmt --all -- --check
+
+# Clippy check
+cargo clippy --locked --all-targets -- -D warnings
+
+# Run tests
+cargo test --locked
+
+# Full pre-commit run
+pre-commit run --all-files
+</code></pre>
+<h2 id="debugging"><a class="header" href="#debugging">Debugging</a></h2>
+<h3 id="debug-logging"><a class="header" href="#debug-logging">Debug Logging</a></h3>
+<p>Enable debug logging to see detailed information about <code>sat-helix-ide</code> operations:</p>
+<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide init .
+
+# For even more detail
+RUST_LOG=trace sat-hx-ide init .
+</code></pre>
+<h3 id="common-debug-scenarios"><a class="header" href="#common-debug-scenarios">Common Debug Scenarios</a></h3>
+<h4 id="debugging-session-initialization"><a class="header" href="#debugging-session-initialization">Debugging Session Initialization</a></h4>
+<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide init . --session test-session
+</code></pre>
+<p>This will show:</p>
+<ul>
+<li>Configuration loading</li>
+<li>Layout generation</li>
+<li>Zellij session creation</li>
+<li>Keybinding injection</li>
+</ul>
+<h4 id="debugging-action-execution"><a class="header" href="#debugging-action-execution">Debugging Action Execution</a></h4>
+<pre><code class="language-bash"># Start a session first
+sat-hx-ide init .
+
+# Then in another terminal, trace helper commands
+RUST_LOG=trace sat-hx-ide __file-manager open
+</code></pre>
+<h3 id="debugging-zellij-integration"><a class="header" href="#debugging-zellij-integration">Debugging Zellij Integration</a></h3>
+<p>To debug Zellij integration:</p>
+<pre><code class="language-bash"># Check Zellij version
+zellij --version
+
+# List active sessions
+zellij list-sessions
+
+# Attach to a session with debug logging
+ZELLIJ_LOG=debug zellij attach &lt;session&gt;
+</code></pre>
+<h2 id="architecture-decision-records-adrs"><a class="header" href="#architecture-decision-records-adrs">Architecture Decision Records (ADRs)</a></h2>
+<p>Major architectural decisions are documented in the codebase and in this book:</p>
+<ul>
+<li><a href="#process-model">Process Model</a> - Why short-lived processes</li>
+<li><a href="#configuration-merge">Non-Intrusive Design</a> - Why never modify global configs</li>
+<li><a href="#why-zellij">Zellij Choice</a> - Why Zellij was chosen</li>
+</ul>
+<p>For new ADRs, create a new section in the <code>architecture.md</code> or add a new file in the <code>docs/</code> directory.</p>
+<h2 id="release-process"><a class="header" href="#release-process">Release Process</a></h2>
+<h3 id="version-management"><a class="header" href="#version-management">Version Management</a></h3>
+<p>The project follows semantic versioning:</p>
+<ul>
+<li><code>MAJOR</code> - Breaking changes</li>
+<li><code>MINOR</code> - New features (backwards compatible)</li>
+<li><code>PATCH</code> - Bug fixes (backwards compatible)</li>
+</ul>
+<h3 id="creating-a-release"><a class="header" href="#creating-a-release">Creating a Release</a></h3>
+<ol>
+<li>Update the version in <code>Cargo.toml</code></li>
+<li>Update the changelog (if applicable)</li>
+<li>Create a Git tag</li>
+<li>Push the tag to GitHub</li>
+<li>GitHub Actions will build and publish the release</li>
+</ol>
+<pre><code class="language-bash"># Update version
+hx Cargo.toml  # Update version field
+
+# Commit version change
+git commit -am "Bump version to x.y.z"
+
+# Create tag
+git tag vx.y.z
+
+# Push tag
+git push origin vx.y.z
+</code></pre>
+<h2 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h2>
+<h3 id="profiling"><a class="header" href="#profiling">Profiling</a></h3>
+<p>To profile <code>sat-helix-ide</code> performance:</p>
+<pre><code class="language-bash"># Install flamegraph tools
+cargo install flamegraph
+
+# Generate flamegraph
+cargo flamegraph --bench your_benchmark -- --bench-name=your_benchmark
+</code></pre>
+<h3 id="common-optimization-areas"><a class="header" href="#common-optimization-areas">Common Optimization Areas</a></h3>
+<ol>
+<li><strong>Zellij CLI Calls</strong>: Reduce the number of calls to Zellij CLI</li>
+<li><strong>Configuration Parsing</strong>: Optimize TOML parsing</li>
+<li><strong>Layout Generation</strong>: Optimize KDL generation</li>
+<li><strong>Pane Cache</strong>: Improve cache hit rates</li>
+</ol>
+<h2 id="documentation"><a class="header" href="#documentation">Documentation</a></h2>
+<h3 id="writing-documentation"><a class="header" href="#writing-documentation">Writing Documentation</a></h3>
+<p>This book uses mdbook. To add new documentation:</p>
+<ol>
+<li>Create a new markdown file in <code>book/src/</code></li>
+<li>Add it to the SUMMARY.md</li>
+<li>Build and preview with <code>mdbook serve</code></li>
+</ol>
+<h3 id="documentation-standards"><a class="header" href="#documentation-standards">Documentation Standards</a></h3>
+<ul>
+<li>Use clear, concise language</li>
+<li>Include examples for configuration options</li>
+<li>Document all user-facing features</li>
+<li>Include troubleshooting information</li>
+<li>Link to related documentation</li>
+</ul>
+<h3 id="generating-api-documentation"><a class="header" href="#generating-api-documentation">Generating API Documentation</a></h3>
+<p>For Rust API documentation:</p>
+<pre><code class="language-bash"># Generate HTML documentation
+cargo doc --open
+
+# Generate with private items
+cargo doc --open --document-private-items
+</code></pre>
+<h2 id="next-steps-5"><a class="header" href="#next-steps-5">Next Steps</a></h2>
+<ul>
+<li><a href="#troubleshooting">Troubleshooting</a> - Common issues and solutions</li>
+<li><a href="#appendix">Appendix</a> - Command reference and additional resources</li>
+<li><a href="https://github.com/vlevasseur073/sat-helix-ide">Contribute on GitHub</a> - Start contributing</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h1>
+<p>This chapter covers common issues and their solutions when using <code>sat-helix-ide</code>.</p>
+<h2 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h2>
+<h3 id="installation-issues"><a class="header" href="#installation-issues">Installation Issues</a></h3>
+<h4 id="command-not-found-after-installation"><a class="header" href="#command-not-found-after-installation">“Command not found” after installation</a></h4>
+<p><strong>Problem</strong>: After running <code>cargo install --path .</code>, the <code>sat-hx-ide</code> command is not found.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Cargo’s bin directory</strong>:</p>
+<pre><code class="language-bash"># Find where Cargo installs binaries
+echo $CARGO_HOME/bin
+
+# Add to PATH if not already there
+export PATH="$CARGO_HOME/bin:$PATH"
+</code></pre>
+</li>
+<li>
+<p><strong>Verify installation</strong>:</p>
+<pre><code class="language-bash"># Check if binary exists
+ls ~/.cargo/bin/sat-hx-ide
+
+# If it exists, add cargo bin to your shell's PATH
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' &gt;&gt; ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc
+</code></pre>
+</li>
+<li>
+<p><strong>Reinstall</strong>:</p>
+<pre><code class="language-bash">cargo install --path . --force
+</code></pre>
+</li>
+</ol>
+<h4 id="missing-required-tools"><a class="header" href="#missing-required-tools">Missing Required Tools</a></h4>
+<p><strong>Problem</strong>: <code>sat-hx-ide doctor</code> reports missing required tools.</p>
+<p><strong>Solution</strong>: Install the missing tools:</p>
+<ul>
+<li><strong>Zellij</strong>: Follow <a href="https://zellij.dev/documentation/installation.html">Zellij installation</a></li>
+<li><strong>Helix</strong>: Follow <a href="https://helix-editor.com/">Helix installation</a></li>
+<li><strong>Yazi</strong>: Follow <a href="https://yazi-rs.github.io/docs/installation">Yazi installation</a></li>
+</ul>
+<p>Verify each tool is in your PATH:</p>
+<pre><code class="language-bash">which zellij
+which hx
+which yazi
+</code></pre>
+<h3 id="session-issues"><a class="header" href="#session-issues">Session Issues</a></h3>
+<h4 id="session-fails-to-start"><a class="header" href="#session-fails-to-start">Session fails to start</a></h4>
+<p><strong>Problem</strong>: <code>sat-hx-ide init .</code> fails with an error.</p>
+<p><strong>Common causes and solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Keybinding conflicts</strong>:</p>
+<pre><code class="language-bash"># Check for conflicts
+RUST_LOG=debug sat-hx-ide init .
+
+# Solution: Change conflicting keybindings in your config
+hx ~/.config/sat-helix-ide/config.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Missing tools</strong>:</p>
+<pre><code class="language-bash"># Run doctor to check
+sat-hx-ide doctor
+
+# Install any missing tools
+</code></pre>
+</li>
+<li>
+<p><strong>Permission issues</strong>:</p>
+<pre><code class="language-bash"># Check runtime directory permissions
+ls -la $XDG_RUNTIME_DIR/sat-helix-ide/
+
+# Create runtime directory if missing
+mkdir -p $XDG_RUNTIME_DIR/sat-helix-ide/
+</code></pre>
+</li>
+</ol>
+<h4 id="session-starts-but-tools-dont-work"><a class="header" href="#session-starts-but-tools-dont-work">Session starts but tools don’t work</a></h4>
+<p><strong>Problem</strong>: The Zellij session starts, but keybindings don’t work or tools don’t open.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Zellij logs</strong>:</p>
+<pre><code class="language-bash">ZELLIJ_LOG=debug zellij attach &lt;session&gt;
+</code></pre>
+</li>
+<li>
+<p><strong>Verify keybindings</strong>:</p>
+<ul>
+<li>Ensure you’re not in locked mode (press <code>Ctrl-g</code> to unlock)</li>
+<li>Check that you’re in normal mode</li>
+<li>Verify keybindings are loaded:
+<pre><code class="language-bash"># Look for sat-hx-ide bindings in your runtime config
+cat $XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/config.kdl | grep "sat-hx-ide"
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Restart session</strong>:</p>
+<pre><code class="language-bash"># Quit and restart
+zellij kill-session &lt;session&gt;
+sat-hx-ide init .
+</code></pre>
+</li>
+</ol>
+<h3 id="keybinding-issues"><a class="header" href="#keybinding-issues">Keybinding Issues</a></h3>
+<h4 id="keybindings-dont-work"><a class="header" href="#keybindings-dont-work">Keybindings don’t work</a></h4>
+<p><strong>Problem</strong>: Pressing the configured keys doesn’t trigger any action.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Zellij mode</strong>:</p>
+<ul>
+<li>Keybindings only work in normal mode, not locked mode</li>
+<li>Press <code>Ctrl-g</code> to toggle lock mode</li>
+<li>Look for mode indicators in Zellij’s status bar</li>
+</ul>
+</li>
+<li>
+<p><strong>Test keybindings manually</strong>:</p>
+<pre><code class="language-bash"># Run helper commands directly to test
+sat-hx-ide __file-manager open
+sat-hx-ide __terminal toggle
+</code></pre>
+</li>
+<li>
+<p><strong>Check for conflicts</strong>:</p>
+<pre><code class="language-bash"># List all keybindings in your Zellij config
+zellij --config /dev/null run -c 'list-keybindings'
+</code></pre>
+</li>
+</ol>
+<h4 id="custom-keybindings-not-working"><a class="header" href="#custom-keybindings-not-working">Custom keybindings not working</a></h4>
+<p><strong>Problem</strong>: Custom keybindings in configuration are not working.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Validate keybinding syntax</strong>:</p>
+<pre><code class="language-toml"># Good
+file_manager = "Ctrl y"
+
+# Bad (extra spaces)
+file_manager = " Ctrl y "
+</code></pre>
+</li>
+<li>
+<p><strong>Check for conflicts</strong>:</p>
+<pre><code class="language-bash"># Test with debug logging
+RUST_LOG=debug sat-hx-ide init .
+
+# Look for conflict messages
+</code></pre>
+</li>
+<li>
+<p><strong>Try a different keybinding</strong>:</p>
+<pre><code class="language-toml">[keybindings]
+file_manager = "Ctrl f"  # Try a different key
+</code></pre>
+</li>
+</ol>
+<h3 id="terminal-issues"><a class="header" href="#terminal-issues">Terminal Issues</a></h3>
+<h4 id="terminal-doesnt-appear"><a class="header" href="#terminal-doesnt-appear">Terminal doesn’t appear</a></h4>
+<p><strong>Problem</strong>: The terminal pane is missing from the layout.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check configuration</strong>:</p>
+<pre><code class="language-toml">[terminal]
+enabled = true  # Make sure this is true
+</code></pre>
+</li>
+<li>
+<p><strong>Verify terminal command</strong>:</p>
+<pre><code class="language-bash"># Check if your shell is valid
+which $SHELL
+
+# Test your shell directly
+$SHELL --version
+</code></pre>
+</li>
+<li>
+<p><strong>Try with explicit terminal settings</strong>:</p>
+<pre><code class="language-toml">[terminal]
+enabled = true
+dock_percent = 20
+dock_position = "down"
+</code></pre>
+</li>
+</ol>
+<h4 id="terminal-exits-immediately"><a class="header" href="#terminal-exits-immediately">Terminal exits immediately</a></h4>
+<p><strong>Problem</strong>: The terminal appears but exits immediately.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check shell configuration</strong>:</p>
+<ul>
+<li>Some shells (like <code>fish</code>) may exit if they detect they’re not interactive</li>
+<li>Try with <code>bash</code> or <code>zsh</code>:
+<pre><code class="language-bash"># Test with bash
+ZELLIJ_SHELL=/bin/bash sat-hx-ide init .
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Check for errors in shell startup files</strong>:</p>
+<pre><code class="language-bash"># Test your shell startup files
+bash --login -c "echo Shell started successfully"
+</code></pre>
+</li>
+</ol>
+<h3 id="file-manager-issues"><a class="header" href="#file-manager-issues">File Manager Issues</a></h3>
+<h4 id="yazi-doesnt-open"><a class="header" href="#yazi-doesnt-open">Yazi doesn’t open</a></h4>
+<p><strong>Problem</strong>: Pressing <code>Ctrl-y</code> doesn’t open Yazi.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Yazi installation</strong>:</p>
+<pre><code class="language-bash">which yazi
+yazi --version
+</code></pre>
+</li>
+<li>
+<p><strong>Test Yazi directly</strong>:</p>
+<pre><code class="language-bash"># Run Yazi manually
+yazi
+</code></pre>
+</li>
+<li>
+<p><strong>Check file manager configuration</strong>:</p>
+<pre><code class="language-toml">[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+</code></pre>
+</li>
+</ol>
+<h4 id="files-dont-open-in-helix"><a class="header" href="#files-dont-open-in-helix">Files don’t open in Helix</a></h4>
+<p><strong>Problem</strong>: Selecting files in Yazi doesn’t open them in Helix.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Helix installation</strong>:</p>
+<pre><code class="language-bash">which hx
+hx --version
+</code></pre>
+</li>
+<li>
+<p><strong>Test file opening manually</strong>:</p>
+<pre><code class="language-bash"># Try opening a file with Helix
+hx /path/to/file.rs
+</code></pre>
+</li>
+<li>
+<p><strong>Check if Helix pane exists</strong>:</p>
+<ul>
+<li>The file should open in the existing named Helix pane</li>
+<li>Make sure you haven’t closed the Helix pane</li>
+</ul>
+</li>
+</ol>
+<h3 id="git-tui-issues"><a class="header" href="#git-tui-issues">Git TUI Issues</a></h3>
+<h4 id="lazygitgitui-doesnt-open"><a class="header" href="#lazygitgitui-doesnt-open">Lazygit/GitUI doesn’t open</a></h4>
+<p><strong>Problem</strong>: Pressing <code>Alt-g</code> doesn’t open the Git TUI.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check Git TUI installation</strong>:</p>
+<pre><code class="language-bash">which lazygit  # or gitui
+lazygit --version
+</code></pre>
+</li>
+<li>
+<p><strong>Test Git TUI directly</strong>:</p>
+<pre><code class="language-bash"># Run in the project directory
+cd /your/project
+lazygit
+</code></pre>
+</li>
+<li>
+<p><strong>Check configuration</strong>:</p>
+<pre><code class="language-toml">[tools.git]
+command = "lazygit"  # or "gitui"
+args = []
+</code></pre>
+</li>
+</ol>
+<h4 id="git-tui-cant-find-git-repository"><a class="header" href="#git-tui-cant-find-git-repository">Git TUI can’t find Git repository</a></h4>
+<p><strong>Problem</strong>: The Git TUI opens but reports no repository found.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check current directory</strong>:</p>
+<ul>
+<li>The Git TUI runs in the current working directory of the Zellij session</li>
+<li>Make sure you’re in a Git repository</li>
+</ul>
+</li>
+<li>
+<p><strong>Verify Git repository</strong>:</p>
+<pre><code class="language-bash">git status
+</code></pre>
+</li>
+<li>
+<p><strong>Restart session in correct directory</strong>:</p>
+<pre><code class="language-bash">cd /path/to/your/git/repo
+sat-hx-ide init .
+</code></pre>
+</li>
+</ol>
+<h3 id="configuration-issues"><a class="header" href="#configuration-issues">Configuration Issues</a></h3>
+<h4 id="configuration-file-not-found"><a class="header" href="#configuration-file-not-found">Configuration file not found</a></h4>
+<p><strong>Problem</strong>: <code>sat-hx-ide</code> reports that the configuration file is not found.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check configuration locations</strong>:</p>
+<pre><code class="language-bash"># Default location
+ls ~/.config/sat-helix-ide/config.toml
+
+# Custom location
+ls /path/to/your/config.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Specify configuration file</strong>:</p>
+<pre><code class="language-bash">sat-hx-ide init . --config /path/to/config.toml
+</code></pre>
+</li>
+<li>
+<p><strong>Create default configuration</strong>:</p>
+<pre><code class="language-bash">mkdir -p ~/.config/sat-helix-ide
+cp /path/to/sat-helix-ide/configs/config.toml ~/.config/sat-helix-ide/
+</code></pre>
+</li>
+</ol>
+<h4 id="configuration-validation-errors"><a class="header" href="#configuration-validation-errors">Configuration validation errors</a></h4>
+<p><strong>Problem</strong>: <code>sat-hx-ide</code> reports configuration validation errors.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check for syntax errors</strong>:</p>
+<pre><code class="language-bash"># Validate TOML syntax
+python3 -c "import tomllib; tomllib.loads(open('.config/sat-helix-ide/config.toml', 'rb').read())"
+</code></pre>
+</li>
+<li>
+<p><strong>Check for invalid values</strong>:</p>
+<ul>
+<li><code>dock_percent</code> must be between 1 and 99</li>
+<li><code>dock_position</code> must be “down” or “right”</li>
+<li>Command paths must exist</li>
+</ul>
+</li>
+<li>
+<p><strong>Use defaults</strong>:</p>
+<pre><code class="language-bash"># Temporarily use bundled defaults
+mv ~/.config/sat-helix-ide/config.toml ~/.config/sat-helix-ide/config.toml.bak
+sat-hx-ide init .
+</code></pre>
+</li>
+</ol>
+<h2 id="debug-mode"><a class="header" href="#debug-mode">Debug Mode</a></h2>
+<h3 id="enabling-debug-logging"><a class="header" href="#enabling-debug-logging">Enabling Debug Logging</a></h3>
+<p>Use the <code>RUST_LOG</code> environment variable to enable debug logging:</p>
+<pre><code class="language-bash"># Basic debug logging
+RUST_LOG=debug sat-hx-ide init .
+
+# Detailed trace logging
+RUST_LOG=trace sat-hx-ide init .
+
+# Only show info from specific modules
+RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide init .
+</code></pre>
+<h3 id="debug-log-levels"><a class="header" href="#debug-log-levels">Debug Log Levels</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Level</th><th>Description</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td><code>error</code></td><td>Only errors</td><td>Production troubleshooting</td></tr>
+<tr><td><code>warn</code></td><td>Warnings and errors</td><td>General troubleshooting</td></tr>
+<tr><td><code>info</code></td><td>Informational messages</td><td>Understanding flow</td></tr>
+<tr><td><code>debug</code></td><td>Detailed debug info</td><td>Deep troubleshooting</td></tr>
+<tr><td><code>trace</code></td><td>Very verbose, all details</td><td>Development debugging</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="debugging-specific-operations"><a class="header" href="#debugging-specific-operations">Debugging Specific Operations</a></h3>
+<h4 id="debug-session-initialization"><a class="header" href="#debug-session-initialization">Debug Session Initialization</a></h4>
+<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide init . --session debug-session
+</code></pre>
+<p>This shows:</p>
+<ul>
+<li>Configuration file loading</li>
+<li>Layout generation</li>
+<li>Zellij session creation</li>
+<li>Keybinding injection</li>
+</ul>
+<h4 id="debug-action-execution"><a class="header" href="#debug-action-execution">Debug Action Execution</a></h4>
+<pre><code class="language-bash"># Start a session
+sat-hx-ide init .
+
+# In another terminal, debug a specific action
+RUST_LOG=trace sat-hx-ide __file-manager open
+</code></pre>
+<h4 id="debug-zellij-integration"><a class="header" href="#debug-zellij-integration">Debug Zellij Integration</a></h4>
+<pre><code class="language-bash"># Enable Zellij logging
+ZELLIJ_LOG=debug zellij attach &lt;session&gt;
+
+# Or set in environment
+export ZELLIJ_LOG=debug
+zellij attach &lt;session&gt;
+</code></pre>
+<h2 id="environment-specific-issues"><a class="header" href="#environment-specific-issues">Environment-Specific Issues</a></h2>
+<h3 id="running-on-different-platforms"><a class="header" href="#running-on-different-platforms">Running on Different Platforms</a></h3>
+<h4 id="linux"><a class="header" href="#linux">Linux</a></h4>
+<p><strong>Issue</strong>: Runtime directory permissions.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Create runtime directory with proper permissions
+mkdir -p ~/.local/share/sat-helix-ide
+chmod 700 ~/.local/share/sat-helix-ide
+</code></pre>
+<h4 id="macos"><a class="header" href="#macos">macOS</a></h4>
+<p><strong>Issue</strong>: No <code>XDG_RUNTIME_DIR</code> on macOS.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Set XDG_RUNTIME_DIR for macOS
+export XDG_RUNTIME_DIR=/tmp
+sat-hx-ide init .
+</code></pre>
+<h4 id="windows-wsl"><a class="header" href="#windows-wsl">Windows (WSL)</a></h4>
+<p><strong>Issue</strong>: Windows paths don’t work with Linux tools.</p>
+<p><strong>Solution</strong>:</p>
+<pre><code class="language-bash"># Use WSL paths
+[tools.editor]
+command = "hx.exe"
+</code></pre>
+<h3 id="terminal-emulator-issues"><a class="header" href="#terminal-emulator-issues">Terminal Emulator Issues</a></h3>
+<h4 id="colors-dont-display-correctly"><a class="header" href="#colors-dont-display-correctly">Colors don’t display correctly</a></h4>
+<p><strong>Problem</strong>: Terminal colors are wrong or missing.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Check terminal color support</strong>:</p>
+<pre><code class="language-bash"># Test color support
+echo -e "\033[31mRed\033[0m"
+</code></pre>
+</li>
+<li>
+<p><strong>Set proper TERM variable</strong>:</p>
+<pre><code class="language-bash">export TERM=xterm-256color
+</code></pre>
+</li>
+<li>
+<p><strong>Check Zellij color configuration</strong>:</p>
+<ul>
+<li>Ensure your Zellij config has proper color settings</li>
+<li>Check Zellij’s theme configuration</li>
+</ul>
+</li>
+</ol>
+<h4 id="font-rendering-issues"><a class="header" href="#font-rendering-issues">Font rendering issues</a></h4>
+<p><strong>Problem</strong>: Characters don’t display correctly.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li>
+<p><strong>Use a proper font</strong>:</p>
+<ul>
+<li>Nerd Fonts (recommended for icons)</li>
+<li>Fira Code</li>
+<li>JetBrains Mono</li>
+</ul>
+</li>
+<li>
+<p><strong>Check terminal font settings</strong>:</p>
+<ul>
+<li>Ensure your terminal is using a monospace font</li>
+<li>Set font size appropriately</li>
+</ul>
+</li>
+</ol>
+<h2 id="known-limitations"><a class="header" href="#known-limitations">Known Limitations</a></h2>
+<h3 id="zellij-version-compatibility"><a class="header" href="#zellij-version-compatibility">Zellij Version Compatibility</a></h3>
+<p><strong>Issue</strong>: Different Zellij versions may have different features or behaviors.</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Use the latest stable version of Zellij</li>
+<li>Check Zellij’s changelog for breaking changes</li>
+<li>Report compatibility issues to the sat-helix-ide repository</li>
+</ul>
+<h3 id="tool-version-compatibility"><a class="header" href="#tool-version-compatibility">Tool Version Compatibility</a></h3>
+<p><strong>Issue</strong>: Different versions of integrated tools (Helix, Yazi, Lazygit) may behave differently.</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Use reasonably recent versions of all tools</li>
+<li>Check tool-specific documentation for version requirements</li>
+<li>Report compatibility issues</li>
+</ul>
+<h3 id="wayland-support"><a class="header" href="#wayland-support">Wayland Support</a></h3>
+<p><strong>Issue</strong>: Some features may not work perfectly under Wayland.</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Most functionality should work under Wayland</li>
+<li>Some clipboard or focus issues may occur</li>
+<li>Try running under X11 if you encounter issues</li>
+</ul>
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<h3 id="checking-system-information"><a class="header" href="#checking-system-information">Checking System Information</a></h3>
+<p>To diagnose issues, gather the following information:</p>
+<pre><code class="language-bash"># System info
+echo "OS: $(uname -a)"
+echo "Shell: $SHELL"
+echo "Zellij: $(zellij --version 2&gt;&amp;1)"
+echo "Helix: $(hx --version 2&gt;&amp;1)"
+echo "Yazi: $(yazi --version 2&gt;&amp;1)"
+echo "Lazygit: $(lazygit --version 2&gt;&amp;1 || echo 'Not installed')"
+echo "sat-hx-ide: $(sat-hx-ide version 2&gt;&amp;1)"
+
+# Configuration
+cat ~/.config/sat-helix-ide/config.toml 2&gt;/dev/null || echo "No custom config"
+
+# Environment
+env | grep -E "(XDG|TERM|PATH|ZELLIJ)" | head -10
+</code></pre>
+<h3 id="reporting-issues"><a class="header" href="#reporting-issues">Reporting Issues</a></h3>
+<p>When reporting issues on GitHub, include:</p>
+<ol>
+<li><strong>sat-hx-ide version</strong>: <code>sat-hx-ide version</code></li>
+<li><strong>Tool versions</strong>: Zellij, Helix, Yazi, Git TUI</li>
+<li><strong>OS and platform</strong>: Linux/macOS/Windows, distribution</li>
+<li><strong>Configuration</strong>: Your <code>config.toml</code> (if custom)</li>
+<li><strong>Steps to reproduce</strong>: What you did to trigger the issue</li>
+<li><strong>Expected vs actual behavior</strong>: What should happen vs what happened</li>
+<li><strong>Debug logs</strong>: Output with <code>RUST_LOG=debug</code> if applicable</li>
+</ol>
+<h3 id="creating-a-minimal-reproduction"><a class="header" href="#creating-a-minimal-reproduction">Creating a Minimal Reproduction</a></h3>
+<p>To help diagnose issues, create a minimal reproduction:</p>
+<ol>
+<li>Start with a fresh configuration</li>
+<li>Use only the default settings</li>
+<li>Reproduce the issue with minimal steps</li>
+<li>Document the exact steps to reproduce</li>
+</ol>
+<h2 id="troubleshooting-checklist"><a class="header" href="#troubleshooting-checklist">Troubleshooting Checklist</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"> Run <code>sat-hx-ide doctor</code> for system check</li>
+<li><input disabled="" type="checkbox"> Check <code>RUST_LOG=debug sat-hx-ide init .</code> for debug output</li>
+<li><input disabled="" type="checkbox"> Verify all required tools are installed and in PATH</li>
+<li><input disabled="" type="checkbox"> Test each tool individually (zellij, hx, yazi, lazygit)</li>
+<li><input disabled="" type="checkbox"> Check configuration file syntax and values</li>
+<li><input disabled="" type="checkbox"> Try with default configuration (no custom config)</li>
+<li><input disabled="" type="checkbox"> Test in a fresh directory/session</li>
+<li><input disabled="" type="checkbox"> Check for keybinding conflicts</li>
+<li><input disabled="" type="checkbox"> Verify terminal emulator compatibility</li>
+<li><input disabled="" type="checkbox"> Search existing issues on GitHub</li>
+</ul>
+<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<ul>
+<li><a href="#appendix">Appendix</a> - Command reference and additional resources</li>
+<li><a href="https://github.com/vlevasseur073/sat-helix-ide/issues">GitHub Issues</a> - Report or browse issues</li>
+<li><a href="https://github.com/vlevasseur073/sat-helix-ide/discussions">Discussions</a> - Ask questions and share ideas</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="appendix"><a class="header" href="#appendix">Appendix</a></h1>
+<p>This appendix contains reference information, environment variables, related projects, and additional resources for <code>sat-helix-ide</code>.</p>
+<h2 id="command-reference"><a class="header" href="#command-reference">Command Reference</a></h2>
+<h3 id="main-commands"><a class="header" href="#main-commands">Main Commands</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th><th>Usage</th></tr>
+</thead>
+<tbody>
+<tr><td><code>init</code></td><td>Initialize a new Zellij session</td><td><code>sat-hx-ide init [PATH] [--session NAME] [--no-ai] [--no-attach]</code></td></tr>
+<tr><td><code>doctor</code></td><td>Check system requirements and configuration</td><td><code>sat-hx-ide doctor</code></td></tr>
+<tr><td><code>config</code></td><td>Display current configuration</td><td><code>sat-hx-ide config [--config PATH]</code></td></tr>
+<tr><td><code>version</code></td><td>Display version information</td><td><code>sat-hx-ide version</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="helper-commands-internal"><a class="header" href="#helper-commands-internal">Helper Commands (Internal)</a></h3>
+<p>These commands are invoked internally by Zellij keybindings and are not typically called directly by users.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th><th>Trigger</th></tr>
+</thead>
+<tbody>
+<tr><td><code>__file-manager open</code></td><td>Open or focus file manager</td><td><code>Ctrl-y</code></td></tr>
+<tr><td><code>__file-manager toggle-dock</code></td><td>Toggle file manager between floating and docked</td><td><code>Alt-y</code></td></tr>
+<tr><td><code>__terminal toggle</code></td><td>Hide/show terminal</td><td><code>Alt-t</code></td></tr>
+<tr><td><code>__terminal zoom</code></td><td>Zoom terminal to full height or restore</td><td><code>Alt-Shift-t</code></td></tr>
+<tr><td><code>__git open</code></td><td>Open Git TUI in floating pane</td><td><code>Alt-g</code></td></tr>
+<tr><td><code>__review open</code></td><td>Open review tool in floating pane</td><td><code>Alt-r</code></td></tr>
+<tr><td><code>__workflow open</code></td><td>Open workflow tool in floating pane</td><td><code>Alt-w</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="command-line-options"><a class="header" href="#command-line-options">Command-Line Options</a></h3>
+<h4 id="init-command-options"><a class="header" href="#init-command-options"><code>init</code> Command Options</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[PATH]</code></td><td>Project directory</td><td>Current directory</td></tr>
+<tr><td><code>--session NAME</code></td><td>Session name override</td><td>Directory name</td></tr>
+<tr><td><code>--no-ai</code></td><td>Skip AI tab</td><td><code>false</code></td></tr>
+<tr><td><code>--no-attach</code></td><td>Don’t attach to existing session</td><td><code>false</code></td></tr>
+<tr><td><code>--config PATH</code></td><td>Custom configuration file</td><td><code>~/.config/sat-helix-ide/config.toml</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Initialize in current directory
+sat-hx-ide init .
+
+# Initialize in specific directory with custom session name
+sat-hx-ide init ~/projects/myapp --session myapp-dev
+
+# Initialize without AI tab
+sat-hx-ide init . --no-ai
+
+# Initialize with custom config
+sat-hx-ide init . --config /path/to/config.toml
+</code></pre>
+<h4 id="config-command-options"><a class="header" href="#config-command-options"><code>config</code> Command Options</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--config PATH</code></td><td>Custom configuration file</td><td><code>~/.config/sat-helix-ide/config.toml</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Show current configuration
+sat-hx-ide config
+
+# Show configuration from custom file
+sat-hx-ide config --config /path/to/config.toml
+</code></pre>
+<h2 id="environment-variables-1"><a class="header" href="#environment-variables-1">Environment Variables</a></h2>
+<h3 id="sat-helix-ide-variables"><a class="header" href="#sat-helix-ide-variables">sat-helix-ide Variables</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variable</th><th>Description</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code>RUST_LOG</code></td><td>Logging level for sat-hx-ide</td><td><code>info</code></td></tr>
+<tr><td><code>XDG_RUNTIME_DIR</code></td><td>Directory for runtime files</td><td><code>/run/user/&lt;uid&gt;/</code> (Linux)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="zellij-variables"><a class="header" href="#zellij-variables">Zellij Variables</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variable</th><th>Description</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ZELLIJ_CONFIG_FILE</code></td><td>Path to Zellij configuration</td><td>Overrides <code>session.zellij_config</code></td></tr>
+<tr><td><code>ZELLIJ_LOG</code></td><td>Zellij logging level</td><td>Controls Zellij’s own logging</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="tool-variables"><a class="header" href="#tool-variables">Tool Variables</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variable</th><th>Tool</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SHELL</code></td><td>Terminal</td><td>Default shell for terminal panes</td></tr>
+<tr><td><code>HELIX_EDITOR</code></td><td>Helix</td><td>Helix configuration directory (if needed)</td></tr>
+<tr><td><code>YAZI_CONFIG</code></td><td>Yazi</td><td>Yazi configuration directory</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="file-locations"><a class="header" href="#file-locations">File Locations</a></h2>
+<h3 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Purpose</th><th>Location</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>User Config</td><td><code>~/.config/sat-helix-ide/config.toml</code></td><td>Main configuration file</td></tr>
+<tr><td>Sample Config</td><td><code>&lt;repo&gt;/configs/config.toml</code></td><td>Sample configuration for reference</td></tr>
+<tr><td>Runtime Config</td><td><code>$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/config.kdl</code></td><td>Merged Zellij config</td></tr>
+<tr><td>Runtime Layout</td><td><code>$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/layout.kdl</code></td><td>Session layout</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="default-configuration"><a class="header" href="#default-configuration">Default Configuration</a></h3>
+<p>The default configuration is embedded in the binary. When no user configuration file exists, these defaults are used:</p>
+<pre><code class="language-toml">[session]
+attach_existing = true
+ai_by_default = true
+
+[terminal]
+enabled = true
+dock_percent = 15
+dock_position = "down"
+
+[keybindings]
+file_manager = "Ctrl y"
+file_manager_dock = "Alt y"
+git = "Alt g"
+review = "Alt r"
+workflow = "Alt w"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+
+[tools.zellij]
+command = "zellij"
+args = []
+
+[tools.editor]
+command = "hx"
+args = []
+
+[tools.file_manager]
+adapter = "yazi"
+command = "yazi"
+args = []
+float_width = "100%"
+float_height = "100%"
+dock_percent = 28
+
+[tools.git]
+command = "lazygit"
+args = []
+
+[tools.review]
+command = "revdiff"
+args = []
+
+[tools.workflow]
+command = "glab-tui"
+args = []
+
+[tools.ai]
+command = "cursor-agent"
+args = []
+</code></pre>
+<h2 id="keyboard-shortcuts-summary"><a class="header" href="#keyboard-shortcuts-summary">Keyboard Shortcuts Summary</a></h2>
+<h3 id="default-keybindings"><a class="header" href="#default-keybindings">Default Keybindings</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Action</th><th>Component</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Ctrl-y</code></td><td>Open/focus file manager</td><td>File Manager</td></tr>
+<tr><td><code>Alt-y</code></td><td>Toggle file manager dock</td><td>File Manager</td></tr>
+<tr><td><code>Alt-t</code></td><td>Toggle terminal visibility</td><td>Terminal</td></tr>
+<tr><td><code>Alt-Shift-t</code></td><td>Zoom terminal</td><td>Terminal</td></tr>
+<tr><td><code>Alt-g</code></td><td>Open Git TUI</td><td>Git</td></tr>
+<tr><td><code>Alt-r</code></td><td>Open review tool</td><td>Review</td></tr>
+<tr><td><code>Alt-w</code></td><td>Open workflow tool</td><td>Workflow</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="zellij-default-keybindings-still-active"><a class="header" href="#zellij-default-keybindings-still-active">Zellij Default Keybindings (Still Active)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Action</th><th>Mode</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Ctrl-q</code></td><td>Quit Zellij</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-g</code></td><td>Toggle lock mode</td><td>All</td></tr>
+<tr><td><code>Ctrl-n</code></td><td>New pane</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-h/j/k/l</code></td><td>Move focus</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-Shift-h/j/k/l</code></td><td>Move pane</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-p</code></td><td>Previous tab</td><td>Normal</td></tr>
+<tr><td><code>Ctrl-n</code></td><td>Next tab</td><td>Normal</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="configuration-reference"><a class="header" href="#configuration-reference">Configuration Reference</a></h2>
+<h3 id="all-configuration-options"><a class="header" href="#all-configuration-options">All Configuration Options</a></h3>
+<h4 id="session"><a class="header" href="#session"><code>[session]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>attach_existing</code></td><td>Boolean</td><td><code>true</code></td><td>Attach to existing session</td></tr>
+<tr><td><code>ai_by_default</code></td><td>Boolean</td><td><code>true</code></td><td>Include AI tab</td></tr>
+<tr><td><code>zellij_config</code></td><td>String</td><td>Auto</td><td>Custom Zellij config path</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="terminal"><a class="header" href="#terminal"><code>[terminal]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>Boolean</td><td><code>true</code></td><td>Include terminal pane</td></tr>
+<tr><td><code>dock_percent</code></td><td>Integer</td><td><code>15</code></td><td>Terminal size percentage</td></tr>
+<tr><td><code>dock_position</code></td><td>String</td><td><code>"down"</code></td><td>Terminal position (<code>"down"</code> or <code>"right"</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="keybindings-1"><a class="header" href="#keybindings-1"><code>[keybindings]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>file_manager</code></td><td>String</td><td><code>"Ctrl y"</code></td><td>File manager key</td></tr>
+<tr><td><code>file_manager_dock</code></td><td>String</td><td><code>"Alt y"</code></td><td>File manager dock toggle</td></tr>
+<tr><td><code>git</code></td><td>String</td><td><code>"Alt g"</code></td><td>Git TUI key</td></tr>
+<tr><td><code>review</code></td><td>String</td><td><code>"Alt r"</code></td><td>Review tool key</td></tr>
+<tr><td><code>workflow</code></td><td>String</td><td><code>"Alt w"</code></td><td>Workflow tool key</td></tr>
+<tr><td><code>terminal</code></td><td>String</td><td><code>"Alt t"</code></td><td>Terminal toggle key</td></tr>
+<tr><td><code>terminal_zoom</code></td><td>String</td><td><code>"Alt Shift t"</code></td><td>Terminal zoom key</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolszellij-1"><a class="header" href="#toolszellij-1"><code>[tools.zellij]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"zellij"</code></td><td>Zellij executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Zellij arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolseditor-1"><a class="header" href="#toolseditor-1"><code>[tools.editor]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"hx"</code></td><td>Editor executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Editor arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsfile_manager-1"><a class="header" href="#toolsfile_manager-1"><code>[tools.file_manager]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>adapter</code></td><td>String</td><td><code>"yazi"</code></td><td>File manager adapter</td></tr>
+<tr><td><code>command</code></td><td>String</td><td><code>"yazi"</code></td><td>File manager executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>File manager arguments</td></tr>
+<tr><td><code>float_width</code></td><td>String</td><td><code>"100%"</code></td><td>Floating width</td></tr>
+<tr><td><code>float_height</code></td><td>String</td><td><code>"100%"</code></td><td>Floating height</td></tr>
+<tr><td><code>dock_percent</code></td><td>Integer</td><td><code>28</code></td><td>Docked width percentage</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsgit-1"><a class="header" href="#toolsgit-1"><code>[tools.git]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"lazygit"</code></td><td>Git TUI executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Git TUI arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsreview-1"><a class="header" href="#toolsreview-1"><code>[tools.review]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"revdiff"</code></td><td>Review tool executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Review tool arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsworkflow-1"><a class="header" href="#toolsworkflow-1"><code>[tools.workflow]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"glab-tui"</code></td><td>Workflow tool executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>Workflow tool arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="toolsai-1"><a class="header" href="#toolsai-1"><code>[tools.ai]</code></a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>command</code></td><td>String</td><td><code>"cursor-agent"</code></td><td>AI agent executable</td></tr>
+<tr><td><code>args</code></td><td>Array</td><td><code>[]</code></td><td>AI agent arguments</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="related-projects"><a class="header" href="#related-projects">Related Projects</a></h2>
+<h3 id="terminal-multiplexers"><a class="header" href="#terminal-multiplexers">Terminal Multiplexers</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Zellij</strong></td><td>Terminal workspace multiplexer (used by sat-hx-ide)</td><td><a href="https://zellij.dev">zellij.dev</a></td></tr>
+<tr><td>tmux</td><td>Terminal multiplexer</td><td><a href="https://tmux.github.io">tmux.github.io</a></td></tr>
+<tr><td>screen</td><td>Terminal multiplexer</td><td><a href="https://www.gnu.org/software/screen/">GNU Screen</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="editors"><a class="header" href="#editors">Editors</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Helix</strong></td><td>Modal text editor (used by sat-hx-ide)</td><td><a href="https://helix-editor.com">helix-editor.com</a></td></tr>
+<tr><td>Neovim</td><td>Vim-fork with modern features</td><td><a href="https://neovim.io">neovim.io</a></td></tr>
+<tr><td>Kakoune</td><td>Modal, multiple-selections editor</td><td><a href="https://kakoune.org">kakoune.org</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="file-managers"><a class="header" href="#file-managers">File Managers</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Yazi</strong></td><td>Terminal file manager (used by sat-hx-ide)</td><td><a href="https://yazi-rs.github.io">yazi-rs.github.io</a></td></tr>
+<tr><td>Ranger</td><td>Console file manager</td><td><a href="https://ranger.github.io">ranger.github.io</a></td></tr>
+<tr><td>lf</td><td>Terminal file manager</td><td><a href="https://github.com/gokcehan/lf">github.com/gokcehan/lf</a></td></tr>
+<tr><td>nnn</td><td>Fast terminal file manager</td><td><a href="https://github.com/jarun/nnn">github.com/jarun/nnn</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="git-tuis"><a class="header" href="#git-tuis">Git TUIs</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Lazygit</strong></td><td>Simple Git TUI (used by sat-hx-ide)</td><td><a href="https://github.com/jesseduffield/lazygit">github.com/jesseduffield/lazygit</a></td></tr>
+<tr><td><strong>GitUI</strong></td><td>Alternative Git TUI</td><td><a href="https://github.com/gitui-org/gitui">github.com/gitui-org/gitui</a></td></tr>
+<tr><td>Tig</td><td>Text-mode interface for Git</td><td><a href="https://jonas.github.io/tig/">jonas.github.io/tig</a></td></tr>
+<tr><td>Magit</td><td>Emacs Git interface</td><td><a href="https://magit.vc">magit.vc</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="review-tools-1"><a class="header" href="#review-tools-1">Review Tools</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>revdiff</strong></td><td>Smart diff viewer (used by sat-hx-ide)</td><td><a href="https://github.com/umputun/revdiff">github.com/umputun/revdiff</a></td></tr>
+<tr><td>git-delta</td><td>Syntax-highlighting pager for git</td><td><a href="https://github.com/dandavison/delta">github.com/dandavison/delta</a></td></tr>
+<tr><td>Diff So Fancy</td><td>Good-lookin’ diffs</td><td><a href="https://github.com/so-fancy/diff-so-fancy">github.com/so-fancy/diff-so-fancy</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="workflow-tools-1"><a class="header" href="#workflow-tools-1">Workflow Tools</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>glab-tui</strong></td><td>GitLab/GitHub TUI (used by sat-hx-ide)</td><td><a href="https://github.com/rcieri/glab-tui">github.com/rcieri/glab-tui</a></td></tr>
+<tr><td>Gh CLI</td><td>GitHub CLI</td><td><a href="https://cli.github.com">cli.github.com</a></td></tr>
+<tr><td>Lab</td><td>GitLab CLI</td><td><a href="https://github.com/zaquestion/lab">github.com/zaquestion/lab</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="ai-agents"><a class="header" href="#ai-agents">AI Agents</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td>Cursor Agent</td><td>AI code assistant</td><td><a href="https://cursor.com">cursor.com</a></td></tr>
+<tr><td>GitHub Copilot CLI</td><td>GitHub Copilot in CLI</td><td><a href="https://github.com/github/copilot-cli">github.com/github/copilot-cli</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="similar-projects"><a class="header" href="#similar-projects">Similar Projects</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Project</th><th>Description</th><th>Website</th></tr>
+</thead>
+<tbody>
+<tr><td>Zellij IDE</td><td>Zellij-based IDE</td><td><a href="https://github.com/mattsse/zellij-ide">github.com/mattsse/zellij-ide</a></td></tr>
+<tr><td>Tmux IDE</td><td>Tmux-based IDE configurations</td><td>Various</td></tr>
+<tr><td>Neovim Remote</td><td>Neovim remote editing</td><td>Built-in</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="resources"><a class="header" href="#resources">Resources</a></h2>
+<h3 id="official-resources"><a class="header" href="#official-resources">Official Resources</a></h3>
+<ul>
+<li><strong>Repository</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide">github.com/vlevasseur073/sat-helix-ide</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide/issues">github.com/vlevasseur073/sat-helix-ide/issues</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide/discussions">github.com/vlevasseur073/sat-helix-ide/discussions</a></li>
+</ul>
+<h3 id="zellij-resources"><a class="header" href="#zellij-resources">Zellij Resources</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://zellij.dev/documentation">zellij.dev/documentation</a></li>
+<li><strong>GitHub</strong>: <a href="https://github.com/zellij-org/zellij">github.com/zellij-org/zellij</a></li>
+<li><strong>Discord</strong>: Zellij Discord server</li>
+</ul>
+<h3 id="helix-resources"><a class="header" href="#helix-resources">Helix Resources</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://helix-editor.com/docs">helix-editor.com/docs</a></li>
+<li><strong>GitHub</strong>: <a href="https://github.com/helix-editor/helix">github.com/helix-editor/helix</a></li>
+<li><strong>Matrix</strong>: Helix Matrix channel</li>
+</ul>
+<h3 id="yazi-resources"><a class="header" href="#yazi-resources">Yazi Resources</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://yazi-rs.github.io/docs">yazi-rs.github.io/docs</a></li>
+<li><strong>GitHub</strong>: <a href="https://github.com/sxyazi/yazi">github.com/sxyazi/yazi</a></li>
+</ul>
+<h3 id="lazygit-resources"><a class="header" href="#lazygit-resources">Lazygit Resources</a></h3>
+<ul>
+<li><strong>Documentation</strong>: <a href="https://github.com/jesseduffield/lazygit">github.com/jesseduffield/lazygit</a></li>
+<li><strong>Config Guide</strong>: <a href="https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md">github.com/jesseduffield/lazygit/blob/master/docs/Config.md</a></li>
+</ul>
+<h2 id="performance-tips"><a class="header" href="#performance-tips">Performance Tips</a></h2>
+<h3 id="optimizing-startup-time"><a class="header" href="#optimizing-startup-time">Optimizing Startup Time</a></h3>
+<ol>
+<li><strong>Pre-load Zellij</strong>: Keep a Zellij session running</li>
+<li><strong>Use SSD</strong>: Faster disk I/O for configuration loading</li>
+<li><strong>Reduce config complexity</strong>: Simplify your Zellij configuration</li>
+<li><strong>Cache runtime files</strong>: Runtime files are cached across sessions</li>
+</ol>
+<h3 id="optimizing-runtime-performance"><a class="header" href="#optimizing-runtime-performance">Optimizing Runtime Performance</a></h3>
+<ol>
+<li><strong>Use pane cache</strong>: The built-in pane cache reduces Zellij queries</li>
+<li><strong>Avoid frequent resizes</strong>: Resize operations bypass the cache</li>
+<li><strong>Use efficient shells</strong>: Some shells start faster than others</li>
+<li><strong>Limit AI tab</strong>: Disable AI tab if not needed (<code>--no-ai</code>)</li>
+</ol>
+<h3 id="memory-usage-1"><a class="header" href="#memory-usage-1">Memory Usage</a></h3>
+<ul>
+<li><strong>No daemon</strong>: No persistent memory usage</li>
+<li><strong>Short-lived processes</strong>: Minimal memory footprint per action</li>
+<li><strong>Cleanup</strong>: Runtime files are automatically cleaned up</li>
+</ul>
+<h2 id="integration-examples"><a class="header" href="#integration-examples">Integration Examples</a></h2>
+<h3 id="integrating-with-shell-aliases"><a class="header" href="#integrating-with-shell-aliases">Integrating with Shell Aliases</a></h3>
+<pre><code class="language-bash"># Add to your .bashrc or .zshrc
+alias ide="sat-hx-ide init ."
+alias ide-no-ai="sat-hx-ide init . --no-ai"
+
+# Usage
+ide        # Start session in current directory
+ide-no-ai  # Start session without AI tab
+</code></pre>
+<h3 id="integrating-with-project-specific-configs"><a class="header" href="#integrating-with-project-specific-configs">Integrating with Project-Specific Configs</a></h3>
+<pre><code class="language-bash"># In your project's .env file or shell profile
+if [ -d ".sat-hx-ide" ]; then
+    export SAT_HX_IDE_CONFIG=".sat-hx-ide/config.toml"
+fi
+
+# Then use
+sat-hx-ide init . --config $SAT_HX_IDE_CONFIG
+</code></pre>
+<h3 id="integrating-with-makefile"><a class="header" href="#integrating-with-makefile">Integrating with Makefile</a></h3>
+<pre><code class="language-makefile">.PHONY: ide
+ide:
+	sat-hx-ide init .
+
+.PHONY: ide-debug
+ide-debug:
+	RUST_LOG=debug sat-hx-ide init .
+</code></pre>
+<h3 id="integrating-with-justfile"><a class="header" href="#integrating-with-justfile">Integrating with Justfile</a></h3>
+<pre><code class="language-just"># Start IDE
+ide:
+    sat-hx-ide init .
+
+# Start IDE with debugging
+ide-debug:
+    RUST_LOG=debug sat-hx-ide init .
+
+# Run doctor
+check:
+    sat-hx-ide doctor
+</code></pre>
+<h2 id="version-history"><a class="header" href="#version-history">Version History</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Version</th><th>Date</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>0.1.0</td><td>Current</td><td>Initial release</td></tr>
+</tbody>
+</table>
+</div>
+<p><em>Check the GitHub repository for the latest version and changelog.</em></p>
+<h2 id="license"><a class="header" href="#license">License</a></h2>
+<p><code>sat-helix-ide</code> is licensed under the MIT License. See the <a href="https://github.com/vlevasseur073/sat-helix-ide/blob/main/LICENSE">LICENSE</a> file for details.</p>
+<h2 id="contributing-1"><a class="header" href="#contributing-1">Contributing</a></h2>
+<p>See <a href="#development">Development</a> for information on contributing to <code>sat-helix-ide</code>.</p>
+<h2 id="support"><a class="header" href="#support">Support</a></h2>
+<ul>
+<li><strong>GitHub Issues</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide/issues">github.com/vlevasseur073/sat-helix-ide/issues</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/vlevasseur073/sat-helix-ide/discussions">github.com/vlevasseur073/sat-helix-ide/discussions</a></li>
+<li><strong>Contributing</strong>: Pull requests welcome!</li>
+</ul>
+<hr>
+<p>This concludes the <code>sat-helix-ide</code> User Manual &amp; Design Document. We hope this comprehensive guide helps you get the most out of this powerful development tool.</p>
+<ul>
+<li><a href="#introduction">Back to Introduction</a> - Start over</li>
+<li><a href="#quick-start">Quick Start</a> - Get started quickly</li>
+<li><a href="#user-manual">User Manual</a> - Learn how to use</li>
+<li><a href="#configuration-3">Configuration</a> - Customize your setup</li>
+<li><a href="#architecture--design">Architecture</a> - Understand the design</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/custom-983d56f0.js"></script>
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>

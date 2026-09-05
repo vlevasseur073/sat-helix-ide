@@ -1,0 +1,722 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Architecture &amp; Design - sat-helix-ide User Manual &amp; Design Document</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom-e8ea0b06.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-e36cfd3f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-26df6826.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">sat-helix-ide User Manual &amp; Design Document</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/vlevasseur073/sat-helix-ide" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="architecture--design"><a class="header" href="#architecture--design">Architecture &amp; Design</a></h1>
+<p>This chapter provides a detailed look at the architecture and design decisions behind <code>sat-helix-ide</code>. It explains how the tool works under the hood, the process model, and the various components that make up the system.</p>
+<h2 id="process-model"><a class="header" href="#process-model">Process Model</a></h2>
+<p><code>sat-helix-ide</code> follows a <strong>short-lived process</strong> model. Unlike traditional IDEs that run as long-running daemons, <code>sat-helix-ide</code> operates differently:</p>
+<h3 id="no-background-daemon"><a class="header" href="#no-background-daemon">No Background Daemon</a></h3>
+<ul>
+<li>Each keybinding spawns a short-lived <code>sat-hx-ide</code> helper process</li>
+<li>The helper process drives Zellij CLI actions and exits immediately</li>
+<li>There is no persistent background process</li>
+<li>This design simplifies error handling and resource management</li>
+</ul>
+<h3 id="process-flow"><a class="header" href="#process-flow">Process Flow</a></h3>
+<pre><code class="language-mermaid">flowchart TB
+    User[User presses key]
+    Zellij[Zellij keybinding]
+    Helper[sat-hx-ide helper process]
+    Action[Perform action via Zellij CLI]
+    Exit[Helper exits]
+
+    User --&gt; Zellij
+    Zellij --&gt; Helper
+    Helper --&gt; Action
+    Action --&gt; Exit
+</code></pre>
+<p>This approach has several advantages:</p>
+<ol>
+<li><strong>Reliability</strong>: No daemon to crash or hang</li>
+<li><strong>Simplicity</strong>: Each action is isolated and self-contained</li>
+<li><strong>Debuggability</strong>: Easy to trace and debug individual actions</li>
+<li><strong>Resource Efficiency</strong>: No persistent memory usage when idle</li>
+</ol>
+<h2 id="session-initialization"><a class="header" href="#session-initialization">Session Initialization</a></h2>
+<p>The session initialization process sets up the complete Zellij workspace with all configured tools and layouts.</p>
+<h3 id="init-flow"><a class="header" href="#init-flow">Init Flow</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    user[User: sat-hx-ide init] --&gt; wm[WorkspaceManager]
+    wm --&gt; layout[Write layout.kdl]
+    wm --&gt; kdl[Merge runtime config.kdl]
+    wm --&gt; zellij[Zellij create or attach]
+    layout --&gt; codeTab[code tab: editor + terminal]
+    kdl --&gt; bindings[Helper keybindings]
+</code></pre>
+<h3 id="step-by-step-initialization"><a class="header" href="#step-by-step-initialization">Step-by-Step Initialization</a></h3>
+<ol>
+<li>
+<p><strong>Resolve Project Directory and Session Name</strong></p>
+<ul>
+<li>Determine the project root from the provided path</li>
+<li>Generate a session name based on the directory name</li>
+<li>Allow override via <code>--session</code> flag</li>
+</ul>
+</li>
+<li>
+<p><strong>Write <code>layout.kdl</code></strong></p>
+<ul>
+<li>Create the Zellij layout definition</li>
+<li>Define the <code>code</code> tab with Helix and terminal</li>
+<li>Optionally create the <code>ai</code> tab with the configured agent</li>
+<li>Set up pane names and initial commands</li>
+</ul>
+</li>
+<li>
+<p><strong>Merge Keybindings</strong></p>
+<ul>
+<li>Read your existing Zellij config (read-only)</li>
+<li>Check for key collisions with <code>sat-hx-ide</code> bindings</li>
+<li>Inject <code>sat-hx-ide</code> bindings into a private runtime copy</li>
+<li>Write the merged config to runtime directory</li>
+</ul>
+</li>
+<li>
+<p><strong>Create or Attach Zellij Session</strong></p>
+<ul>
+<li>Launch Zellij with <code>--config &lt;runtime-copy&gt;</code></li>
+<li>Either create a new session or attach to existing one</li>
+<li>Pass all necessary environment and configuration</li>
+</ul>
+</li>
+</ol>
+<h3 id="runtime-files"><a class="header" href="#runtime-files">Runtime Files</a></h3>
+<p>All runtime files are stored under:</p>
+<pre><code class="language-text">$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/
+├── config.kdl          # Merged Zellij configuration
+└── layout.kdl          # Session layout definition
+</code></pre>
+<p><strong>Fallback</strong>: If <code>XDG_RUNTIME_DIR</code> is unavailable, the system temporary directory (<code>/tmp</code> on most systems) is used.</p>
+<h2 id="helper-commands"><a class="header" href="#helper-commands">Helper Commands</a></h2>
+<p>The core functionality of <code>sat-helix-ide</code> is implemented through <strong>helper commands</strong> that are invoked by Zellij keybindings.</p>
+<h3 id="command-structure"><a class="header" href="#command-structure">Command Structure</a></h3>
+<p>Zellij bindings invoke hidden subcommands on the <code>sat-hx-ide</code> binary:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key (default)</th><th>Command</th><th>Action</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Ctrl-y</code></td><td><code>__file-manager open</code></td><td>Open/focus Yazi</td></tr>
+<tr><td><code>Alt-y</code></td><td><code>__file-manager toggle-dock</code></td><td>Float or dock file manager</td></tr>
+<tr><td><code>Alt-t</code></td><td><code>__terminal toggle</code></td><td>Hide/show terminal via fullscreen</td></tr>
+<tr><td><code>Alt-Shift-t</code></td><td><code>__terminal zoom</code></td><td>Zoom terminal or dock back</td></tr>
+<tr><td><code>Alt-g</code></td><td><code>__git open</code></td><td>Spawn configured Git TUI in floating pane</td></tr>
+<tr><td><code>Alt-r</code></td><td><code>__review open</code></td><td>Spawn configured review tool in floating pane</td></tr>
+<tr><td><code>Alt-w</code></td><td><code>__workflow open</code></td><td>Spawn configured workflow tool in floating pane</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="helper-process-design"><a class="header" href="#helper-process-design">Helper Process Design</a></h3>
+<p>Helpers run in tiny floating panes with <code>close_on_exit true</code>, which means:</p>
+<ul>
+<li>Zellij keeps the keybinding helper’s TTY for actions that need it</li>
+<li>The pane automatically closes when the helper exits</li>
+<li>The process is completely isolated from the main session</li>
+</ul>
+<p>This design enables:</p>
+<ul>
+<li>File manager spawn (needs TTY for Yazi)</li>
+<li>Git TUI spawning</li>
+<li>Review tool execution</li>
+<li>Complex multi-step actions with proper cleanup</li>
+</ul>
+<h2 id="action-routing"><a class="header" href="#action-routing">Action Routing</a></h2>
+<p>All action logic is centralized in <a href="https://github.com/vlevasseur073/sat-helix-ide/blob/main/src/actions.rs"><code>src/actions.rs</code></a>. The action router handles different types of requests and delegates to appropriate handlers.</p>
+<h3 id="action-types"><a class="header" href="#action-types">Action Types</a></h3>
+<p>The main action categories are:</p>
+<ol>
+<li>
+<p><strong>File Manager Actions</strong></p>
+<ul>
+<li>Open: Create or focus file manager pane</li>
+<li>Toggle Dock: Switch between floating and docked states</li>
+<li>Handle file selection and opening in Helix</li>
+</ul>
+</li>
+<li>
+<p><strong>Terminal Actions</strong></p>
+<ul>
+<li>Toggle: Hide/show terminal via Zellij fullscreen</li>
+<li>Zoom: Maximize terminal or restore docked size</li>
+<li>Respawn: Create fresh terminal when previous one exits</li>
+</ul>
+</li>
+<li>
+<p><strong>Git Actions</strong></p>
+<ul>
+<li>Open: Spawn Git TUI in floating pane</li>
+<li>Manage pane lifecycle</li>
+</ul>
+</li>
+<li>
+<p><strong>Review Actions</strong></p>
+<ul>
+<li>Open: Spawn review tool in floating pane</li>
+<li>Handle various review workflows</li>
+</ul>
+</li>
+<li>
+<p><strong>Workflow Actions</strong></p>
+<ul>
+<li>Open: Spawn workflow tool in floating pane</li>
+<li>Manage project management integrations</li>
+</ul>
+</li>
+</ol>
+<h3 id="file-manager-logic"><a class="header" href="#file-manager-logic">File Manager Logic</a></h3>
+<pre><code class="language-text">File Manager Open Logic:
+If a `file-manager` pane exists:
+    -&gt; Focus it
+Else:
+    -&gt; Rename the helper pane to `file-manager`
+    -&gt; Run Yazi in-process (chooser loop, open in Helix)
+</code></pre>
+<p>The integration uses Yazi’s chooser loop to:</p>
+<ul>
+<li>Display the file selection interface</li>
+<li>Handle file selection</li>
+<li>Open selected files in the existing named Helix pane</li>
+<li>Manage pane focus and cleanup</li>
+</ul>
+<h3 id="terminal-logic"><a class="header" href="#terminal-logic">Terminal Logic</a></h3>
+<pre><code class="language-text">Terminal Toggle Logic:
+If terminal is visible:
+    -&gt; Apply fullscreen to editor/terminal panes
+    -&gt; Terminal stays alive but hidden
+Else (terminal is hidden):
+    -&gt; Restore split layout
+    -&gt; Focus terminal pane
+
+Terminal Respawn Logic:
+If terminal pane was closed:
+    -&gt; Spawn fresh terminal with layout-aware direction
+    -&gt; Size against the editor pane
+</code></pre>
+<h3 id="git-logic"><a class="header" href="#git-logic">Git Logic</a></h3>
+<p>Git integration is straightforward:</p>
+<pre><code class="language-text">Git Open Logic:
+-&gt; Spawn a floating pane on the code tab
+-&gt; Run the resolved Git client (lazygit/gitui) in the pane
+-&gt; Let the Git TUI manage its own lifecycle
+</code></pre>
+<h3 id="review-logic"><a class="header" href="#review-logic">Review Logic</a></h3>
+<p>Similar to Git, but for review tools:</p>
+<pre><code class="language-text">Review Open Logic:
+-&gt; Spawn a floating pane on the code tab
+-&gt; Run the tool from `[tools.review]` (default: revdiff)
+-&gt; Handle diff viewing and navigation
+</code></pre>
+<h2 id="pane-cache"><a class="header" href="#pane-cache">Pane Cache</a></h2>
+<p>To optimize performance and avoid repeated Zellij queries, <code>sat-helix-ide</code> implements a <strong>pane cache</strong> system.</p>
+<h3 id="cache-behavior"><a class="header" href="#cache-behavior">Cache Behavior</a></h3>
+<ul>
+<li><strong>Cache Duration</strong>: Within one helper invocation, <code>list-panes</code> results are cached for 500 ms</li>
+<li><strong>Cache Bypass</strong>: Resize loops bypass the cache (<code>fetch_panes</code>) so geometry stays fresh</li>
+<li><strong>Invalidation</strong>: Cache is invalidated after terminal respawn</li>
+</ul>
+<h3 id="why-caching-matters"><a class="header" href="#why-caching-matters">Why Caching Matters</a></h3>
+<p>Zellij CLI operations have some overhead. Without caching:</p>
+<ul>
+<li>Each action would query Zellij for the current pane layout</li>
+<li>Multi-step actions would make multiple queries</li>
+<li>Performance would degrade, especially with many panes</li>
+</ul>
+<p>With caching:</p>
+<ul>
+<li>First query populates the cache</li>
+<li>Subsequent queries within 500ms use cached data</li>
+<li>Critical operations (like resize) get fresh data</li>
+<li>Overall responsiveness is significantly improved</li>
+</ul>
+<h3 id="cache-implementation"><a class="header" href="#cache-implementation">Cache Implementation</a></h3>
+<p>The cache is implemented as:</p>
+<ul>
+<li>A timestamp-based validity check</li>
+<li>Automatic invalidation on terminal respawn</li>
+<li>Manual bypass for resize operations</li>
+<li>Per-helper-process lifetime (no cross-process state)</li>
+</ul>
+<h2 id="terminal-layout"><a class="header" href="#terminal-layout">Terminal Layout</a></h2>
+<p>The <code>[terminal]</code> section in configuration controls the docked shell in the code tab.</p>
+<h3 id="configuration-options"><a class="header" href="#configuration-options">Configuration Options</a></h3>
+<pre><code class="language-toml">[terminal]
+enabled = true      # Include terminal pane in layout
+dock_percent = 15   # Size as % of the split
+dock_position = "down"  # "down" (horizontal) or "right" (vertical)
+</code></pre>
+<h3 id="layout-behavior"><a class="header" href="#layout-behavior">Layout Behavior</a></h3>
+<p><strong>Horizontal Split (dock_position = “down”):</strong></p>
+<pre><code class="language-text">┌─────────────────────────────────────────┐
+│                    Helix                  │
+├─────────────────────────────────────────┤
+│                Terminal                   │
+│             (dock_percent %)              │
+└─────────────────────────────────────────┘
+</code></pre>
+<p><strong>Vertical Split (dock_position = “right”):</strong></p>
+<pre><code class="language-text">┌───────────────────┬───────────────────┐
+│                   │                   │
+│      Helix        │    Terminal       │
+│                   │  (dock_percent %) │
+│                   │                   │
+└───────────────────┴───────────────────┘
+</code></pre>
+<h3 id="respawn-behavior"><a class="header" href="#respawn-behavior">Respawn Behavior</a></h3>
+<p>When the terminal needs to be respawning (e.g., after user exits the shell):</p>
+<ol>
+<li><strong>Same Direction</strong>: Uses the same split direction as configured</li>
+<li><strong>Same Size</strong>: Resizes against the editor pane to maintain proportions</li>
+<li><strong>Fresh Process</strong>: Spawns a new shell instance with <code>$SHELL</code></li>
+</ol>
+<h2 id="configuration-merge"><a class="header" href="#configuration-merge">Configuration Merge</a></h2>
+<p>A critical design principle of <code>sat-helix-ide</code> is <strong>non-intrusiveness</strong>. The tool never modifies your global configurations.</p>
+<h3 id="merge-process"><a class="header" href="#merge-process">Merge Process</a></h3>
+<pre><code class="language-mermaid">flowchart TB
+    Source[Read source Zellij config]
+    Check[Check for key collisions]
+    Inject[Inject sat-hx-ide bindings]
+    Write[Write runtime copy]
+    Launch[Launch Zellij with --config]
+
+    Source --&gt; Check
+    Check --&gt;|No conflicts| Inject
+    Check --&gt;|Conflicts found| Fail[Refuse to start]
+    Inject --&gt; Write
+    Write --&gt; Launch
+</code></pre>
+<h3 id="safety-features"><a class="header" href="#safety-features">Safety Features</a></h3>
+<ol>
+<li><strong>Read-Only Source</strong>: Your global Zellij config is read but never modified</li>
+<li><strong>Collision Detection</strong>: All your existing keybindings are parsed and checked</li>
+<li><strong>Private Runtime Copy</strong>: Merged config is written to runtime directory only</li>
+<li><strong>Zellij CLI</strong>: Runtime config is passed via <code>--config</code> flag</li>
+</ol>
+<h3 id="keybinding-injection"><a class="header" href="#keybinding-injection">Keybinding Injection</a></h3>
+<p><code>sat-helix-ide</code> bindings are injected under:</p>
+<pre><code class="language-kdl">shared_except "locked"
+</code></pre>
+<p>This means:</p>
+<ul>
+<li>Bindings are active in all Zellij modes except locked mode</li>
+<li>They don’t interfere with your existing locked mode bindings</li>
+<li>They’re available in normal, resize, pane, tab, and scroll modes</li>
+</ul>
+<h3 id="example-merge"><a class="header" href="#example-merge">Example Merge</a></h3>
+<p><strong>Source Zellij Config:</strong></p>
+<pre><code class="language-kdl">layout {
+    pane split_direction="vertical" {
+        pane
+        pane
+    }
+}
+
+keybind "Ctrl n" { action = NewPane; }
+keybind "Ctrl q" { action = Quit; }
+</code></pre>
+<p><strong>Merged Runtime Config:</strong></p>
+<pre><code class="language-kdl">layout {
+    pane split_direction="vertical" {
+        pane
+        pane
+    }
+}
+
+keybind "Ctrl n" { action = NewPane; }
+keybind "Ctrl q" { action = Quit; }
+
+// sat-hx-ide bindings
+shared_except "locked" {
+    keybind "Ctrl y" { action = Run { command = "sat-hx-ide __file-manager open"; } }
+    keybind "Alt y" { action = Run { command = "sat-hx-ide __file-manager toggle-dock"; } }
+    keybind "Alt t" { action = Run { command = "sat-hx-ide __terminal toggle"; } }
+    keybind "Alt Shift t" { action = Run { command = "sat-hx-ide __terminal zoom"; } }
+    keybind "Alt g" { action = Run { command = "sat-hx-ide __git open"; } }
+    keybind "Alt r" { action = Run { command = "sat-hx-ide __review open"; } }
+    keybind "Alt w" { action = Run { command = "sat-hx-ide __workflow open"; } }
+}
+</code></pre>
+<h2 id="implementation-architecture"><a class="header" href="#implementation-architecture">Implementation Architecture</a></h2>
+<h3 id="code-organization"><a class="header" href="#code-organization">Code Organization</a></h3>
+<p>The <code>sat-helix-ide</code> codebase is organized into several modules:</p>
+<pre><code class="language-text">src/
+├── main.rs              # CLI entry point and command routing
+├── actions.rs           # Action handlers and core logic
+├── config.rs            # Configuration parsing and validation
+├── layout.rs            # Zellij layout generation
+└── error.rs             # Error types and handling
+</code></pre>
+<h3 id="main-components"><a class="header" href="#main-components">Main Components</a></h3>
+<ol>
+<li>
+<p><strong>CLI (main.rs)</strong></p>
+<ul>
+<li>Uses <code>clap</code> for command-line argument parsing</li>
+<li>Defines main commands: <code>init</code>, <code>doctor</code>, <code>config</code>, <code>version</code></li>
+<li>Routes to appropriate handlers</li>
+</ul>
+</li>
+<li>
+<p><strong>Actions (actions.rs)</strong></p>
+<ul>
+<li>Contains all helper command implementations</li>
+<li>Manages Zellij pane operations</li>
+<li>Handles file manager, terminal, Git, review, and workflow actions</li>
+<li>Implements the pane cache system</li>
+</ul>
+</li>
+<li>
+<p><strong>Configuration (config.rs)</strong></p>
+<ul>
+<li>Parses TOML configuration files</li>
+<li>Validates configuration values</li>
+<li>Merges Zellij configurations</li>
+<li>Handles default values and fallbacks</li>
+</ul>
+</li>
+<li>
+<p><strong>Layout (layout.rs)</strong></p>
+<ul>
+<li>Generates Zellij layout KDL</li>
+<li>Creates editor, terminal, and AI panes</li>
+<li>Manages layout templates and customization</li>
+</ul>
+</li>
+</ol>
+<h3 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h3>
+<p><code>sat-helix-ide</code> uses Rust’s <code>anyhow</code> crate for comprehensive error handling:</p>
+<ul>
+<li>All functions return <code>Result&lt;T, anyhow::Error&gt;</code></li>
+<li>Errors are context-rich with descriptive messages</li>
+<li>Configuration errors are caught early</li>
+<li>Runtime errors are properly propagated</li>
+</ul>
+<h2 id="design-decisions"><a class="header" href="#design-decisions">Design Decisions</a></h2>
+<h3 id="why-zellij"><a class="header" href="#why-zellij">Why Zellij?</a></h3>
+<p><code>sat-helix-ide</code> was built on Zellij because:</p>
+<ol>
+<li><strong>Maturity</strong>: Zellij is a stable, well-maintained terminal multiplexer</li>
+<li><strong>Flexibility</strong>: Excellent support for layouts, panes, and tabs</li>
+<li><strong>Plugin System</strong>: Support for custom keybindings and commands</li>
+<li><strong>Cross-Platform</strong>: Works on Linux, macOS, and Windows (WSL)</li>
+<li><strong>Rust-based</strong>: Written in Rust, matching the project’s language</li>
+</ol>
+<h3 id="why-short-lived-processes"><a class="header" href="#why-short-lived-processes">Why Short-Lived Processes?</a></h3>
+<p>The short-lived process model was chosen over a daemon because:</p>
+<ol>
+<li><strong>Simplicity</strong>: No need to manage daemon lifecycle</li>
+<li><strong>Isolation</strong>: Each action is independent and stateless</li>
+<li><strong>Reliability</strong>: No risk of daemon crashes affecting the workspace</li>
+<li><strong>Debuggability</strong>: Easy to debug individual actions</li>
+<li><strong>Resource Efficiency</strong>: No persistent resource usage</li>
+</ol>
+<h3 id="why-non-intrusive"><a class="header" href="#why-non-intrusive">Why Non-Intrusive?</a></h3>
+<p>The non-intrusive design ensures:</p>
+<ol>
+<li><strong>Safety</strong>: Your existing configurations are never modified</li>
+<li><strong>Compatibility</strong>: Works with any Zellij, Helix, or tool configuration</li>
+<li><strong>Reversibility</strong>: Easy to uninstall or disable without side effects</li>
+<li><strong>Trust</strong>: Users can verify exactly what the tool does</li>
+</ol>
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<h3 id="query-optimization"><a class="header" href="#query-optimization">Query Optimization</a></h3>
+<ul>
+<li><strong>Pane Cache</strong>: Reduces Zellij CLI calls during multi-step operations</li>
+<li><strong>Batched Operations</strong>: Combines multiple actions when possible</li>
+<li><strong>Lazy Evaluation</strong>: Only queries state when needed</li>
+</ul>
+<h3 id="memory-usage"><a class="header" href="#memory-usage">Memory Usage</a></h3>
+<ul>
+<li><strong>No Daemon</strong>: No persistent memory usage</li>
+<li><strong>Short Processes</strong>: Each helper process has minimal memory footprint</li>
+<li><strong>Clean Exit</strong>: Processes exit immediately after completing actions</li>
+</ul>
+<h3 id="startup-time"><a class="header" href="#startup-time">Startup Time</a></h3>
+<ul>
+<li><strong>Parallel Setup</strong>: Layout and config generation happens in parallel where possible</li>
+<li><strong>Lazy Loading</strong>: Some resources are loaded only when needed</li>
+<li><strong>Caching</strong>: Runtime files are cached across sessions</li>
+</ul>
+<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
+<h3 id="command-execution"><a class="header" href="#command-execution">Command Execution</a></h3>
+<ul>
+<li><strong>Controlled Execution</strong>: Only executes configured commands</li>
+<li><strong>Path Validation</strong>: Validates executable paths before execution</li>
+<li><strong>Argument Sanitization</strong>: Properly handles command arguments</li>
+</ul>
+<h3 id="configuration-safety"><a class="header" href="#configuration-safety">Configuration Safety</a></h3>
+<ul>
+<li><strong>Read-Only</strong>: Never writes to global configuration files</li>
+<li><strong>Validation</strong>: Validates all configuration before use</li>
+<li><strong>Fallback</strong>: Uses sensible defaults when configuration is missing</li>
+</ul>
+<h3 id="runtime-isolation"><a class="header" href="#runtime-isolation">Runtime Isolation</a></h3>
+<ul>
+<li><strong>Per-Session State</strong>: Runtime files are isolated per session</li>
+<li><strong>Temporary Files</strong>: Runtime files are cleaned up automatically</li>
+<li><strong>No Persistent State</strong>: No long-term state is maintained</li>
+</ul>
+<h2 id="future-architecture-directions"><a class="header" href="#future-architecture-directions">Future Architecture Directions</a></h2>
+<h3 id="potential-improvements"><a class="header" href="#potential-improvements">Potential Improvements</a></h3>
+<ol>
+<li><strong>IPC Protocol</strong>: Experimental IPC daemon for better performance (see <code>feature/ipc-protocol</code> branch)</li>
+<li><strong>Enhanced Caching</strong>: More aggressive caching for better performance</li>
+<li><strong>Plugin System</strong>: Support for custom tool integrations</li>
+<li><strong>Configuration GUI</strong>: Visual configuration editor</li>
+</ol>
+<h3 id="experimental-features"><a class="header" href="#experimental-features">Experimental Features</a></h3>
+<p>The <code>feature/ipc-protocol</code> branch contains experiments with:</p>
+<ul>
+<li>A persistent daemon for state management</li>
+<li>IPC-based communication between components</li>
+<li>Enhanced performance for rapid actions</li>
+</ul>
+<p>These are not currently merged but represent potential future directions.</p>
+<h2 id="related-documentation"><a class="header" href="#related-documentation">Related Documentation</a></h2>
+<ul>
+<li><a href="https://github.com/vlevasseur073/sat-helix-ide#readme">README</a> - Usage and requirements</li>
+<li><a href="./configuration.html">Configuration</a> - Configuration options and examples</li>
+<li><a href="./user-manual.html">User Manual</a> - Detailed usage guide</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./development.html">Development</a> - Learn about building and contributing</li>
+<li><a href="./troubleshooting.html">Troubleshooting</a> - Common issues and solutions</li>
+<li><a href="./appendix.html">Appendix</a> - Command reference and additional information</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="configuration.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="development.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="configuration.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="development.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/custom-983d56f0.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
