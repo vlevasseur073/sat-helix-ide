@@ -1,0 +1,458 @@
+/* Custom CSS for sat-helix-ide documentation */
+
+/* Main styling */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --background-color: #f8f9fa;
+    --text-color: #2c3e50;
+    --code-background: #f4f4f4;
+    --border-color: #ddd;
+}
+
+/* Custom styling for code blocks */
+pre {
+    background-color: var(--code-background);
+    border-radius: 4px;
+    padding: 1em;
+    overflow-x: auto;
+}
+
+/* Custom styling for tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+table th,
+table td {
+    border: 1px solid var(--border-color);
+    padding: 0.75em;
+    text-align: left;
+}
+
+table th {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Custom styling for ascii diagrams */
+pre.asciinema {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+}
+
+/* Improve text readability */
+.chapter p {
+    line-height: 1.6;
+    margin: 0.75em 0;
+}
+
+/* Style for info boxes */
+.blockquote {
+    border-left: 4px solid var(--secondary-color);
+    background-color: #e8f4fc;
+    padding: 1em;
+    margin: 1em 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Style for warning boxes */
+.blockquote.warning {
+    border-left-color: var(--accent-color);
+    background-color: #fce8e6;
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+    .chapter {
+        padding: 1em;
+    }
+
+    table {
+        font-size: 0.9em;
+    }
+
+    pre {
+        font-size: 0.85em;
+    }
+}
+
+/* Custom styling for mermaid diagrams */
+.mermaid {
+    margin: 2em 0;
+    text-align: center;
+}
+
+/* Style for keyboard shortcuts */
+kbd {
+    background-color: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 0.2em 0.4em;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+/* Style for inline code */
+code {
+    background-color: var(--code-background);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.9em;
+}
+
+/* Style for ascii art diagrams in text */
+pre.text-diagram {
+    background-color: #f4f4f4;
+    border: 1px solid var(--border-color);
+    padding: 1em;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+/* Improve sidebar styling */
+#sidebar {
+    background-color: var(--primary-color);
+}
+
+#sidebar a {
+    color: white;
+}
+
+#sidebar a:hover {
+    background-color: var(--secondary-color);
+}
+
+/* Custom header styling */
+header {
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 1em;
+    margin-bottom: 2em;
+}
+
+header h1 {
+    color: var(--primary-color);
+    margin: 0;
+}
+
+/* Style for footnotes */
+.footnote {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 1em;
+}
+
+/* Style for image captions */
+.caption {
+    font-size: 0.85em;
+    color: #666;
+    text-align: center;
+    font-style: italic;
+    margin-top: 0.5em;
+}
+
+/* Ensure proper spacing for ascii art */
+pre code {
+    white-space: pre;
+    font-family: monospace;
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+/* Custom styling for callout boxes */
+.div.callout {
+    border-left: 4px solid var(--secondary-color);
+    background-color: #e8f4fc;
+    padding: 1em;
+    margin: 1em 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.div.callout.note {
+    border-left-color: var(--secondary-color);
+    background-color: #e8f4fc;
+}
+
+.div.callout.warning {
+    border-left-color: var(--accent-color);
+    background-color: #fce8e6;
+}
+
+.div.callout.important {
+    border-left-color: #8e44ad;
+    background-color: #f3e5f5;
+}
+
+/* Style for version badges */
+.version-badge {
+    display: inline-block;
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    font-size: 0.85em;
+    margin-left: 0.5em;
+}
+
+/* Improve code block syntax highlighting */
+pre code .line {
+    display: block;
+    min-height: 1em;
+}
+
+/* Add shadow to code blocks */
+pre {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Custom styling for command examples */
+pre.command-line {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+}
+
+pre.command-line code {
+    background-color: transparent;
+    color: inherit;
+}
+
+/* Style for success/failure indicators */
+.success {
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.failure {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+/* Custom styling for file paths */
+.path {
+    font-family: monospace;
+    background-color: var(--code-background);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+/* Improve link styling */
+a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Style for external links */
+a.external::after {
+    content: " \\f08e"; /* Font Awesome external-link icon */
+    font-family: 'FontAwesome';
+    font-size: 0.8em;
+}
+
+/* Ensure proper display of mermaid diagrams */
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Custom styling for terminal mockups in text */
+pre.terminal-mockup {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 1em;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.85em;
+    line-height: 1.5;
+    overflow-x: auto;
+}
+
+/* Style for window borders in ascii art */
+pre.terminal-mockup .window-border {
+    color: #555;
+}
+
+pre.terminal-mockup .window-content {
+    color: #d4d4d4;
+}
+
+/* Style for status bars in mockups */
+pre.terminal-mockup .status-bar {
+    background-color: #252526;
+    color: #bcbcbc;
+    padding: 0.2em 0.5em;
+}
+
+/* Style for tabs in mockups */
+pre.terminal-mockup .tab {
+    background-color: #333;
+    color: #ddd;
+    padding: 0.1em 0.5em;
+    border: 1px solid #555;
+}
+
+pre.terminal-mockup .tab.active {
+    background-color: #1e1e1e;
+    color: white;
+    border-bottom-color: #1e1e1e;
+}
+
+/* Responsive improvements for code blocks */
+@media (max-width: 600px) {
+    pre {
+        font-size: 0.8em;
+        padding: 0.75em;
+    }
+
+    pre.terminal-mockup {
+        font-size: 0.75em;
+        padding: 0.75em;
+    }
+}
+
+/* Custom styling for git diff output */
+pre.git-diff .diff-header {
+    color: #f8f8f2;
+    background-color: #272822;
+}
+
+pre.git-diff .diff-add {
+    background-color: rgba(35, 134, 54, 0.2);
+}
+
+pre.git-diff .diff-remove {
+    background-color: rgba(248, 54, 54, 0.2);
+}
+
+pre.git-diff .diff-line-number {
+    color: #75715e;
+    background-color: #272822;
+    padding-right: 1em;
+}
+
+/* Style for configuration examples */
+pre.toml-config {
+    background-color: #f4f4f4;
+    border: 1px solid var(--border-color);
+    padding: 1em;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+pre.toml-config code {
+    background-color: transparent;
+}
+
+/* Style for JSON/YAML examples */
+pre.json-config,
+pre.yaml-config {
+    background-color: #f4f4f4;
+    border: 1px solid var(--border-color);
+    padding: 1em;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+/* Custom styling for keybinding tables */
+table.keybindings {
+    width: auto;
+}
+
+table.keybindings th {
+    background-color: var(--secondary-color);
+}
+
+table.keybindings kbd {
+    font-size: 1em;
+}
+
+/* Style for feature comparison tables */
+table.comparison {
+    width: 100%;
+}
+
+table.comparison th {
+    text-align: center;
+}
+
+table.comparison td {
+    text-align: center;
+}
+
+table.comparison td:first-child {
+    text-align: left;
+    font-weight: bold;
+}
+
+/* Style for checkmarks and crosses */
+.checkmark::before {
+    content: "✓ ";
+    color: #27ae60;
+    font-weight: bold;
+}
+
+.cross::before {
+    content: "✗ ";
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+/* Custom styling for workflow diagrams */
+.workflow-diagram {
+    text-align: center;
+    margin: 2em 0;
+    padding: 1em;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+/* Style for workflow steps */
+.workflow-step {
+    display: inline-block;
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 0.5em 1em;
+    border-radius: 20px;
+    margin: 0.25em;
+    font-size: 0.9em;
+}
+
+.workflow-step.current {
+    background-color: var(--accent-color);
+}
+
+.workflow-step.completed {
+    background-color: #27ae60;
+}
+
+/* Style for workflow arrows */
+.workflow-arrow {
+    display: inline-block;
+    font-size: 1.5em;
+    margin: 0 0.5em;
+    color: var(--secondary-color);
+}
+
+/* Final touch: ensure all pre elements have proper font */
+pre {
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
