@@ -7,7 +7,7 @@ description = "A workspace orchestrator for Helix + Zellij + Yazi + Lazygit/GitU
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/vlevasseur073/sat-helix-ide"
-keywords = ["helix", "zellij", "yazi", "lazygit", "git-delta", "ide", "workspace"]
+keywords = ["helix", "zellij", "ide", "workspace"]
 categories = ["development-tools", "command-line-utilities"]
 
 [dependencies]
