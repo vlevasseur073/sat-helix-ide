@@ -39,6 +39,6 @@ At its core, `sat-helix-ide` is a small command-line tool that creates and manag
 4. **Configuration Safety**: Refuses to start if keybindings would conflict with your existing setup
 5. **Graceful Degradation**: Missing optional tools (like AI agents) are handled gracefully
 
-> **Important**: `sat-helix-ide` is **not** a dotfile manager or tool installer. You need to have the required tools (Zellij, Helix, Yazi, etc.) installed and configured separately.
+> **Important**: `sat-helix-ide` is **not** a dotfile manager — it does not rewrite your Zellij, Helix, or Git configs. Use `sat-hx-ide setup` if you want an opt-in helper to install companion tools.
 
 The project aims to provide a professional-grade development environment that feels native to terminal users while offering the convenience of an IDE.

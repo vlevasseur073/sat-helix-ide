@@ -81,6 +81,16 @@ sat-hx-ide version
 cargo install sat-helix-ide
 ```
 
+### Setup companion tools
+
+Install missing companions interactively (Zellij, Helix, Yazi, git/review/workflow
+TUIs). Choose cargo, package manager, or pre-built binary per tool:
+
+```bash
+sat-hx-ide setup
+sat-hx-ide setup --dry-run
+```
+
 ### Post-Installation Check
 
 Run the doctor command to verify your setup:
