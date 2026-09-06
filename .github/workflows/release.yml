@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+  # Rehearsal: builds binaries, cargo publish --dry-run, and creates a *draft*
+  # GitHub release so the release job can be tested without tagging or crates.io.
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -11,28 +14,47 @@ env:
   BINARY_NAME: sat-hx-ide
 
 jobs:
-  verify-version:
-    name: Verify tag version
+  meta:
+    name: Resolve release mode
     runs-on: ubuntu-latest
+    outputs:
+      rehearsal: ${{ steps.resolve.outputs.rehearsal }}
+      version: ${{ steps.resolve.outputs.version }}
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
+      release_name: ${{ steps.resolve.outputs.release_name }}
     steps:
       - uses: actions/checkout@v5
-      - name: Check tag matches Cargo.toml
+      - name: Resolve rehearsal mode and version
+        id: resolve
         run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
           CARGO_VERSION="$(awk -F'"' '/^version = / { print $2; exit }' Cargo.toml)"
           if [ -z "$CARGO_VERSION" ]; then
             echo "Failed to read version from Cargo.toml"
             exit 1
           fi
-          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match Cargo.toml version ($CARGO_VERSION)"
-            exit 1
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "rehearsal=true" >> "$GITHUB_OUTPUT"
+            echo "version=$CARGO_VERSION" >> "$GITHUB_OUTPUT"
+            echo "release_tag=dry-run-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "release_name=Dry run $CARGO_VERSION (${{ github.sha }})" >> "$GITHUB_OUTPUT"
+            echo "Mode: rehearsal (draft GitHub release, no crates.io publish)"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+            if [ "$VERSION" != "$CARGO_VERSION" ]; then
+              echo "Tag version ($VERSION) does not match Cargo.toml version ($CARGO_VERSION)"
+              exit 1
+            fi
+            echo "rehearsal=false" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "release_tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "release_name=" >> "$GITHUB_OUTPUT"
+            echo "Mode: production release $GITHUB_REF_NAME"
           fi
-          echo "Version check passed: $TAG_VERSION"
 
   test:
     name: Test
-    needs: verify-version
+    needs: meta
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -43,20 +65,24 @@ jobs:
 
   publish:
     name: Publish to crates.io
-    needs: test
+    needs: [meta, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: Publish (dry-run)
+        if: needs.meta.outputs.rehearsal == 'true'
+        run: cargo publish --dry-run --locked
       - name: Publish
-        run: cargo publish --token ${CRATES_IO_TOKEN}
+        if: needs.meta.outputs.rehearsal != 'true'
+        run: cargo publish --locked --token "$CRATES_IO_TOKEN"
         env:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
   build:
     name: Build binary
-    needs: test
+    needs: [meta, test]
     strategy:
       matrix:
         include:
@@ -91,7 +117,7 @@ jobs:
         if: matrix.archive == 'tar.gz'
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ needs.meta.outputs.version }}"
           ARCHIVE="${RUNNER_TEMP}/${{ env.BINARY_NAME }}-${VERSION}-${{ matrix.target }}.tar.gz"
           tar czf "${ARCHIVE}" -C "target/${{ matrix.target }}/release" "${{ env.BINARY_NAME }}"
 
@@ -99,7 +125,7 @@ jobs:
         if: matrix.archive == 'zip'
         shell: pwsh
         run: |
-          $Version = $env:GITHUB_REF_NAME.Substring(1)
+          $Version = "${{ needs.meta.outputs.version }}"
           $Archive = Join-Path $env:RUNNER_TEMP "${{ env.BINARY_NAME }}-${Version}-${{ matrix.target }}.zip"
           Compress-Archive `
             -Path "target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}.exe" `
@@ -109,13 +135,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
-          path: ${{ runner.temp }}/${{ env.BINARY_NAME}}-*
+          path: ${{ runner.temp }}/${{ env.BINARY_NAME }}-*
           if-no-files-found: error
           retention-days: 1
 
   github-release:
     name: Create GitHub Release
-    needs: [publish, build]
+    needs: [meta, publish, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -131,8 +157,11 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.meta.outputs.release_tag }}
+          name: ${{ needs.meta.outputs.release_name }}
+          draft: ${{ needs.meta.outputs.rehearsal == 'true' }}
           generate_release_notes: true
-          make_latest: true
+          make_latest: ${{ needs.meta.outputs.rehearsal != 'true' }}
           files: artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
