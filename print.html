@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e36cfd3f.js";
+            window.path_to_searchindex_js = "searchindex-a3a57dbe.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -271,18 +271,34 @@ hx --version
 yazi --version
 </code></pre>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<h3 id="option-1-install-from-source-recommended"><a class="header" href="#option-1-install-from-source-recommended">Option 1: Install from Source (Recommended)</a></h3>
-<pre><code class="language-bash"># Clone the repository
-git clone https://github.com/vlevasseur073/sat-helix-ide.git
-cd sat-helix-ide
-
-# Build and install
-cargo install --path .
-
-# Verify installation
+<h3 id="option-1-pre-built-binary-linux--macos"><a class="header" href="#option-1-pre-built-binary-linux--macos">Option 1: Pre-built binary (Linux / macOS)</a></h3>
+<p>Downloads the latest GitHub release binary into <code>~/.local/bin</code>:</p>
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/vlevasseur073/sat-helix-ide/main/install.sh | bash
 sat-hx-ide version
 </code></pre>
-<h3 id="option-2-install-via-cargo-when-published"><a class="header" href="#option-2-install-via-cargo-when-published">Option 2: Install via Cargo (when published)</a></h3>
+<p>Optional environment variables:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>VERSION</code></td><td>latest release</td><td>Pin a version (without leading <code>v</code>)</td></tr>
+<tr><td><code>INSTALL_DIR</code></td><td><code>~/.local/bin</code></td><td>Install destination</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/vlevasseur073/sat-helix-ide/main/install.sh \
+  | VERSION=0.1.0 INSTALL_DIR="$HOME/bin" bash
+</code></pre>
+<p>Windows: download the <code>.zip</code> from <a href="https://github.com/vlevasseur073/sat-helix-ide/releases">Releases</a>.</p>
+<h3 id="option-2-install-from-source"><a class="header" href="#option-2-install-from-source">Option 2: Install from source</a></h3>
+<pre><code class="language-bash">git clone https://github.com/vlevasseur073/sat-helix-ide.git
+cd sat-helix-ide
+cargo install --path .
+sat-hx-ide version
+</code></pre>
+<h3 id="option-3-install-via-cargo-when-published"><a class="header" href="#option-3-install-via-cargo-when-published">Option 3: Install via Cargo (when published)</a></h3>
 <pre><code class="language-bash">cargo install sat-helix-ide
 </code></pre>
 <h3 id="post-installation-check"><a class="header" href="#post-installation-check">Post-Installation Check</a></h3>
