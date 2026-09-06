@@ -32,7 +32,9 @@ Then, the different tools are accessible via zellij keybindings:
 - `Alt-w` to open the configured workflow tool (glab-tui by default) in a floating pane.
 
 
-`sat-hx-ide` is deliberately **not** a dotfile manager or tool installer.
+`sat-hx-ide` is deliberately **not** a dotfile manager: it does not rewrite your
+Zellij, Helix, Yazi, or Git configs. Companion tools can be installed explicitly
+with `sat-hx-ide setup` (opt-in).
 
 > sat-hx-ide never writes your Zellij, Helix, Yazi, Lazygit, GitUI, or global
 > Git configuration.
@@ -89,6 +91,21 @@ cargo install --path .
 sat-hx-ide doctor
 ```
 
+### Setup companion tools
+
+After `sat-hx-ide` itself is installed, use the interactive setup TUI to install
+recommended companions (Zellij, Helix, Yazi, Lazygit/GitUI, revdiff/delta,
+gh/glab/glab-tui) via cargo, your package manager, or GitHub binaries:
+
+```bash
+sat-hx-ide setup
+# Preview commands only:
+sat-hx-ide setup --dry-run
+```
+
+Successful installs can update `~/.config/sat-helix-ide/config.toml` for the
+selected tools in each category (comments in that file may be rewritten).
+
 Shell aliases are invisible to Zellij. Configure an absolute executable path
 when a command is not on `PATH`, such as Snap Helix:
 
@@ -110,6 +127,7 @@ sat-hx-ide init . --no-ai
 sat-hx-ide init ~/src/project --session project-api
 
 sat-hx-ide doctor
+sat-hx-ide setup
 sat-hx-ide config
 sat-hx-ide version
 ```

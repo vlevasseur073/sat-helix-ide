@@ -60,6 +60,14 @@ enum Commands {
     #[command(alias = "check")]
     Doctor,
 
+    /// Interactively install companion tools (zellij, helix, yazi, …)
+    #[command(alias = "install-tools")]
+    Setup {
+        /// Print install commands without executing them
+        #[arg(long)]
+        dry_run: bool,
+    },
+
     /// Show version information
     Version,
 
@@ -165,6 +173,9 @@ fn main() -> Result<()> {
         Commands::Doctor => {
             let config = Config::load(&cli.config)?;
             WorkspaceManager::new(&config, &cli.config).check_tools()?;
+        }
+        Commands::Setup { dry_run } => {
+            sat_helix_ide::setup::run(&cli.config, dry_run)?;
         }
         Commands::Version => {
             println!("sat-hx-ide {}", env!("CARGO_PKG_VERSION"));

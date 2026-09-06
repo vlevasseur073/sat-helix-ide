@@ -6,6 +6,7 @@ pub mod actions;
 pub mod config;
 pub mod error;
 pub mod resolve;
+pub mod setup;
 pub mod workspace;
 pub mod zellij;
 
