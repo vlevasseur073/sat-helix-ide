@@ -43,21 +43,39 @@ yazi --version
 
 ## Installation
 
-### Option 1: Install from Source (Recommended)
+### Option 1: Pre-built binary (Linux / macOS)
+
+Downloads the latest GitHub release binary into `~/.local/bin`:
 
 ```bash
-# Clone the repository
-git clone https://github.com/vlevasseur073/sat-helix-ide.git
-cd sat-helix-ide
-
-# Build and install
-cargo install --path .
-
-# Verify installation
+curl -fsSL https://raw.githubusercontent.com/vlevasseur073/sat-helix-ide/main/install.sh | bash
 sat-hx-ide version
 ```
 
-### Option 2: Install via Cargo (when published)
+Optional environment variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `VERSION` | latest release | Pin a version (without leading `v`) |
+| `INSTALL_DIR` | `~/.local/bin` | Install destination |
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vlevasseur073/sat-helix-ide/main/install.sh \
+  | VERSION=0.1.0 INSTALL_DIR="$HOME/bin" bash
+```
+
+Windows: download the `.zip` from [Releases](https://github.com/vlevasseur073/sat-helix-ide/releases).
+
+### Option 2: Install from source
+
+```bash
+git clone https://github.com/vlevasseur073/sat-helix-ide.git
+cd sat-helix-ide
+cargo install --path .
+sat-hx-ide version
+```
+
+### Option 3: Install via Cargo (when published)
 
 ```bash
 cargo install sat-helix-ide

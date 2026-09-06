@@ -70,8 +70,22 @@ Required:
 - Lazygit, GitUI, or another configured Git TUI
 - a current stable Rust toolchain when building from source
 
+### Pre-built binary (Linux / macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vlevasseur073/sat-helix-ide/main/install.sh | bash
+sat-hx-ide doctor
+```
+
+Installs the latest GitHub release into `~/.local/bin` (override with `INSTALL_DIR`). Pin a version with `curl ... | VERSION=0.1.0 bash`.
+
+Windows: download the `.zip` from [Releases](https://github.com/vlevasseur073/sat-helix-ide/releases).
+
+### From source
+
 ```bash
 cargo install --path .
+# or, once published: cargo install sat-helix-ide
 sat-hx-ide doctor
 ```
 
