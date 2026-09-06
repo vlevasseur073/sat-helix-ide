@@ -1,0 +1,21 @@
+[book]
+authors = ["Vincent Levasseur"]
+language = "en"
+src = "src"
+title = "sat-helix-ide User Manual & Design Document"
+
+[output.html]
+additional-css = ["theme/custom.css"]
+additional-js = ["theme/custom.js"]
+git-repository-url = "https://github.com/vlevasseur073/sat-helix-ide"
+mathjax-support = false
+no-section-label = true
+site-url = "/sat-helix-ide/"
+
+[output.html.print]
+enable = true
+page-break = true
+
+[output.html.fold]
+enable = true
+level = 0

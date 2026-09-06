@@ -1,0 +1,84 @@
+sat-helix-ide
+================
+A workspace orchestrator for a full IDE environment.
+
+Copyright (c) 2026 Vincent Levasseur
+
+License
+-------
+This project is licensed under the MIT License. See the LICENSE file for the
+full license text.
+
+Project Description
+------------------
+`sat-helix-ide` (also referred to as `sat-hx-ide`) is a Zellij session composer
+for a Helix-centered workflow, enhanced with multiple additional tools including
+Yazi, Lazygit/GitUI, revdiff, and glab-tui.
+
+Source Repository
+-----------------
+https://github.com/vlevasseur073/sat-helix-ide
+
+Third-Party Dependencies
+------------------------
+This project uses the following open source dependencies. Each dependency is
+licensed under its respective open source license.
+
+### Runtime Dependencies
+
+| Package      | Version   | License       | Repository                          |
+|--------------|-----------|---------------|-------------------------------------|
+| anyhow       | 1.0.104   | MIT OR Apache-2.0 | https://github.com/dtolnay/anyhow   |
+| clap         | 4.6.6     | MIT OR Apache-2.0 | https://github.com/clap-rs/clap     |
+| env_logger   | 0.11.11   | MIT OR Apache-2.0 | https://github.com/env-logger-rs/env_logger |
+| home         | 0.5.12    | MIT OR Apache-2.0 | https://github.com/rust-lang-nursery/home.rs |
+| kdl          | 4.7.1     | MIT OR Apache-2.0 | https://github.com/kdl-org/kdl-rs   |
+| log          | 0.4.34    | MIT OR Apache-2.0 | https://github.com/rust-lang/log    |
+| serde        | 1.0.229   | MIT OR Apache-2.0 | https://github.com/serde-rs/serde   |
+| serde_json   | 1.0.151   | MIT OR Apache-2.0 | https://github.com/serde-rs/json    |
+| thiserror    | 2.0.20    | MIT OR Apache-2.0 | https://github.com/dtolnay/thiserror|
+| toml         | 1.1.4     | MIT OR Apache-2.0 | https://github.com/toml-rs/toml     |
+| which        | 8.0.6     | MIT OR Apache-2.0 | https://github.com/harryfei/rust-which |
+
+### Development Dependencies
+
+| Package      | Version   | License       | Repository                          |
+|--------------|-----------|---------------|-------------------------------------|
+| tempfile     | 3.8       | MIT OR Apache-2.0 | https://github.com/Stebalien/tempfile |
+| assert_cmd   | 2.0       | MIT OR Apache-2.0 | https://github.com/assert-rs/assert_cmd |
+
+### External Tools
+This project is designed to work with the following external tools, which are
+not bundled but required for full functionality:
+
+- **Zellij** (https://zellij.dev/) - Terminal workspace multiplexer
+- **Helix** (https://helix-editor.com/) - Modal text editor
+- **Yazi** (https://yazi-rs.github.io/) - File manager
+- **Lazygit** (https://github.com/jesseduffield/lazygit) or **GitUI** (https://github.com/gitui-org/gitui) - Git TUI clients
+- **revdiff** (https://github.com/umputun/revdiff) - Review tool
+- **glab-tui** (https://github.com/rcieri/glab-tui) - GitLab workflow TUI
+
+Each of these tools maintains its own licensing and copyright notices.
+
+Acknowledgments
+---------------
+The author wishes to acknowledge the contributions of the open source community,
+particularly the maintainers and contributors of Zellij, Helix, and all the
+integrated tools that make this project possible.
+
+Trademarks
+----------
+Zellij, Helix, Yazi, Lazygit, GitUI, revdiff, and glab-tui are trademarks or
+registered trademarks of their respective owners.
+
+Disclaimer
+----------
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+For the full license text, see the LICENSE file distributed with this project.

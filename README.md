@@ -1,3 +1,5 @@
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://vlevasseur073.github.io/sat-helix-ide/)
+
 # sat-helix-ide
 A workspace orchestrator for a full IDE.
 

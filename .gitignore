@@ -1,1 +1,8 @@
 /target
+
+# mdbook build artifacts
+/book/book
+
+# mdbook search index files
+book/src/*#*
+book/src/**/*#*
