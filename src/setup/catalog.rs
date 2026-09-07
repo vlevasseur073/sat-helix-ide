@@ -189,7 +189,7 @@ impl ToolId {
             Self::Yazi => Some("yazi-fm"),
             Self::Gitui => Some("gitui"),
             Self::Delta => Some("git-delta"),
-            Self::GlabTui => Some("glab-tui"),
+            Self::GlabTui => Some("glab-tui-crate"),
             _ => None,
         }
     }
