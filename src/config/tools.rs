@@ -76,6 +76,9 @@ pub struct ToolConfig {
     #[serde(default = "default_workflow")]
     pub workflow: CommandConfig,
 
+    #[serde(default = "default_mindmap")]
+    pub mindmap: CommandConfig,
+
     #[serde(default = "default_ai")]
     pub ai: Option<CommandConfig>,
 }
@@ -89,6 +92,7 @@ impl Default for ToolConfig {
             git: default_git(),
             review: default_review(),
             workflow: default_workflow(),
+            mindmap: default_mindmap(),
             ai: default_ai(),
         }
     }
@@ -112,6 +116,10 @@ fn default_review() -> CommandConfig {
 
 fn default_workflow() -> CommandConfig {
     CommandConfig::new("glab-tui")
+}
+
+fn default_mindmap() -> CommandConfig {
+    CommandConfig::new("shiki")
 }
 
 fn default_ai() -> Option<CommandConfig> {

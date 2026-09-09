@@ -19,6 +19,9 @@ pub struct Config {
     pub terminal: TerminalConfig,
 
     #[serde(default)]
+    pub mindmap: MindMapConfig,
+
+    #[serde(default)]
     pub keybindings: KeybindingConfig,
 }
 
@@ -74,19 +77,19 @@ pub struct TerminalConfig {
 
     /// Where the terminal sits relative to the editor: `down` (default) or `right`.
     #[serde(default)]
-    pub dock_position: TerminalDockPosition,
+    pub dock_position: DockPosition,
 }
 
 /// Terminal placement relative to the editor in the code tab.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
-pub enum TerminalDockPosition {
+pub enum DockPosition {
     #[default]
     Down,
     Right,
 }
 
-impl TerminalDockPosition {
+impl DockPosition {
     /// KDL `split_direction` for the editor/terminal split.
     pub fn zellij_split_direction(self) -> &'static str {
         match self {
@@ -109,7 +112,35 @@ impl Default for TerminalConfig {
         Self {
             enabled: true,
             dock_percent: default_terminal_percent(),
-            dock_position: TerminalDockPosition::Down,
+            dock_position: DockPosition::Down,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MindMapConfig {
+    /// When true, include the mind-map pane in the code tab at session start.
+    /// When false (default), the pane is omitted until opened with the toggle
+    /// keybinding. Unlike `terminal.enabled`, this does not block Alt-m.
+    #[serde(default = "default_false")]
+    pub enabled: bool,
+
+    /// Height or width of the docked mind map as a percentage of the code tab,
+    /// depending on `dock_position`.
+    #[serde(default = "default_mindmap_percent")]
+    pub dock_percent: u8,
+
+    /// Where the mind map sits relative to the editor: `down` or `right` (default).
+    #[serde(default = "default_mindmap_dock_position")]
+    pub dock_position: DockPosition,
+}
+
+impl Default for MindMapConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            dock_percent: default_mindmap_percent(),
+            dock_position: DockPosition::Right,
         }
     }
 }
@@ -136,6 +167,12 @@ pub struct KeybindingConfig {
 
     #[serde(default = "default_terminal_zoom_key")]
     pub terminal_zoom: String,
+
+    #[serde(default = "default_mindmap_key")]
+    pub mindmap: String,
+
+    #[serde(default = "default_mindmap_zoom_key")]
+    pub mindmap_zoom: String,
 }
 
 impl Default for KeybindingConfig {
@@ -148,12 +185,18 @@ impl Default for KeybindingConfig {
             workflow: default_workflow_key(),
             terminal: default_terminal_key(),
             terminal_zoom: default_terminal_zoom_key(),
+            mindmap: default_mindmap_key(),
+            mindmap_zoom: default_mindmap_zoom_key(),
         }
     }
 }
 
 fn default_true() -> bool {
     true
+}
+
+fn default_false() -> bool {
+    false
 }
 
 fn default_file_manager_key() -> String {
@@ -180,12 +223,28 @@ fn default_terminal_key() -> String {
     "Alt t".to_string()
 }
 
+fn default_mindmap_key() -> String {
+    "Alt m".to_string()
+}
+
 fn default_terminal_zoom_key() -> String {
     "Alt Shift t".to_string()
 }
 
+fn default_mindmap_zoom_key() -> String {
+    "Alt Shift m".to_string()
+}
+
 fn default_terminal_percent() -> u8 {
     15
+}
+
+fn default_mindmap_percent() -> u8 {
+    50
+}
+
+fn default_mindmap_dock_position() -> DockPosition {
+    DockPosition::Right
 }
 
 impl Config {
@@ -290,13 +349,18 @@ mod tests {
             "#,
         )
         .unwrap();
-        assert_eq!(config.terminal.dock_position, TerminalDockPosition::Right);
+        assert_eq!(config.terminal.dock_position, DockPosition::Right);
 
         let default_config = Config::default();
-        assert_eq!(
-            default_config.terminal.dock_position,
-            TerminalDockPosition::Down
-        );
+        assert_eq!(default_config.terminal.dock_position, DockPosition::Down);
+    }
+
+    #[test]
+    fn mindmap_defaults_to_disabled_on_the_right() {
+        let default_config = Config::default();
+        assert!(!default_config.mindmap.enabled);
+        assert_eq!(default_config.mindmap.dock_position, DockPosition::Right);
+        assert_eq!(default_config.tools.mindmap.command, "shiki");
     }
 
     #[test]
