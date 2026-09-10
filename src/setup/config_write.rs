@@ -154,6 +154,7 @@ fn apply_category(
             Category::Review => "review",
             Category::Workflow => "workflow",
             Category::Core => "core",
+            Category::MindMapping => "mind_mapping",
         }
     ));
 }
