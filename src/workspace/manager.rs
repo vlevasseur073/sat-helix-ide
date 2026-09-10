@@ -1,4 +1,4 @@
-use crate::config::{expand_tilde, CommandConfig, Config};
+use crate::config::{expand_tilde, CommandConfig, Config, MindMapConfig};
 use crate::error::HxIdeError;
 use crate::resolve::resolve_executable;
 use crate::zellij::{
@@ -49,6 +49,7 @@ impl<'a> WorkspaceManager<'a> {
 
         let ai_enabled = ai_override.unwrap_or(self.config.session.ai_by_default);
         let ai = if ai_enabled { self.resolve_ai() } else { None };
+        let mindmap = self.resolve_mindmap();
 
         let status_bar = status_bar.unwrap_or(self.config.session.status_bar);
 
@@ -65,6 +66,9 @@ impl<'a> WorkspaceManager<'a> {
                 .terminal
                 .enabled
                 .then_some(&self.config.terminal),
+            mindmap
+                .as_ref()
+                .map(|(config, command, path)| (*config, *command, path.as_path())),
             &project_dir,
             status_bar,
         );
@@ -133,6 +137,24 @@ impl<'a> WorkspaceManager<'a> {
         }
     }
 
+    /// Include the mind-map dock only when enabled and the tool binary resolves.
+    fn resolve_mindmap(&self) -> Option<(&'a MindMapConfig, &'a CommandConfig, PathBuf)> {
+        if !self.config.mindmap.enabled {
+            return None;
+        }
+        let command = &self.config.tools.mindmap;
+        match resolve_executable(&command.command) {
+            Ok(path) => Some((&self.config.mindmap, command, path)),
+            Err(_) => {
+                eprintln!(
+                    "sat-hx-ide: skipping the mind-map pane, cannot find '{}'",
+                    command.command
+                );
+                None
+            }
+        }
+    }
+
     pub fn check_tools(&self) -> Result<()> {
         println!("Checking configured commands...");
         check("Zellij", &self.config.tools.zellij)?;
@@ -141,6 +163,7 @@ impl<'a> WorkspaceManager<'a> {
         check("Git client", &self.config.tools.git)?;
         check("Review", &self.config.tools.review)?;
         check("Workflow", &self.config.tools.workflow)?;
+        check("Mind map", &self.config.tools.mindmap)?;
         match self.config.tools.ai.as_ref() {
             Some(ai) => match resolve_executable(&ai.command) {
                 Ok(path) => println!("  ✓ AI: {}", path.display()),

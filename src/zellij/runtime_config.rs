@@ -55,6 +55,8 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
         (&input.keys.workflow, "Workflow"),
         (&input.keys.terminal, "terminal toggle"),
         (&input.keys.terminal_zoom, "terminal zoom toggle"),
+        (&input.keys.mindmap, "mind map toggle"),
+        (&input.keys.mindmap_zoom, "mind map zoom toggle"),
     ];
     if let Some(keybinds) = document.get("keybinds") {
         for (key, action) in requested {
@@ -94,6 +96,20 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
             input,
             &["__terminal", "zoom"],
             "sat-terminal-zoom",
+            false,
+        )?,
+        helper_binding(
+            &input.keys.mindmap,
+            input,
+            &["__mindmap", "toggle"],
+            "sat-mindmap-toggle",
+            false,
+        )?,
+        helper_binding(
+            &input.keys.mindmap_zoom,
+            input,
+            &["__mindmap", "zoom"],
+            "sat-mindmap-zoom",
             false,
         )?,
         helper_binding(
@@ -301,10 +317,13 @@ mod tests {
         assert!(runtime.contains("bind \"Alt y\""));
         assert!(runtime.contains("bind \"Alt t\""));
         assert!(runtime.contains("bind \"Alt Shift t\""));
+        assert!(runtime.contains("bind \"Alt m\""));
+        assert!(runtime.contains("bind \"Alt Shift m\""));
         assert!(runtime.contains("bind \"Alt g\""));
         assert!(runtime.contains("bind \"Alt r\""));
         assert!(runtime.contains("bind \"Alt w\""));
         assert!(runtime.contains("__review"));
+        assert!(runtime.contains("__mindmap"));
     }
 
     #[test]
@@ -338,6 +357,8 @@ mod tests {
                 "Alt y",
                 "Alt t",
                 "Alt Shift t",
+                "Alt m",
+                "Alt Shift m",
                 "Alt g",
                 "Alt r",
                 "Alt w"

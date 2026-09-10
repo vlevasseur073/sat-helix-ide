@@ -1,8 +1,9 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use sat_helix_ide::actions::{
-    file_manager_action, git_action, review_action, terminal_action, workflow_action,
-    FileManagerAction, GitAction, ReviewAction, TerminalAction, WorkflowAction,
+    file_manager_action, git_action, mind_map_action, review_action, terminal_action,
+    workflow_action, FileManagerAction, GitAction, MindMapAction, ReviewAction, TerminalAction,
+    WorkflowAction,
 };
 use sat_helix_ide::{Config, WorkspaceManager};
 use std::path::PathBuf;
@@ -83,6 +84,12 @@ enum Commands {
         action: TerminalCommands,
     },
 
+    #[command(name = "__mindmap", hide = true)]
+    MindMap {
+        #[command(subcommand)]
+        action: MindMapCommands,
+    },
+
     #[command(name = "__git", hide = true)]
     Git {
         #[command(subcommand)]
@@ -111,6 +118,12 @@ enum FileManagerCommands {
 
 #[derive(Subcommand, Debug)]
 enum TerminalCommands {
+    Toggle,
+    Zoom,
+}
+
+#[derive(Subcommand, Debug)]
+enum MindMapCommands {
     Toggle,
     Zoom,
 }
@@ -196,6 +209,14 @@ fn main() -> Result<()> {
                 TerminalCommands::Zoom => TerminalAction::Zoom,
             };
             terminal_action(&config, action)?;
+        }
+        Commands::MindMap { action } => {
+            let config = Config::load(&cli.config)?;
+            let action = match action {
+                MindMapCommands::Toggle => MindMapAction::Toggle,
+                MindMapCommands::Zoom => MindMapAction::Zoom,
+            };
+            mind_map_action(&config, action)?;
         }
         Commands::Git { action } => {
             let config = Config::load(&cli.config)?;

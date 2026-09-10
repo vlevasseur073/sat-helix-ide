@@ -1,4 +1,4 @@
-use crate::config::{expand_tilde, CommandConfig, Config, TerminalDockPosition};
+use crate::config::{expand_tilde, CommandConfig, Config, DockPosition};
 use crate::resolve::resolve_executable;
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 const FILE_MANAGER_PANE: &str = "file-manager";
 const EDITOR_PANE: &str = "editor";
 const TERMINAL_PANE: &str = "terminal";
+const MIND_MAP_PANE: &str = "mindmapping";
 
 /// Default TTL for pane cache in milliseconds
 const PANE_CACHE_TTL_MS: u64 = 500;
@@ -107,6 +108,14 @@ pub enum TerminalAction {
     /// Hide the terminal behind a fullscreen editor, or bring it back.
     Toggle,
     /// Switch the terminal between its docked height and fullscreen.
+    Zoom,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum MindMapAction {
+    /// Hide the MindMap window behind a fullscreen editor, or bring it back.
+    Toggle,
+    /// Switch the MindMap window between its docked height and fullscreen.
     Zoom,
 }
 
@@ -426,6 +435,121 @@ pub fn terminal_action(config: &Config, action: TerminalAction) -> Result<()> {
     }
 }
 
+/// Mind-map toggle/zoom mirrors the terminal: Zellij fullscreen hides sibling
+/// panes without stopping the tool process inside them.
+pub fn mind_map_action(config: &Config, action: MindMapAction) -> Result<()> {
+    let zellij = resolve(&config.tools.zellij.command)?;
+    let panes = list_panes(&zellij)?;
+    let editor = panes
+        .iter()
+        .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
+        .context("Cannot find the sat-hx-ide editor pane")?;
+    let Some(mindmap) = panes
+        .iter()
+        .find(|pane| !pane.is_plugin && pane.title == MIND_MAP_PANE)
+    else {
+        return respawn_mindmap(config, &zellij, editor);
+    };
+
+    let hidden = editor.is_fullscreen;
+    let zoomed = mindmap.is_fullscreen;
+
+    match action {
+        MindMapAction::Toggle if hidden => {
+            toggle_fullscreen(&zellij, editor)?;
+            focus_pane(&zellij, mindmap)
+        }
+        MindMapAction::Toggle => {
+            if zoomed {
+                toggle_fullscreen(&zellij, mindmap)?;
+            }
+            toggle_fullscreen(&zellij, editor)
+        }
+        MindMapAction::Zoom if zoomed => toggle_fullscreen(&zellij, mindmap),
+        MindMapAction::Zoom => {
+            if hidden {
+                toggle_fullscreen(&zellij, editor)?;
+            }
+            toggle_fullscreen(&zellij, mindmap)
+        }
+    }
+}
+
+/// Dock a fresh mind-map tool when the previous pane was closed or never opened.
+///
+/// Unlike the terminal, `mindmap.enabled` only controls whether the pane is
+/// present at session start. Alt-m can always spawn it on demand.
+fn respawn_mindmap(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result<()> {
+    let mindmap = &config.mindmap;
+    let tool = &config.tools.mindmap;
+    let command = resolve_executable(&tool.command)
+        .with_context(|| format!("Cannot find '{}'", tool.command))?;
+
+    // Focus the editor and open beside it via --tab-id. Do not use
+    // --near-current-pane: this action runs from a floating 1×1 helper whose
+    // pane is destroyed on exit, and docking next to that helper takes the
+    // mind-map pane down with it.
+    focus_pane(zellij, editor)?;
+
+    let mut new_pane = Command::new(zellij);
+    new_pane
+        .args([
+            "action",
+            "new-pane",
+            "--close-on-exit",
+            "--direction",
+            mindmap.dock_position.zellij_new_pane_direction(),
+            "--name",
+            MIND_MAP_PANE,
+            "--tab-id",
+        ])
+        .arg(editor.tab_id.to_string());
+    if let Ok(cwd) = std::env::current_dir() {
+        new_pane.arg("--cwd").arg(cwd);
+    }
+
+    let output = new_pane
+        .arg("--")
+        .arg(&command)
+        .args(&tool.args)
+        .output()
+        .context("Failed to create the mind-map pane")?;
+    if !output.status.success() {
+        bail!(
+            "Failed to create the mind-map pane: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let pane_id = String::from_utf8(output.stdout)
+        .map(|id| id.trim().to_string())
+        .context("Zellij returned a non-UTF-8 pane ID")?;
+    wait_for_pane(zellij, &pane_id)?;
+
+    // `--name` on `new-pane` does not always stick; match layout naming explicitly.
+    zellij_status(
+        Command::new(zellij)
+            .args(["action", "rename-pane", "--pane-id"])
+            .arg(&pane_id)
+            .arg(MIND_MAP_PANE),
+    )?;
+
+    let (axis, grow_border) = match mindmap.dock_position {
+        DockPosition::Down => (Axis::Rows, "up"),
+        DockPosition::Right => (Axis::Columns, "left"),
+    };
+    resize_against_editor(
+        zellij,
+        &pane_id,
+        MIND_MAP_PANE,
+        axis,
+        grow_border,
+        usize::from(mindmap.dock_percent),
+    )?;
+
+    pane_cache().invalidate();
+    Ok(())
+}
+
 /// Dock a fresh shell when the previous one was exited by the user.
 fn respawn_terminal(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result<()> {
     let terminal = &config.terminal;
@@ -433,18 +557,22 @@ fn respawn_terminal(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result
         bail!("Terminal is disabled in configuration");
     }
 
+    // Same docking rule as respawn_mindmap: follow the focused editor, not the
+    // floating helper pane that invoked this action.
     focus_pane(zellij, editor)?;
 
     let mut command = Command::new(zellij);
-    command.args([
-        "action",
-        "new-pane",
-        "--direction",
-        terminal.dock_position.zellij_new_pane_direction(),
-        "--name",
-        TERMINAL_PANE,
-        "--near-current-pane",
-    ]);
+    command
+        .args([
+            "action",
+            "new-pane",
+            "--direction",
+            terminal.dock_position.zellij_new_pane_direction(),
+            "--name",
+            TERMINAL_PANE,
+            "--tab-id",
+        ])
+        .arg(editor.tab_id.to_string());
     if let Ok(cwd) = std::env::current_dir() {
         command.arg("--cwd").arg(cwd);
     }
@@ -474,8 +602,8 @@ fn respawn_terminal(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result
     // Once Zellij ships `--size` on tiled `new-pane` (zellij-org/zellij#4735), prefer
     // that over post-create resize.
     let (axis, grow_border) = match terminal.dock_position {
-        TerminalDockPosition::Down => (Axis::Rows, "up"),
-        TerminalDockPosition::Right => (Axis::Columns, "left"),
+        DockPosition::Down => (Axis::Rows, "up"),
+        DockPosition::Right => (Axis::Columns, "left"),
     };
     resize_against_editor(
         zellij,

@@ -7,6 +7,7 @@ use std::fmt;
 pub enum Category {
     Core,
     FileManager,
+    MindMapping,
     Git,
     Review,
     Workflow,
@@ -17,6 +18,7 @@ impl Category {
         match self {
             Self::Core => "Core",
             Self::FileManager => "File manager",
+            Self::MindMapping => "Mind mapping",
             Self::Git => "Git",
             Self::Review => "Review",
             Self::Workflow => "Workflow",
@@ -27,6 +29,7 @@ impl Category {
         &[
             Self::Core,
             Self::FileManager,
+            Self::MindMapping,
             Self::Git,
             Self::Review,
             Self::Workflow,
@@ -81,6 +84,8 @@ pub enum ToolId {
     Gh,
     Glab,
     GlabTui,
+    Shiki,
+    TuiJournal,
 }
 
 impl ToolId {
@@ -96,6 +101,8 @@ impl ToolId {
             Self::Gh => "gh",
             Self::Glab => "glab",
             Self::GlabTui => "glab-tui",
+            Self::Shiki => "shiki",
+            Self::TuiJournal => "tui-journal",
         }
     }
 
@@ -112,6 +119,8 @@ impl ToolId {
             Self::Gh => &["gh"],
             Self::Glab => &["glab"],
             Self::GlabTui => &["glab-tui"],
+            Self::Shiki => &["shiki"],
+            Self::TuiJournal => &["tui-journal"],
         }
     }
 
@@ -122,13 +131,20 @@ impl ToolId {
             Self::Lazygit | Self::Gitui => Category::Git,
             Self::Revdiff | Self::Delta => Category::Review,
             Self::Gh | Self::Glab | Self::GlabTui => Category::Workflow,
+            Self::Shiki | Self::TuiJournal => Category::MindMapping,
         }
     }
 
     pub fn recommended(self) -> bool {
         matches!(
             self,
-            Self::Zellij | Self::Helix | Self::Yazi | Self::Lazygit | Self::Revdiff | Self::GlabTui
+            Self::Zellij
+                | Self::Helix
+                | Self::Yazi
+                | Self::Lazygit
+                | Self::Revdiff
+                | Self::GlabTui
+                | Self::Shiki
         )
     }
 
@@ -145,6 +161,8 @@ impl ToolId {
             Self::Glab => Some("glab"),
             Self::Gh => Some("gh"),
             Self::Delta => None,
+            Self::Shiki => Some("shiki"),
+            Self::TuiJournal => None,
         }
     }
 
@@ -176,6 +194,8 @@ impl ToolId {
             Self::Gh => &[InstallMethod::Package, InstallMethod::Binary],
             Self::Glab => &[InstallMethod::Package, InstallMethod::Binary],
             Self::GlabTui => &[InstallMethod::Cargo, InstallMethod::Binary],
+            Self::Shiki => &[InstallMethod::Cargo, InstallMethod::Binary],
+            Self::TuiJournal => &[InstallMethod::Cargo, InstallMethod::Binary],
         }
     }
 
@@ -190,6 +210,8 @@ impl ToolId {
             Self::Gitui => Some("gitui"),
             Self::Delta => Some("git-delta"),
             Self::GlabTui => Some("glab-tui-crate"),
+            Self::Shiki => Some("shiki-cli"),
+            Self::TuiJournal => Some("tui-journal"),
             _ => None,
         }
     }
@@ -254,6 +276,8 @@ impl ToolId {
             Self::Gh => Some("cli/cli"),
             Self::Glab => Some("glab-cli/glab"),
             Self::GlabTui => Some("rcieri/glab-tui"),
+            Self::Shiki => Some("sazardev/shiki"),
+            Self::TuiJournal => Some("ammarabouzor/tui-journal"),
         }
     }
 
@@ -311,6 +335,18 @@ impl ToolId {
             (Self::GlabTui, "aarch64-apple-darwin") => {
                 vec!["aarch64-apple-darwin", "macos-aarch64"]
             }
+            (Self::Shiki, "x86_64-unknown-linux-gnu") => vec!["Linux_x86_64", "linux_amd64"],
+            (Self::Shiki, "x86_64-apple-darwin") => vec!["Darwin_x86_64", "macOS_amd64"],
+            (Self::Shiki, "aarch64-apple-darwin") => vec!["Darwin_arm64", "macOS_arm64"],
+            (Self::TuiJournal, "x86_64-unknown-linux-gnu") => {
+                vec!["x86_64-unknown-linux", "linux-x86_64"]
+            }
+            (Self::TuiJournal, "x86_64-apple-darwin") => {
+                vec!["x86_64-apple-darwin", "macos-x86_64"]
+            }
+            (Self::TuiJournal, "aarch64-apple-darwin") => {
+                vec!["aarch64-apple-darwin", "macos-aarch64"]
+            }
 
             _ => vec![],
         }
@@ -338,6 +374,8 @@ pub fn catalog_tools() -> &'static [ToolId] {
         ToolId::Gh,
         ToolId::Glab,
         ToolId::GlabTui,
+        ToolId::Shiki,
+        ToolId::TuiJournal,
     ]
 }
 
@@ -346,6 +384,7 @@ pub fn config_preference(category: Category) -> &'static [ToolId] {
     match category {
         Category::Core => &[ToolId::Zellij, ToolId::Helix],
         Category::FileManager => &[ToolId::Yazi],
+        Category::MindMapping => &[ToolId::Shiki, ToolId::TuiJournal],
         Category::Git => &[ToolId::Lazygit, ToolId::Gitui],
         Category::Review => &[ToolId::Revdiff],
         Category::Workflow => &[ToolId::GlabTui, ToolId::Glab, ToolId::Gh],

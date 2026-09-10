@@ -20,6 +20,15 @@ dock_percent = 15
 # Terminal placement: "down" (default) or "right".
 # dock_position = "down"
 
+[mindmap]
+# Include the mindmap pane in the code tab at session start.
+# Off by default; Alt-m still opens it on demand when false.
+enabled = false
+# Size of that pane as a percentage of the code tab (height when dock_position = "down", width when "right").
+dock_percent = 15
+# dock placement: "down" or "right" (default).
+# dock_position = "right"
+
 [keybindings]
 # Zellij key notation. Bindings are added to shared_except "locked".
 file_manager = "Ctrl y"
@@ -30,6 +39,8 @@ review = "Alt r"
 terminal = "Alt t"
 # Switch the terminal between its docked height and fullscreen.
 terminal_zoom = "Alt Shift t"
+mindmap = "Alt m"
+mindmap_zoom = "Alt Shift m"
 
 [tools.zellij]
 command = "zellij"
@@ -62,4 +73,8 @@ args = []
 # The agent for the AI tab. Ignored when the command is not on PATH.
 [tools.ai]
 command = "vibe"
+args = []
+
+[tools.mindmap]
+command = "shiki"
 args = []
