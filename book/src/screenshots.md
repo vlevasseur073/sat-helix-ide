@@ -2,7 +2,13 @@
 
 This chapter contains screenshots demonstrating `sat-helix-ide` in action, specifically showing the tool being used to edit its own project.
 
-> **Note**: The screenshots below are placeholders. To create actual screenshots, you can:
+## Demo
+
+Animated walkthrough of a typical `sat-hx-ide` session:
+
+![`sat-hx-ide` demo](assets/demo.gif)
+
+> **Note**: The static screenshots below are placeholders. To create actual screenshots, you can:
 > 1. Set up `sat-helix-ide` with the sat-helix-ide repository as the project
 > 2. Take screenshots of various workflows
 > 3. Add them to the `book/src/assets/` directory

@@ -39,6 +39,8 @@ with `sat-hx-ide setup` (opt-in).
 > sat-hx-ide never writes your Zellij, Helix, Yazi, Lazygit, GitUI, or global
 > Git configuration.
 
+![`sat-hx-ide` demo](book/src/assets/demo.gif)
+
 ## How it works
 
 Zellij has no configuration `include` directive. To add session-level

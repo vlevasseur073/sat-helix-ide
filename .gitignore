@@ -6,3 +6,9 @@
 # mdbook search index files
 book/src/*#*
 book/src/**/*#*
+
+*.gif
+!book/src/assets/demo.gif
+
+# Local asciinema recordings (regenerate demo.gif from these; do not commit)
+*.cast
