@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4144269f.js";
+            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -214,6 +214,8 @@
 <li><strong>Normal State</strong>: Helix editor with docked terminal visible</li>
 <li><strong>Terminal Hidden</strong>: Helix takes full tab height, terminal hidden but still running</li>
 <li><strong>Terminal Zoomed</strong>: Terminal takes full tab height, Helix hidden</li>
+<li><strong>Mind Map Docked</strong>: Shiki (or configured tool) docked beside Helix</li>
+<li><strong>Mind Map Zoomed</strong>: Mind map takes full tab size</li>
 <li><strong>File Manager Floating</strong>: Yazi opens as full-screen floating pane</li>
 <li><strong>File Manager Docked</strong>: Yazi docked to the left of Helix</li>
 </ul>
@@ -259,6 +261,8 @@ f = ":sh sat-hx-ide __file-manager toggle-dock"
 g = ":sh sat-hx-ide __git open"
 t = ":sh sat-hx-ide __terminal toggle"
 T = ":sh sat-hx-ide __terminal zoom"
+m = ":sh sat-hx-ide __mindmap toggle"
+M = ":sh sat-hx-ide __mindmap zoom"
 r = ":sh sat-hx-ide __review open"
 w = ":sh sat-hx-ide __workflow open"
 </code></pre>
@@ -274,6 +278,8 @@ w = ":sh sat-hx-ide __workflow open"
 <tr><td><code>Alt-y</code></td><td>File Manager Toggle</td><td>Toggle Yazi between floating and docked left of Helix</td></tr>
 <tr><td><code>Alt-t</code></td><td>Terminal Toggle</td><td>Hide/show terminal via fullscreen</td></tr>
 <tr><td><code>Alt-Shift-t</code></td><td>Terminal Zoom</td><td>Zoom terminal to full tab height or dock back</td></tr>
+<tr><td><code>Alt-m</code></td><td>Mind Map Toggle</td><td>Open/show the mind map docked beside Helix, or hide it</td></tr>
+<tr><td><code>Alt-Shift-m</code></td><td>Mind Map Zoom</td><td>Zoom mind map to full tab size or dock it back</td></tr>
 <tr><td><code>Alt-g</code></td><td>Git Open</td><td>Spawn Git TUI in floating pane</td></tr>
 <tr><td><code>Alt-r</code></td><td>Review Open</td><td>Spawn review tool in floating pane</td></tr>
 <tr><td><code>Alt-w</code></td><td>Workflow Open</td><td>Spawn workflow tool in floating pane</td></tr>
@@ -318,6 +324,34 @@ Alt-Shift-t behavior:
 </code></pre>
 <p><strong>Terminal Respawn:</strong>
 If you exit the shell (e.g., <code>exit</code> or <code>Ctrl-d</code>), using <code>Alt-t</code> or <code>Alt-Shift-t</code> will spawn a fresh terminal with the same configuration.</p>
+<h4 id="mind-map-alt-m-and-alt-shift-m"><a class="header" href="#mind-map-alt-m-and-alt-shift-m">Mind Map (<code>Alt-m</code> and <code>Alt-Shift-m</code>)</a></h4>
+<p>The mind map runs in a named <code>mindmapping</code> pane. By default it uses
+<a href="https://github.com/sazardev/shiki">Shiki</a> and docks to the <strong>right</strong> of Helix
+(50% width). Unlike floating tools (git/review/workflow), it is always a
+tiled split — the same model as the terminal.</p>
+<pre><code class="language-text">Alt-m behavior:
+  No mind map pane   -&gt; Spawn Shiki docked beside Helix
+  Mind map visible   -&gt; Hide it (Helix fullscreen; Shiki stays alive)
+  Mind map hidden    -&gt; Show it again and focus the pane
+
+Alt-Shift-m behavior:
+  Mind map docked  -&gt; Zoom to full tab size
+  Mind map zoomed  -&gt; Dock back to mindmap.dock_percent
+</code></pre>
+<p><code>mindmap.enabled</code> only controls whether the pane is present <strong>at session
+start</strong>. With the default <code>enabled = false</code>, <code>Alt-m</code> still opens it on demand.
+Install Shiki with <code>sat-hx-ide setup</code> (Mind mapping category) or
+<code>cargo install shiki-cli</code>; <code>sat-hx-ide doctor</code> checks that the configured
+binary is on <code>PATH</code>.</p>
+<p>Default layout with mind map open:</p>
+<pre><code class="language-text">┌────────────────────────┬─────────────────┐
+│                        │                 │
+│         Helix          │   mindmapping   │
+│                        │     (Shiki)     │
+├────────────────────────┴─────────────────┤
+│              Terminal                    │
+└──────────────────────────────────────────┘
+</code></pre>
 <h4 id="git-tui-alt-g"><a class="header" href="#git-tui-alt-g">Git TUI (<code>Alt-g</code>)</a></h4>
 <p>Opens the configured Git client (default: Lazygit) in a floating pane on the code tab. The Git TUI runs in its own process and can be closed independently.</p>
 <h4 id="review-tool-alt-r"><a class="header" href="#review-tool-alt-r">Review Tool (<code>Alt-r</code>)</a></h4>

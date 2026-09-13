@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4144269f.js";
+            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -278,6 +278,8 @@
 <tr><td><code>Alt-y</code></td><td><code>__file-manager toggle-dock</code></td><td>Float or dock file manager</td></tr>
 <tr><td><code>Alt-t</code></td><td><code>__terminal toggle</code></td><td>Hide/show terminal via fullscreen</td></tr>
 <tr><td><code>Alt-Shift-t</code></td><td><code>__terminal zoom</code></td><td>Zoom terminal or dock back</td></tr>
+<tr><td><code>Alt-m</code></td><td><code>__mindmap toggle</code></td><td>Open/show or hide docked mind map</td></tr>
+<tr><td><code>Alt-Shift-m</code></td><td><code>__mindmap zoom</code></td><td>Zoom mind map or dock back</td></tr>
 <tr><td><code>Alt-g</code></td><td><code>__git open</code></td><td>Spawn configured Git TUI in floating pane</td></tr>
 <tr><td><code>Alt-r</code></td><td><code>__review open</code></td><td>Spawn configured review tool in floating pane</td></tr>
 <tr><td><code>Alt-w</code></td><td><code>__workflow open</code></td><td>Spawn configured workflow tool in floating pane</td></tr>
@@ -317,6 +319,14 @@
 <li>Toggle: Hide/show terminal via Zellij fullscreen</li>
 <li>Zoom: Maximize terminal or restore docked size</li>
 <li>Respawn: Create fresh terminal when previous one exits</li>
+</ul>
+</li>
+<li>
+<p><strong>Mind Map Actions</strong></p>
+<ul>
+<li>Toggle: Open/show or hide the docked <code>mindmapping</code> pane (Shiki by default)</li>
+<li>Zoom: Maximize mind map or restore docked size</li>
+<li>Respawn: Create a fresh mind map pane on demand (<code>mindmap.enabled</code> only affects session start)</li>
 </ul>
 </li>
 <li>

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4144269f.js";
+            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -371,6 +371,41 @@ dock_percent = 20  # Terminal takes 20% of the split
 <pre><code class="language-toml">[terminal]
 dock_position = "right"  # Vertical split
 </code></pre>
+<h2 id="mind-map-configuration"><a class="header" href="#mind-map-configuration">Mind Map Configuration</a></h2>
+<p>The mind map is a docked companion pane (default tool: Shiki). It mirrors the
+terminal’s toggle/zoom model rather than the floating git/review tools.</p>
+<h3 id="mindmapenabled"><a class="header" href="#mindmapenabled"><code>mindmap.enabled</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Boolean</li>
+<li><strong>Default</strong>: <code>false</code></li>
+<li><strong>Description</strong>: Include the mind map pane in the <code>code</code> tab at session start.
+When <code>false</code>, the pane is omitted until you press <code>Alt-m</code>. Unlike
+<code>terminal.enabled</code>, this does <strong>not</strong> block on-demand open.</li>
+</ul>
+<pre><code class="language-toml">[mindmap]
+enabled = true  # Show Shiki beside Helix from session start
+</code></pre>
+<h3 id="mindmapdock_percent"><a class="header" href="#mindmapdock_percent"><code>mindmap.dock_percent</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Integer</li>
+<li><strong>Default</strong>: <code>50</code></li>
+<li><strong>Description</strong>: Width (<code>right</code>) or height (<code>down</code>) of the docked mind map as
+a percentage of the code tab</li>
+<li><strong>Range</strong>: 1-99</li>
+</ul>
+<pre><code class="language-toml">[mindmap]
+dock_percent = 40
+</code></pre>
+<h3 id="mindmapdock_position"><a class="header" href="#mindmapdock_position"><code>mindmap.dock_position</code></a></h3>
+<ul>
+<li><strong>Type</strong>: String</li>
+<li><strong>Default</strong>: <code>"right"</code></li>
+<li><strong>Valid values</strong>: <code>"down"</code>, <code>"right"</code></li>
+<li><strong>Description</strong>: Position of the mind map relative to the editor</li>
+</ul>
+<pre><code class="language-toml">[mindmap]
+dock_position = "right"
+</code></pre>
 <h2 id="tool-configuration"><a class="header" href="#tool-configuration">Tool Configuration</a></h2>
 <p>Each tool has its own configuration section with <code>command</code> and <code>args</code> fields.</p>
 <h3 id="toolszellij"><a class="header" href="#toolszellij"><code>tools.zellij</code></a></h3>
@@ -427,12 +462,22 @@ command = "glab-tui"
 args = []
 </code></pre>
 <h3 id="toolsai"><a class="header" href="#toolsai"><code>tools.ai</code></a></h3>
-<p>Configuration for the AI agent (optional).</p>
+<ul>
+<li><strong>Type</strong>: Object</li>
+<li><strong>Description</strong>: Optional AI agent for the <code>ai</code> tab (skipped when missing)</li>
+</ul>
 <pre><code class="language-toml">[tools.ai]
-command = "cursor-agent"  # or any other AI agent command
+command = "vibe"
 args = []
-
-# The AI tab is gracefully skipped if the command is not found
+</code></pre>
+<h3 id="toolsmindmap"><a class="header" href="#toolsmindmap"><code>tools.mindmap</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Object</li>
+<li><strong>Description</strong>: Mind-mapping TUI docked beside Helix (default: Shiki)</li>
+</ul>
+<pre><code class="language-toml">[tools.mindmap]
+command = "shiki"
+args = []
 </code></pre>
 <h2 id="keybinding-customization"><a class="header" href="#keybinding-customization">Keybinding Customization</a></h2>
 <p>All <code>sat-helix-ide</code> keybindings can be customized. The tool will <strong>refuse to start</strong> if your chosen keybindings conflict with existing Zellij keybindings.</p>
@@ -450,6 +495,8 @@ args = []
 <tr><td><code>keybindings.workflow</code></td><td><code>"Alt w"</code></td><td>Open workflow tool</td></tr>
 <tr><td><code>keybindings.terminal</code></td><td><code>"Alt t"</code></td><td>Toggle terminal visibility</td></tr>
 <tr><td><code>keybindings.terminal_zoom</code></td><td><code>"Alt Shift t"</code></td><td>Zoom terminal</td></tr>
+<tr><td><code>keybindings.mindmap</code></td><td><code>"Alt m"</code></td><td>Toggle mind map dock</td></tr>
+<tr><td><code>keybindings.mindmap_zoom</code></td><td><code>"Alt Shift m"</code></td><td>Zoom mind map</td></tr>
 </tbody>
 </table>
 </div>
@@ -460,8 +507,10 @@ file_manager_dock = "Alt f"
 git = "Alt g"
 review = "Alt d"
 workflow = "Alt p"
-terminal = "Alt m"
-terminal_zoom = "Alt Shift m"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+mindmap = "Alt n"
+mindmap_zoom = "Alt Shift n"
 </code></pre>
 <h3 id="keybinding-format"><a class="header" href="#keybinding-format">Keybinding Format</a></h3>
 <p>Keybindings use Zellij’s keybinding syntax:</p>
@@ -503,14 +552,21 @@ enabled = true
 dock_percent = 20
 dock_position = "right"
 
+[mindmap]
+enabled = false
+dock_percent = 40
+dock_position = "right"
+
 [keybindings]
 file_manager = "Ctrl f"
 file_manager_dock = "Alt f"
 git = "Alt g"
 review = "Alt d"
 workflow = "Alt p"
-terminal = "Alt m"
-terminal_zoom = "Alt Shift m"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+mindmap = "Alt m"
+mindmap_zoom = "Alt Shift m"
 
 [tools.zellij]
 command = "zellij"
@@ -542,6 +598,10 @@ args = []
 
 [tools.ai]
 command = "vibe"
+args = []
+
+[tools.mindmap]
+command = "shiki"
 args = []
 </code></pre>
 <h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>

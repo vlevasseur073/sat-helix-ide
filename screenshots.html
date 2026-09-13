@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4144269f.js";
+            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -180,15 +180,9 @@
                     <main>
                         <h1 id="screenshots"><a class="header" href="#screenshots">Screenshots</a></h1>
 <p>This chapter contains screenshots demonstrating <code>sat-helix-ide</code> in action, specifically showing the tool being used to edit its own project.</p>
-<blockquote>
-<p><strong>Note</strong>: The screenshots below are placeholders. To create actual screenshots, you can:</p>
-<ol>
-<li>Set up <code>sat-helix-ide</code> with the sat-helix-ide repository as the project</li>
-<li>Take screenshots of various workflows</li>
-<li>Add them to the <code>book/src/assets/</code> directory</li>
-<li>Update the image paths below</li>
-</ol>
-</blockquote>
+<h2 id="demo"><a class="header" href="#demo">Demo</a></h2>
+<p>Animated walkthrough of a typical <code>sat-hx-ide</code> session:</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/demo.gif" alt="sat-hx-ide demo"><span class="img-wrapper"><img src="assets/demo.gif" alt="sat-hx-ide demo"></span></label></p>
 <h2 id="initial-workspace"><a class="header" href="#initial-workspace">Initial Workspace</a></h2>
 <p>When you first launch <code>sat-helix-ide init .</code> in the sat-helix-ide repository, you’ll see the default workspace:</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
@@ -445,66 +439,46 @@
 </code></pre>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/review-workflow.png" alt="Review Workflow"><span class="img-wrapper"><img src="assets/review-workflow.png" alt="Review Workflow"></span></label></p>
 <p><em>Caption: Reviewing code changes with revdiff in a floating pane while continuing to edit</em></p>
+<h2 id="mind-map-integration"><a class="header" href="#mind-map-integration">Mind Map Integration</a></h2>
+<h3 id="opening-the-mind-map-with-alt-m"><a class="header" href="#opening-the-mind-map-with-alt-m">Opening the Mind Map with Alt-m</a></h3>
+<p>The mind map (Shiki by default) docks beside Helix — it is not a floating pane.
+With the default config it is omitted at session start; <code>Alt-m</code> opens it on demand.</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                       [ code* ] [ ai ] │
+├──────────────────────────────┬──────────────────────────────────────┤
+│                              │                                      │
+│  Helix (src/main.rs)         │  mindmapping (Shiki)                 │
+│                              │                                      │
+│                              │                                      │
+├──────────────────────────────┴──────────────────────────────────────┤
+│  $                                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/mindmap-docked.png" alt="Mind Map Docked"><span class="img-wrapper"><img src="assets/mindmap-docked.png" alt="Mind Map Docked"></span></label></p>
+<p><em>Caption: Shiki mind map docked to the right of Helix (<code>Alt-m</code>)</em></p>
 <h2 id="creating-your-own-screenshots"><a class="header" href="#creating-your-own-screenshots">Creating Your Own Screenshots</a></h2>
-<p>To create actual screenshots for this documentation:</p>
-<h3 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h3>
-<ol>
-<li>Install <code>sat-helix-ide</code></li>
-<li>Install all required tools (Zellij, Helix, Yazi, Lazygit, etc.)</li>
-<li>Have a terminal that supports screenshots (most modern terminals do)</li>
-</ol>
-<h3 id="steps"><a class="header" href="#steps">Steps</a></h3>
-<ol>
-<li>
-<p><strong>Start a session with the sat-helix-ide repository:</strong></p>
-<pre><code class="language-bash">cd /path/to/sat-helix-ide
-sat-hx-ide init . --session screenshots
+<p>Regenerate the PNGs under <code>book/src/assets/</code> with the capture script (requires
+<code>xvfb</code>, <code>xterm</code> with <code>xterm-direct</code> terminfo, <code>xdotool</code>, ImageMagick <code>import</code>,
+and a Nerd Font such as <strong>JetBrainsMono Nerd Font Mono</strong> for Yazi icons).</p>
+<p>Tool colors come from <strong>your</strong> Helix / Yazi / Lazygit / Zellij configs. The
+script only forces <code>TERM=xterm-direct</code> and <code>COLORTERM=truecolor</code> so 24-bit
+themes render correctly (plain <code>TERM=xterm</code> is 8 colors and washes out Helix
+blues):</p>
+<pre><code class="language-bash">bash scripts/capture-screenshots.sh
 </code></pre>
-</li>
-<li>
-<p><strong>Set up the desired state:</strong></p>
-<ul>
-<li>For initial workspace: Just start the session</li>
-<li>For file manager: Press <code>Ctrl-y</code> for floating or <code>Alt-y</code> for docked</li>
-<li>For terminal states: Use <code>Alt-t</code> and <code>Alt-Shift-t</code></li>
-<li>For Git integration: Press <code>Alt-g</code></li>
-<li>For review: Press <code>Alt-r</code></li>
-</ul>
-</li>
-<li>
-<p><strong>Take screenshots:</strong></p>
-<ul>
-<li>Use your system’s screenshot tool</li>
-<li>Or use terminal-specific screenshot capabilities</li>
-<li>Consider using a consistent color scheme and font for professional results</li>
-</ul>
-</li>
-<li>
-<p><strong>Save screenshots to the assets directory:</strong></p>
-<pre><code class="language-bash">mkdir -p book/src/assets
-# Copy your screenshots here with descriptive names
-</code></pre>
-</li>
-<li>
-<p><strong>Update the markdown:</strong></p>
-<ul>
-<li>Replace the placeholder <code>![Alt text](assets/filename.png)</code> with your actual images</li>
-<li>Ensure image paths are correct</li>
-<li>Add descriptive captions</li>
-</ul>
-</li>
-</ol>
-<h3 id="recommended-screenshot-states"><a class="header" href="#recommended-screenshot-states">Recommended Screenshot States</a></h3>
+<p>The script starts a headless Zellij session, drives each UI state via
+<code>sat-hx-ide</code> / <code>zellij</code> actions, and writes:</p>
 <ol>
-<li><code>initial-workspace.png</code> - Default layout after <code>sat-hx-ide init .</code></li>
-<li><code>yazi-fullscreen.png</code> - Yazi in full-screen floating mode (<code>Ctrl-y</code>)</li>
-<li><code>yazi-docked.png</code> - Yazi docked to the left of Helix (<code>Alt-y</code>)</li>
-<li><code>terminal-visible.png</code> - Default terminal state</li>
-<li><code>terminal-hidden.png</code> - Terminal hidden with <code>Alt-t</code></li>
-<li><code>terminal-zoomed.png</code> - Terminal zoomed with <code>Alt-Shift-t</code></li>
-<li><code>lazygit-integration.png</code> - Lazygit opened with <code>Alt-g</code></li>
-<li><code>development-workflow.png</code> - Full development setup (Yazi + Helix + Terminal)</li>
-<li><code>review-workflow.png</code> - revdiff opened with <code>Alt-r</code></li>
+<li><code>initial-workspace.png</code> — default Helix + terminal layout</li>
+<li><code>yazi-fullscreen.png</code> — Yazi floating (<code>Ctrl-y</code>)</li>
+<li><code>yazi-docked.png</code> — Yazi docked (<code>Alt-y</code>)</li>
+<li><code>terminal-visible.png</code> — default terminal dock</li>
+<li><code>terminal-hidden.png</code> — terminal hidden (<code>Alt-t</code>)</li>
+<li><code>terminal-zoomed.png</code> — terminal zoomed (<code>Alt-Shift-t</code>)</li>
+<li><code>lazygit-integration.png</code> — Lazygit floating (<code>Alt-g</code>)</li>
+<li><code>development-workflow.png</code> — docked Yazi + Helix + tests</li>
+<li><code>review-workflow.png</code> — revdiff floating (<code>Alt-r</code>)</li>
+<li><code>mindmap-docked.png</code> — Shiki mind map docked (<code>Alt-m</code>)</li>
 </ol>
 <h3 id="tips-for-good-screenshots"><a class="header" href="#tips-for-good-screenshots">Tips for Good Screenshots</a></h3>
 <ul>
@@ -512,14 +486,12 @@ sat-hx-ide init . --session screenshots
 <li>Ensure good contrast (light background with dark text or vice versa)</li>
 <li>Show realistic content (actual code from the project)</li>
 <li>Keep the terminal at a reasonable size for readability</li>
-<li>Consider adding subtle borders or shadows in post-processing</li>
 <li>Maintain consistent styling across all screenshots</li>
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
 <li><a href="./configuration.html">Configuration</a> - Learn how to customize your setup</li>
 <li><a href="./architecture.html">Architecture</a> - Understand the design and implementation</li>
-<li>Try creating your own screenshots to document your workflow</li>
 </ul>
 
                     </main>

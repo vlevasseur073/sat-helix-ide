@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4144269f.js";
+            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -196,6 +196,7 @@
 <tr><td><strong>Git TUI</strong></td><td><a href="https://github.com/jesseduffield/lazygit">Lazygit</a></td><td><a href="https://github.com/gitui-org/gitui">GitUI</a></td><td>Interactive Git client</td></tr>
 <tr><td><strong>Review Tool</strong></td><td><a href="https://github.com/umputun/revdiff">revdiff</a></td><td><code>git diff</code>, git-delta</td><td>Code review interface</td></tr>
 <tr><td><strong>Workflow Tool</strong></td><td><a href="https://github.com/rcieri/glab-tui">glab-tui</a></td><td>-</td><td>GitHub/GitLab project management</td></tr>
+<tr><td><strong>Mind Map</strong></td><td><a href="https://github.com/sazardev/shiki">Shiki</a></td><td>-</td><td>Docked mind-mapping / notes TUI</td></tr>
 </tbody>
 </table>
 </div>
@@ -207,6 +208,7 @@
 <li><strong>Git Integration</strong>: Launch Git TUI clients in floating panes</li>
 <li><strong>Review Tools</strong>: Open diff tools for code review workflows</li>
 <li><strong>Workflow Tools</strong>: Access project management TUIs (GitHub, GitLab, etc.)</li>
+<li><strong>Mind Map</strong>: Dock <a href="https://github.com/sazardev/shiki">Shiki</a> beside Helix for notes and mind maps (<code>Alt-m</code>)</li>
 <li><strong>Configuration Flexibility</strong>: Customize every aspect without modifying your global configs</li>
 <li><strong>Non-Intrusive</strong>: Never writes to your global Zellij, Helix, or tool configurations</li>
 </ul>
@@ -252,6 +254,7 @@
 <tr><td><strong>GitUI</strong></td><td>Alternative Git TUI</td><td><a href="https://github.com/gitui-org/gitui/releases">GitHub Releases</a></td></tr>
 <tr><td><strong>revdiff</strong></td><td>Code review tool</td><td><a href="https://github.com/umputun/revdiff/releases">GitHub Releases</a></td></tr>
 <tr><td><strong>glab-tui</strong></td><td>GitHub/GitLab workflow</td><td><a href="https://github.com/rcieri/glab-tui/releases">GitHub Releases</a></td></tr>
+<tr><td><strong>Shiki</strong></td><td>Mind map / notes TUI</td><td><a href="https://github.com/sazardev/shiki">GitHub</a> / <code>cargo install shiki-cli</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -349,6 +352,8 @@ sat-hx-ide init .
 <tr><td>Toggle file manager dock</td><td><code>Alt-y</code></td></tr>
 <tr><td>Toggle terminal visibility</td><td><code>Alt-t</code></td></tr>
 <tr><td>Zoom terminal</td><td><code>Alt-Shift-t</code></td></tr>
+<tr><td>Toggle mind map dock</td><td><code>Alt-m</code></td></tr>
+<tr><td>Zoom mind map</td><td><code>Alt-Shift-m</code></td></tr>
 <tr><td>Open Git TUI</td><td><code>Alt-g</code></td></tr>
 <tr><td>Open review tool</td><td><code>Alt-r</code></td></tr>
 <tr><td>Open workflow tool</td><td><code>Alt-w</code></td></tr>
@@ -418,6 +423,8 @@ attach_existing = false
 <li><strong>Normal State</strong>: Helix editor with docked terminal visible</li>
 <li><strong>Terminal Hidden</strong>: Helix takes full tab height, terminal hidden but still running</li>
 <li><strong>Terminal Zoomed</strong>: Terminal takes full tab height, Helix hidden</li>
+<li><strong>Mind Map Docked</strong>: Shiki (or configured tool) docked beside Helix</li>
+<li><strong>Mind Map Zoomed</strong>: Mind map takes full tab size</li>
 <li><strong>File Manager Floating</strong>: Yazi opens as full-screen floating pane</li>
 <li><strong>File Manager Docked</strong>: Yazi docked to the left of Helix</li>
 </ul>
@@ -463,6 +470,8 @@ f = ":sh sat-hx-ide __file-manager toggle-dock"
 g = ":sh sat-hx-ide __git open"
 t = ":sh sat-hx-ide __terminal toggle"
 T = ":sh sat-hx-ide __terminal zoom"
+m = ":sh sat-hx-ide __mindmap toggle"
+M = ":sh sat-hx-ide __mindmap zoom"
 r = ":sh sat-hx-ide __review open"
 w = ":sh sat-hx-ide __workflow open"
 </code></pre>
@@ -478,6 +487,8 @@ w = ":sh sat-hx-ide __workflow open"
 <tr><td><code>Alt-y</code></td><td>File Manager Toggle</td><td>Toggle Yazi between floating and docked left of Helix</td></tr>
 <tr><td><code>Alt-t</code></td><td>Terminal Toggle</td><td>Hide/show terminal via fullscreen</td></tr>
 <tr><td><code>Alt-Shift-t</code></td><td>Terminal Zoom</td><td>Zoom terminal to full tab height or dock back</td></tr>
+<tr><td><code>Alt-m</code></td><td>Mind Map Toggle</td><td>Open/show the mind map docked beside Helix, or hide it</td></tr>
+<tr><td><code>Alt-Shift-m</code></td><td>Mind Map Zoom</td><td>Zoom mind map to full tab size or dock it back</td></tr>
 <tr><td><code>Alt-g</code></td><td>Git Open</td><td>Spawn Git TUI in floating pane</td></tr>
 <tr><td><code>Alt-r</code></td><td>Review Open</td><td>Spawn review tool in floating pane</td></tr>
 <tr><td><code>Alt-w</code></td><td>Workflow Open</td><td>Spawn workflow tool in floating pane</td></tr>
@@ -522,6 +533,34 @@ Alt-Shift-t behavior:
 </code></pre>
 <p><strong>Terminal Respawn:</strong>
 If you exit the shell (e.g., <code>exit</code> or <code>Ctrl-d</code>), using <code>Alt-t</code> or <code>Alt-Shift-t</code> will spawn a fresh terminal with the same configuration.</p>
+<h4 id="mind-map-alt-m-and-alt-shift-m"><a class="header" href="#mind-map-alt-m-and-alt-shift-m">Mind Map (<code>Alt-m</code> and <code>Alt-Shift-m</code>)</a></h4>
+<p>The mind map runs in a named <code>mindmapping</code> pane. By default it uses
+<a href="https://github.com/sazardev/shiki">Shiki</a> and docks to the <strong>right</strong> of Helix
+(50% width). Unlike floating tools (git/review/workflow), it is always a
+tiled split — the same model as the terminal.</p>
+<pre><code class="language-text">Alt-m behavior:
+  No mind map pane   -&gt; Spawn Shiki docked beside Helix
+  Mind map visible   -&gt; Hide it (Helix fullscreen; Shiki stays alive)
+  Mind map hidden    -&gt; Show it again and focus the pane
+
+Alt-Shift-m behavior:
+  Mind map docked  -&gt; Zoom to full tab size
+  Mind map zoomed  -&gt; Dock back to mindmap.dock_percent
+</code></pre>
+<p><code>mindmap.enabled</code> only controls whether the pane is present <strong>at session
+start</strong>. With the default <code>enabled = false</code>, <code>Alt-m</code> still opens it on demand.
+Install Shiki with <code>sat-hx-ide setup</code> (Mind mapping category) or
+<code>cargo install shiki-cli</code>; <code>sat-hx-ide doctor</code> checks that the configured
+binary is on <code>PATH</code>.</p>
+<p>Default layout with mind map open:</p>
+<pre><code class="language-text">┌────────────────────────┬─────────────────┐
+│                        │                 │
+│         Helix          │   mindmapping   │
+│                        │     (Shiki)     │
+├────────────────────────┴─────────────────┤
+│              Terminal                    │
+└──────────────────────────────────────────┘
+</code></pre>
 <h4 id="git-tui-alt-g"><a class="header" href="#git-tui-alt-g">Git TUI (<code>Alt-g</code>)</a></h4>
 <p>Opens the configured Git client (default: Lazygit) in a floating pane on the code tab. The Git TUI runs in its own process and can be closed independently.</p>
 <h4 id="review-tool-alt-r"><a class="header" href="#review-tool-alt-r">Review Tool (<code>Alt-r</code>)</a></h4>
@@ -766,15 +805,9 @@ ai_by_default = false
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="screenshots"><a class="header" href="#screenshots">Screenshots</a></h1>
 <p>This chapter contains screenshots demonstrating <code>sat-helix-ide</code> in action, specifically showing the tool being used to edit its own project.</p>
-<blockquote>
-<p><strong>Note</strong>: The screenshots below are placeholders. To create actual screenshots, you can:</p>
-<ol>
-<li>Set up <code>sat-helix-ide</code> with the sat-helix-ide repository as the project</li>
-<li>Take screenshots of various workflows</li>
-<li>Add them to the <code>book/src/assets/</code> directory</li>
-<li>Update the image paths below</li>
-</ol>
-</blockquote>
+<h2 id="demo"><a class="header" href="#demo">Demo</a></h2>
+<p>Animated walkthrough of a typical <code>sat-hx-ide</code> session:</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/demo.gif" alt="sat-hx-ide demo"><span class="img-wrapper"><img src="assets/demo.gif" alt="sat-hx-ide demo"></span></label></p>
 <h2 id="initial-workspace"><a class="header" href="#initial-workspace">Initial Workspace</a></h2>
 <p>When you first launch <code>sat-helix-ide init .</code> in the sat-helix-ide repository, you’ll see the default workspace:</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
@@ -1031,66 +1064,46 @@ ai_by_default = false
 </code></pre>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/review-workflow.png" alt="Review Workflow"><span class="img-wrapper"><img src="assets/review-workflow.png" alt="Review Workflow"></span></label></p>
 <p><em>Caption: Reviewing code changes with revdiff in a floating pane while continuing to edit</em></p>
+<h2 id="mind-map-integration"><a class="header" href="#mind-map-integration">Mind Map Integration</a></h2>
+<h3 id="opening-the-mind-map-with-alt-m"><a class="header" href="#opening-the-mind-map-with-alt-m">Opening the Mind Map with Alt-m</a></h3>
+<p>The mind map (Shiki by default) docks beside Helix — it is not a floating pane.
+With the default config it is omitted at session start; <code>Alt-m</code> opens it on demand.</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                       [ code* ] [ ai ] │
+├──────────────────────────────┬──────────────────────────────────────┤
+│                              │                                      │
+│  Helix (src/main.rs)         │  mindmapping (Shiki)                 │
+│                              │                                      │
+│                              │                                      │
+├──────────────────────────────┴──────────────────────────────────────┤
+│  $                                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="assets/mindmap-docked.png" alt="Mind Map Docked"><span class="img-wrapper"><img src="assets/mindmap-docked.png" alt="Mind Map Docked"></span></label></p>
+<p><em>Caption: Shiki mind map docked to the right of Helix (<code>Alt-m</code>)</em></p>
 <h2 id="creating-your-own-screenshots"><a class="header" href="#creating-your-own-screenshots">Creating Your Own Screenshots</a></h2>
-<p>To create actual screenshots for this documentation:</p>
-<h3 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h3>
-<ol>
-<li>Install <code>sat-helix-ide</code></li>
-<li>Install all required tools (Zellij, Helix, Yazi, Lazygit, etc.)</li>
-<li>Have a terminal that supports screenshots (most modern terminals do)</li>
-</ol>
-<h3 id="steps"><a class="header" href="#steps">Steps</a></h3>
-<ol>
-<li>
-<p><strong>Start a session with the sat-helix-ide repository:</strong></p>
-<pre><code class="language-bash">cd /path/to/sat-helix-ide
-sat-hx-ide init . --session screenshots
+<p>Regenerate the PNGs under <code>book/src/assets/</code> with the capture script (requires
+<code>xvfb</code>, <code>xterm</code> with <code>xterm-direct</code> terminfo, <code>xdotool</code>, ImageMagick <code>import</code>,
+and a Nerd Font such as <strong>JetBrainsMono Nerd Font Mono</strong> for Yazi icons).</p>
+<p>Tool colors come from <strong>your</strong> Helix / Yazi / Lazygit / Zellij configs. The
+script only forces <code>TERM=xterm-direct</code> and <code>COLORTERM=truecolor</code> so 24-bit
+themes render correctly (plain <code>TERM=xterm</code> is 8 colors and washes out Helix
+blues):</p>
+<pre><code class="language-bash">bash scripts/capture-screenshots.sh
 </code></pre>
-</li>
-<li>
-<p><strong>Set up the desired state:</strong></p>
-<ul>
-<li>For initial workspace: Just start the session</li>
-<li>For file manager: Press <code>Ctrl-y</code> for floating or <code>Alt-y</code> for docked</li>
-<li>For terminal states: Use <code>Alt-t</code> and <code>Alt-Shift-t</code></li>
-<li>For Git integration: Press <code>Alt-g</code></li>
-<li>For review: Press <code>Alt-r</code></li>
-</ul>
-</li>
-<li>
-<p><strong>Take screenshots:</strong></p>
-<ul>
-<li>Use your system’s screenshot tool</li>
-<li>Or use terminal-specific screenshot capabilities</li>
-<li>Consider using a consistent color scheme and font for professional results</li>
-</ul>
-</li>
-<li>
-<p><strong>Save screenshots to the assets directory:</strong></p>
-<pre><code class="language-bash">mkdir -p book/src/assets
-# Copy your screenshots here with descriptive names
-</code></pre>
-</li>
-<li>
-<p><strong>Update the markdown:</strong></p>
-<ul>
-<li>Replace the placeholder <code>![Alt text](assets/filename.png)</code> with your actual images</li>
-<li>Ensure image paths are correct</li>
-<li>Add descriptive captions</li>
-</ul>
-</li>
-</ol>
-<h3 id="recommended-screenshot-states"><a class="header" href="#recommended-screenshot-states">Recommended Screenshot States</a></h3>
+<p>The script starts a headless Zellij session, drives each UI state via
+<code>sat-hx-ide</code> / <code>zellij</code> actions, and writes:</p>
 <ol>
-<li><code>initial-workspace.png</code> - Default layout after <code>sat-hx-ide init .</code></li>
-<li><code>yazi-fullscreen.png</code> - Yazi in full-screen floating mode (<code>Ctrl-y</code>)</li>
-<li><code>yazi-docked.png</code> - Yazi docked to the left of Helix (<code>Alt-y</code>)</li>
-<li><code>terminal-visible.png</code> - Default terminal state</li>
-<li><code>terminal-hidden.png</code> - Terminal hidden with <code>Alt-t</code></li>
-<li><code>terminal-zoomed.png</code> - Terminal zoomed with <code>Alt-Shift-t</code></li>
-<li><code>lazygit-integration.png</code> - Lazygit opened with <code>Alt-g</code></li>
-<li><code>development-workflow.png</code> - Full development setup (Yazi + Helix + Terminal)</li>
-<li><code>review-workflow.png</code> - revdiff opened with <code>Alt-r</code></li>
+<li><code>initial-workspace.png</code> — default Helix + terminal layout</li>
+<li><code>yazi-fullscreen.png</code> — Yazi floating (<code>Ctrl-y</code>)</li>
+<li><code>yazi-docked.png</code> — Yazi docked (<code>Alt-y</code>)</li>
+<li><code>terminal-visible.png</code> — default terminal dock</li>
+<li><code>terminal-hidden.png</code> — terminal hidden (<code>Alt-t</code>)</li>
+<li><code>terminal-zoomed.png</code> — terminal zoomed (<code>Alt-Shift-t</code>)</li>
+<li><code>lazygit-integration.png</code> — Lazygit floating (<code>Alt-g</code>)</li>
+<li><code>development-workflow.png</code> — docked Yazi + Helix + tests</li>
+<li><code>review-workflow.png</code> — revdiff floating (<code>Alt-r</code>)</li>
+<li><code>mindmap-docked.png</code> — Shiki mind map docked (<code>Alt-m</code>)</li>
 </ol>
 <h3 id="tips-for-good-screenshots"><a class="header" href="#tips-for-good-screenshots">Tips for Good Screenshots</a></h3>
 <ul>
@@ -1098,14 +1111,12 @@ sat-hx-ide init . --session screenshots
 <li>Ensure good contrast (light background with dark text or vice versa)</li>
 <li>Show realistic content (actual code from the project)</li>
 <li>Keep the terminal at a reasonable size for readability</li>
-<li>Consider adding subtle borders or shadows in post-processing</li>
 <li>Maintain consistent styling across all screenshots</li>
 </ul>
 <h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
 <ul>
 <li><a href="#configuration-3">Configuration</a> - Learn how to customize your setup</li>
 <li><a href="#architecture--design">Architecture</a> - Understand the design and implementation</li>
-<li>Try creating your own screenshots to document your workflow</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="configuration-3"><a class="header" href="#configuration-3">Configuration</a></h1>
@@ -1301,6 +1312,41 @@ dock_percent = 20  # Terminal takes 20% of the split
 <pre><code class="language-toml">[terminal]
 dock_position = "right"  # Vertical split
 </code></pre>
+<h2 id="mind-map-configuration"><a class="header" href="#mind-map-configuration">Mind Map Configuration</a></h2>
+<p>The mind map is a docked companion pane (default tool: Shiki). It mirrors the
+terminal’s toggle/zoom model rather than the floating git/review tools.</p>
+<h3 id="mindmapenabled"><a class="header" href="#mindmapenabled"><code>mindmap.enabled</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Boolean</li>
+<li><strong>Default</strong>: <code>false</code></li>
+<li><strong>Description</strong>: Include the mind map pane in the <code>code</code> tab at session start.
+When <code>false</code>, the pane is omitted until you press <code>Alt-m</code>. Unlike
+<code>terminal.enabled</code>, this does <strong>not</strong> block on-demand open.</li>
+</ul>
+<pre><code class="language-toml">[mindmap]
+enabled = true  # Show Shiki beside Helix from session start
+</code></pre>
+<h3 id="mindmapdock_percent"><a class="header" href="#mindmapdock_percent"><code>mindmap.dock_percent</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Integer</li>
+<li><strong>Default</strong>: <code>50</code></li>
+<li><strong>Description</strong>: Width (<code>right</code>) or height (<code>down</code>) of the docked mind map as
+a percentage of the code tab</li>
+<li><strong>Range</strong>: 1-99</li>
+</ul>
+<pre><code class="language-toml">[mindmap]
+dock_percent = 40
+</code></pre>
+<h3 id="mindmapdock_position"><a class="header" href="#mindmapdock_position"><code>mindmap.dock_position</code></a></h3>
+<ul>
+<li><strong>Type</strong>: String</li>
+<li><strong>Default</strong>: <code>"right"</code></li>
+<li><strong>Valid values</strong>: <code>"down"</code>, <code>"right"</code></li>
+<li><strong>Description</strong>: Position of the mind map relative to the editor</li>
+</ul>
+<pre><code class="language-toml">[mindmap]
+dock_position = "right"
+</code></pre>
 <h2 id="tool-configuration"><a class="header" href="#tool-configuration">Tool Configuration</a></h2>
 <p>Each tool has its own configuration section with <code>command</code> and <code>args</code> fields.</p>
 <h3 id="toolszellij"><a class="header" href="#toolszellij"><code>tools.zellij</code></a></h3>
@@ -1357,12 +1403,22 @@ command = "glab-tui"
 args = []
 </code></pre>
 <h3 id="toolsai"><a class="header" href="#toolsai"><code>tools.ai</code></a></h3>
-<p>Configuration for the AI agent (optional).</p>
+<ul>
+<li><strong>Type</strong>: Object</li>
+<li><strong>Description</strong>: Optional AI agent for the <code>ai</code> tab (skipped when missing)</li>
+</ul>
 <pre><code class="language-toml">[tools.ai]
-command = "cursor-agent"  # or any other AI agent command
+command = "vibe"
 args = []
-
-# The AI tab is gracefully skipped if the command is not found
+</code></pre>
+<h3 id="toolsmindmap"><a class="header" href="#toolsmindmap"><code>tools.mindmap</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Object</li>
+<li><strong>Description</strong>: Mind-mapping TUI docked beside Helix (default: Shiki)</li>
+</ul>
+<pre><code class="language-toml">[tools.mindmap]
+command = "shiki"
+args = []
 </code></pre>
 <h2 id="keybinding-customization"><a class="header" href="#keybinding-customization">Keybinding Customization</a></h2>
 <p>All <code>sat-helix-ide</code> keybindings can be customized. The tool will <strong>refuse to start</strong> if your chosen keybindings conflict with existing Zellij keybindings.</p>
@@ -1380,6 +1436,8 @@ args = []
 <tr><td><code>keybindings.workflow</code></td><td><code>"Alt w"</code></td><td>Open workflow tool</td></tr>
 <tr><td><code>keybindings.terminal</code></td><td><code>"Alt t"</code></td><td>Toggle terminal visibility</td></tr>
 <tr><td><code>keybindings.terminal_zoom</code></td><td><code>"Alt Shift t"</code></td><td>Zoom terminal</td></tr>
+<tr><td><code>keybindings.mindmap</code></td><td><code>"Alt m"</code></td><td>Toggle mind map dock</td></tr>
+<tr><td><code>keybindings.mindmap_zoom</code></td><td><code>"Alt Shift m"</code></td><td>Zoom mind map</td></tr>
 </tbody>
 </table>
 </div>
@@ -1390,8 +1448,10 @@ file_manager_dock = "Alt f"
 git = "Alt g"
 review = "Alt d"
 workflow = "Alt p"
-terminal = "Alt m"
-terminal_zoom = "Alt Shift m"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+mindmap = "Alt n"
+mindmap_zoom = "Alt Shift n"
 </code></pre>
 <h3 id="keybinding-format"><a class="header" href="#keybinding-format">Keybinding Format</a></h3>
 <p>Keybindings use Zellij’s keybinding syntax:</p>
@@ -1433,14 +1493,21 @@ enabled = true
 dock_percent = 20
 dock_position = "right"
 
+[mindmap]
+enabled = false
+dock_percent = 40
+dock_position = "right"
+
 [keybindings]
 file_manager = "Ctrl f"
 file_manager_dock = "Alt f"
 git = "Alt g"
 review = "Alt d"
 workflow = "Alt p"
-terminal = "Alt m"
-terminal_zoom = "Alt Shift m"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+mindmap = "Alt m"
+mindmap_zoom = "Alt Shift m"
 
 [tools.zellij]
 command = "zellij"
@@ -1472,6 +1539,10 @@ args = []
 
 [tools.ai]
 command = "vibe"
+args = []
+
+[tools.mindmap]
+command = "shiki"
 args = []
 </code></pre>
 <h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
@@ -1689,6 +1760,8 @@ command = ""
 <tr><td><code>Alt-y</code></td><td><code>__file-manager toggle-dock</code></td><td>Float or dock file manager</td></tr>
 <tr><td><code>Alt-t</code></td><td><code>__terminal toggle</code></td><td>Hide/show terminal via fullscreen</td></tr>
 <tr><td><code>Alt-Shift-t</code></td><td><code>__terminal zoom</code></td><td>Zoom terminal or dock back</td></tr>
+<tr><td><code>Alt-m</code></td><td><code>__mindmap toggle</code></td><td>Open/show or hide docked mind map</td></tr>
+<tr><td><code>Alt-Shift-m</code></td><td><code>__mindmap zoom</code></td><td>Zoom mind map or dock back</td></tr>
 <tr><td><code>Alt-g</code></td><td><code>__git open</code></td><td>Spawn configured Git TUI in floating pane</td></tr>
 <tr><td><code>Alt-r</code></td><td><code>__review open</code></td><td>Spawn configured review tool in floating pane</td></tr>
 <tr><td><code>Alt-w</code></td><td><code>__workflow open</code></td><td>Spawn configured workflow tool in floating pane</td></tr>
@@ -1728,6 +1801,14 @@ command = ""
 <li>Toggle: Hide/show terminal via Zellij fullscreen</li>
 <li>Zoom: Maximize terminal or restore docked size</li>
 <li>Respawn: Create fresh terminal when previous one exits</li>
+</ul>
+</li>
+<li>
+<p><strong>Mind Map Actions</strong></p>
+<ul>
+<li>Toggle: Open/show or hide the docked <code>mindmapping</code> pane (Shiki by default)</li>
+<li>Zoom: Maximize mind map or restore docked size</li>
+<li>Respawn: Create a fresh mind map pane on demand (<code>mindmap.enabled</code> only affects session start)</li>
 </ul>
 </li>
 <li>
@@ -2076,7 +2157,7 @@ shared_except "locked" {
 <h1 id="development"><a class="header" href="#development">Development</a></h1>
 <p>This chapter covers how to build, test, and contribute to <code>sat-helix-ide</code>.</p>
 <h2 id="building-from-source"><a class="header" href="#building-from-source">Building from Source</a></h2>
-<h3 id="prerequisites-1"><a class="header" href="#prerequisites-1">Prerequisites</a></h3>
+<h3 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h3>
 <ul>
 <li>Rust toolchain (stable recommended)</li>
 <li>Cargo</li>
