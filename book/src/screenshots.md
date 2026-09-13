@@ -314,14 +314,40 @@ This screenshot shows the typical workflow when developing `sat-helix-ide` itsel
 
 *Caption: Reviewing code changes with revdiff in a floating pane while continuing to edit*
 
+## Mind Map Integration
+
+### Opening the Mind Map with Alt-m
+
+The mind map (Shiki by default) docks beside Helix — it is not a floating pane.
+With the default config it is omitted at session start; `Alt-m` opens it on demand.
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  sat-helix-ide (Zellij)                                       [ code* ] [ ai ] │
+├──────────────────────────────┬──────────────────────────────────────┤
+│                              │                                      │
+│  Helix (src/main.rs)         │  mindmapping (Shiki)                 │
+│                              │                                      │
+│                              │                                      │
+├──────────────────────────────┴──────────────────────────────────────┤
+│  $                                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+![Mind Map Docked](assets/mindmap-docked.png)
+
+*Caption: Shiki mind map docked to the right of Helix (`Alt-m`)*
+
 ## Creating Your Own Screenshots
 
 Regenerate the PNGs under `book/src/assets/` with the capture script (requires
-`xvfb`, `xterm` with `xterm-direct` terminfo, `xdotool`, `xrdb`, ImageMagick
-`import`, and a Nerd Font such as **JetBrainsMono Nerd Font Mono** for Yazi
-icons). Screenshots use **Catppuccin Macchiato** via `scripts/screenshot-theme/`,
-and force `TERM=xterm-direct` + `COLORTERM=truecolor` so Helix gets 24-bit
-colors (plain `TERM=xterm` is only 8 colors and makes blues nearly invisible):
+`xvfb`, `xterm` with `xterm-direct` terminfo, `xdotool`, ImageMagick `import`,
+and a Nerd Font such as **JetBrainsMono Nerd Font Mono** for Yazi icons).
+
+Tool colors come from **your** Helix / Yazi / Lazygit / Zellij configs. The
+script only forces `TERM=xterm-direct` and `COLORTERM=truecolor` so 24-bit
+themes render correctly (plain `TERM=xterm` is 8 colors and washes out Helix
+blues):
 
 ```bash
 bash scripts/capture-screenshots.sh
@@ -339,6 +365,7 @@ The script starts a headless Zellij session, drives each UI state via
 7. `lazygit-integration.png` — Lazygit floating (`Alt-g`)
 8. `development-workflow.png` — docked Yazi + Helix + tests
 9. `review-workflow.png` — revdiff floating (`Alt-r`)
+10. `mindmap-docked.png` — Shiki mind map docked (`Alt-m`)
 
 ### Tips for Good Screenshots
 

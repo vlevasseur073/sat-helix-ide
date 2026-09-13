@@ -37,6 +37,8 @@ The workspace adapts dynamically based on your actions:
 - **Normal State**: Helix editor with docked terminal visible
 - **Terminal Hidden**: Helix takes full tab height, terminal hidden but still running
 - **Terminal Zoomed**: Terminal takes full tab height, Helix hidden
+- **Mind Map Docked**: Shiki (or configured tool) docked beside Helix
+- **Mind Map Zoomed**: Mind map takes full tab size
 - **File Manager Floating**: Yazi opens as full-screen floating pane
 - **File Manager Docked**: Yazi docked to the left of Helix
 
@@ -85,6 +87,8 @@ f = ":sh sat-hx-ide __file-manager toggle-dock"
 g = ":sh sat-hx-ide __git open"
 t = ":sh sat-hx-ide __terminal toggle"
 T = ":sh sat-hx-ide __terminal zoom"
+m = ":sh sat-hx-ide __mindmap toggle"
+M = ":sh sat-hx-ide __mindmap zoom"
 r = ":sh sat-hx-ide __review open"
 w = ":sh sat-hx-ide __workflow open"
 ```
@@ -99,6 +103,8 @@ This will work from your Helix editor in `sat-helix-ide`. It will also work if y
 | `Alt-y` | File Manager Toggle | Toggle Yazi between floating and docked left of Helix |
 | `Alt-t` | Terminal Toggle | Hide/show terminal via fullscreen |
 | `Alt-Shift-t` | Terminal Zoom | Zoom terminal to full tab height or dock back |
+| `Alt-m` | Mind Map Toggle | Open/show the mind map docked beside Helix, or hide it |
+| `Alt-Shift-m` | Mind Map Zoom | Zoom mind map to full tab size or dock it back |
 | `Alt-g` | Git Open | Spawn Git TUI in floating pane |
 | `Alt-r` | Review Open | Spawn review tool in floating pane |
 | `Alt-w` | Workflow Open | Spawn workflow tool in floating pane |
@@ -152,6 +158,42 @@ Alt-Shift-t behavior:
 
 **Terminal Respawn:**
 If you exit the shell (e.g., `exit` or `Ctrl-d`), using `Alt-t` or `Alt-Shift-t` will spawn a fresh terminal with the same configuration.
+
+#### Mind Map (`Alt-m` and `Alt-Shift-m`)
+
+The mind map runs in a named `mindmapping` pane. By default it uses
+[Shiki](https://github.com/sazardev/shiki) and docks to the **right** of Helix
+(50% width). Unlike floating tools (git/review/workflow), it is always a
+tiled split — the same model as the terminal.
+
+```text
+Alt-m behavior:
+  No mind map pane   -> Spawn Shiki docked beside Helix
+  Mind map visible   -> Hide it (Helix fullscreen; Shiki stays alive)
+  Mind map hidden    -> Show it again and focus the pane
+
+Alt-Shift-m behavior:
+  Mind map docked  -> Zoom to full tab size
+  Mind map zoomed  -> Dock back to mindmap.dock_percent
+```
+
+`mindmap.enabled` only controls whether the pane is present **at session
+start**. With the default `enabled = false`, `Alt-m` still opens it on demand.
+Install Shiki with `sat-hx-ide setup` (Mind mapping category) or
+`cargo install shiki-cli`; `sat-hx-ide doctor` checks that the configured
+binary is on `PATH`.
+
+Default layout with mind map open:
+
+```text
+┌────────────────────────┬─────────────────┐
+│                        │                 │
+│         Helix          │   mindmapping   │
+│                        │     (Shiki)     │
+├────────────────────────┴─────────────────┤
+│              Terminal                    │
+└──────────────────────────────────────────┘
+```
 
 #### Git TUI (`Alt-g`)
 

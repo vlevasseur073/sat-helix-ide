@@ -225,6 +225,49 @@ dock_percent = 20  # Terminal takes 20% of the split
 dock_position = "right"  # Vertical split
 ```
 
+## Mind Map Configuration
+
+The mind map is a docked companion pane (default tool: Shiki). It mirrors the
+terminal's toggle/zoom model rather than the floating git/review tools.
+
+### `mindmap.enabled`
+
+- **Type**: Boolean
+- **Default**: `false`
+- **Description**: Include the mind map pane in the `code` tab at session start.
+  When `false`, the pane is omitted until you press `Alt-m`. Unlike
+  `terminal.enabled`, this does **not** block on-demand open.
+
+```toml
+[mindmap]
+enabled = true  # Show Shiki beside Helix from session start
+```
+
+### `mindmap.dock_percent`
+
+- **Type**: Integer
+- **Default**: `50`
+- **Description**: Width (`right`) or height (`down`) of the docked mind map as
+  a percentage of the code tab
+- **Range**: 1-99
+
+```toml
+[mindmap]
+dock_percent = 40
+```
+
+### `mindmap.dock_position`
+
+- **Type**: String
+- **Default**: `"right"`
+- **Valid values**: `"down"`, `"right"`
+- **Description**: Position of the mind map relative to the editor
+
+```toml
+[mindmap]
+dock_position = "right"
+```
+
 ## Tool Configuration
 
 Each tool has its own configuration section with `command` and `args` fields.
@@ -309,14 +352,24 @@ args = []
 
 ### `tools.ai`
 
-Configuration for the AI agent (optional).
+- **Type**: Object
+- **Description**: Optional AI agent for the `ai` tab (skipped when missing)
 
 ```toml
 [tools.ai]
-command = "cursor-agent"  # or any other AI agent command
+command = "vibe"
 args = []
+```
 
-# The AI tab is gracefully skipped if the command is not found
+### `tools.mindmap`
+
+- **Type**: Object
+- **Description**: Mind-mapping TUI docked beside Helix (default: Shiki)
+
+```toml
+[tools.mindmap]
+command = "shiki"
+args = []
 ```
 
 ## Keybinding Customization
@@ -334,6 +387,8 @@ All `sat-helix-ide` keybindings can be customized. The tool will **refuse to sta
 | `keybindings.workflow` | `"Alt w"` | Open workflow tool |
 | `keybindings.terminal` | `"Alt t"` | Toggle terminal visibility |
 | `keybindings.terminal_zoom` | `"Alt Shift t"` | Zoom terminal |
+| `keybindings.mindmap` | `"Alt m"` | Toggle mind map dock |
+| `keybindings.mindmap_zoom` | `"Alt Shift m"` | Zoom mind map |
 
 ### Customizing Keybindings
 
@@ -344,8 +399,10 @@ file_manager_dock = "Alt f"
 git = "Alt g"
 review = "Alt d"
 workflow = "Alt p"
-terminal = "Alt m"
-terminal_zoom = "Alt Shift m"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+mindmap = "Alt n"
+mindmap_zoom = "Alt Shift n"
 ```
 
 ### Keybinding Format
@@ -397,14 +454,21 @@ enabled = true
 dock_percent = 20
 dock_position = "right"
 
+[mindmap]
+enabled = false
+dock_percent = 40
+dock_position = "right"
+
 [keybindings]
 file_manager = "Ctrl f"
 file_manager_dock = "Alt f"
 git = "Alt g"
 review = "Alt d"
 workflow = "Alt p"
-terminal = "Alt m"
-terminal_zoom = "Alt Shift m"
+terminal = "Alt t"
+terminal_zoom = "Alt Shift t"
+mindmap = "Alt m"
+mindmap_zoom = "Alt Shift m"
 
 [tools.zellij]
 command = "zellij"
@@ -436,6 +500,10 @@ args = []
 
 [tools.ai]
 command = "vibe"
+args = []
+
+[tools.mindmap]
+command = "shiki"
 args = []
 ```
 

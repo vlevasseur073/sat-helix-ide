@@ -8,14 +8,16 @@ enhanced with multiple additional tools among which:
 [Yazi](https://yazi-rs.github.io/) +
 [Lazygit](https://github.com/jesseduffield/lazygit)/[GitUI](https://github.com/gitui-org/gitui) +
 [revdiff](https://github.com/umputun/revdiff) +
-[glab-tui](https://github.com/rcieri/glab-tui)
+[glab-tui](https://github.com/rcieri/glab-tui) +
+[Shiki](https://github.com/sazardev/shiki)
 for instance
 
 The features/tools currently implemented in `sat-helix-ide` are:
 - a *File-Manager* (Default: Yazi)
 - a *Git TUI* (Default: lazygit, tested with lazygit and gitui)
 - a *review TUI* (Default: revdiff, tested with revdiff and `git diff`, possibly including git-delta)
-- a *workflow TUI*; this should be understood as any kind of project management tool such as Github/Gitlab, jira, ... (Default: glab-tui, )
+- a *workflow TUI*; this should be understood as any kind of project management tool such as Github/Gitlab, jira, ... (Default: glab-tui)
+- a *mind map TUI* (Default: [Shiki](https://github.com/sazardev/shiki)), docked beside Helix
 
 `sat-hx-ide` starts a project session with:
 
@@ -27,6 +29,8 @@ Then, the different tools are accessible via zellij keybindings:
 - `Alt-y` to dock Yazi on the left of Helix, or float it again;
 - `Alt-t` to hide the terminal behind fullscreen Helix, or show it again;
 - `Alt-Shift-t` to zoom the terminal to full tab height, or dock it back;
+- `Alt-m` to open or show the mind map docked beside Helix (or hide it again);
+- `Alt-Shift-m` to zoom the mind map to full tab size, or dock it back;
 - `Alt-g` to open Lazygit, GitUI, or another Git TUI in a floating pane;
 - `Alt-r` to open the configured review tool (revdiff by default) in a floating pane.
 - `Alt-w` to open the configured workflow tool (glab-tui by default) in a floating pane.
