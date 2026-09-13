@@ -10,12 +10,27 @@ repos:
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files
+        exclude: ^book/src/assets/demo\.gif$
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: check-merge-conflict
 
   - repo: local
     hooks:
+      - id: check-demo-gif-size
+        name: check demo.gif size (max 2000 KiB)
+        entry: >
+          bash -c 'max=$((2000 * 1024));
+          for f; do
+            size=$(wc -c < "$f");
+            if [ "$size" -gt "$max" ]; then
+              echo "$f is $size bytes (max $max / 2000 KiB)" >&2;
+              exit 1;
+            fi;
+          done'
+        language: system
+        files: ^book/src/assets/demo\.gif$
+        pass_filenames: true
       - id: cargo-fmt
         name: cargo fmt
         entry: cargo fmt --all

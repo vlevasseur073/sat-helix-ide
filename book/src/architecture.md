@@ -102,6 +102,8 @@ Zellij bindings invoke hidden subcommands on the `sat-hx-ide` binary:
 | `Alt-y` | `__file-manager toggle-dock` | Float or dock file manager |
 | `Alt-t` | `__terminal toggle` | Hide/show terminal via fullscreen |
 | `Alt-Shift-t` | `__terminal zoom` | Zoom terminal or dock back |
+| `Alt-m` | `__mindmap toggle` | Open/show or hide docked mind map |
+| `Alt-Shift-m` | `__mindmap zoom` | Zoom mind map or dock back |
 | `Alt-g` | `__git open` | Spawn configured Git TUI in floating pane |
 | `Alt-r` | `__review open` | Spawn configured review tool in floating pane |
 | `Alt-w` | `__workflow open` | Spawn configured workflow tool in floating pane |
@@ -138,15 +140,20 @@ The main action categories are:
    - Zoom: Maximize terminal or restore docked size
    - Respawn: Create fresh terminal when previous one exits
 
-3. **Git Actions**
+3. **Mind Map Actions**
+   - Toggle: Open/show or hide the docked `mindmapping` pane (Shiki by default)
+   - Zoom: Maximize mind map or restore docked size
+   - Respawn: Create a fresh mind map pane on demand (`mindmap.enabled` only affects session start)
+
+4. **Git Actions**
    - Open: Spawn Git TUI in floating pane
    - Manage pane lifecycle
 
-4. **Review Actions**
+5. **Review Actions**
    - Open: Spawn review tool in floating pane
    - Handle various review workflows
 
-5. **Workflow Actions**
+6. **Workflow Actions**
    - Open: Spawn workflow tool in floating pane
    - Manage project management integrations
 

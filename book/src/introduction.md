@@ -17,6 +17,7 @@ At its core, `sat-helix-ide` is a small command-line tool that creates and manag
 | **Git TUI** | [Lazygit](https://github.com/jesseduffield/lazygit) | [GitUI](https://github.com/gitui-org/gitui) | Interactive Git client |
 | **Review Tool** | [revdiff](https://github.com/umputun/revdiff) | `git diff`, git-delta | Code review interface |
 | **Workflow Tool** | [glab-tui](https://github.com/rcieri/glab-tui) | - | GitHub/GitLab project management |
+| **Mind Map** | [Shiki](https://github.com/sazardev/shiki) | - | Docked mind-mapping / notes TUI |
 
 ### Core Features
 
@@ -26,6 +27,7 @@ At its core, `sat-helix-ide` is a small command-line tool that creates and manag
 - **Git Integration**: Launch Git TUI clients in floating panes
 - **Review Tools**: Open diff tools for code review workflows
 - **Workflow Tools**: Access project management TUIs (GitHub, GitLab, etc.)
+- **Mind Map**: Dock [Shiki](https://github.com/sazardev/shiki) beside Helix for notes and mind maps (`Alt-m`)
 - **Configuration Flexibility**: Customize every aspect without modifying your global configs
 - **Non-Intrusive**: Never writes to your global Zellij, Helix, or tool configurations
 

@@ -22,6 +22,7 @@ Before installing `sat-helix-ide`, ensure you have the following tools installed
 | **GitUI** | Alternative Git TUI | [GitHub Releases](https://github.com/gitui-org/gitui/releases) |
 | **revdiff** | Code review tool | [GitHub Releases](https://github.com/umputun/revdiff/releases) |
 | **glab-tui** | GitHub/GitLab workflow | [GitHub Releases](https://github.com/rcieri/glab-tui/releases) |
+| **Shiki** | Mind map / notes TUI | [GitHub](https://github.com/sazardev/shiki) / `cargo install shiki-cli` |
 
 ### Build Requirements (for building from source)
 
@@ -137,6 +138,8 @@ After running `sat-hx-ide init .`, you should see:
 | Toggle file manager dock | `Alt-y` |
 | Toggle terminal visibility | `Alt-t` |
 | Zoom terminal | `Alt-Shift-t` |
+| Toggle mind map dock | `Alt-m` |
+| Zoom mind map | `Alt-Shift-m` |
 | Open Git TUI | `Alt-g` |
 | Open review tool | `Alt-r` |
 | Open workflow tool | `Alt-w` |

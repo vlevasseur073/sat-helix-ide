@@ -25,7 +25,7 @@ dock_percent = 15
 # Off by default; Alt-m still opens it on demand when false.
 enabled = false
 # Size of that pane as a percentage of the code tab (height when dock_position = "down", width when "right").
-dock_percent = 15
+dock_percent = 50
 # dock placement: "down" or "right" (default).
 # dock_position = "right"
 
