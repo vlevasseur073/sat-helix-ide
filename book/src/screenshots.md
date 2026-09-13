@@ -8,12 +8,6 @@ Animated walkthrough of a typical `sat-hx-ide` session:
 
 ![`sat-hx-ide` demo](assets/demo.gif)
 
-> **Note**: The static screenshots below are placeholders. To create actual screenshots, you can:
-> 1. Set up `sat-helix-ide` with the sat-helix-ide repository as the project
-> 2. Take screenshots of various workflows
-> 3. Add them to the `book/src/assets/` directory
-> 4. Update the image paths below
-
 ## Initial Workspace
 
 When you first launch `sat-helix-ide init .` in the sat-helix-ide repository, you'll see the default workspace:
@@ -322,56 +316,29 @@ This screenshot shows the typical workflow when developing `sat-helix-ide` itsel
 
 ## Creating Your Own Screenshots
 
-To create actual screenshots for this documentation:
+Regenerate the PNGs under `book/src/assets/` with the capture script (requires
+`xvfb`, `xterm` with `xterm-direct` terminfo, `xdotool`, `xrdb`, ImageMagick
+`import`, and a Nerd Font such as **JetBrainsMono Nerd Font Mono** for Yazi
+icons). Screenshots use **Catppuccin Macchiato** via `scripts/screenshot-theme/`,
+and force `TERM=xterm-direct` + `COLORTERM=truecolor` so Helix gets 24-bit
+colors (plain `TERM=xterm` is only 8 colors and makes blues nearly invisible):
 
-### Prerequisites
+```bash
+bash scripts/capture-screenshots.sh
+```
 
-1. Install `sat-helix-ide`
-2. Install all required tools (Zellij, Helix, Yazi, Lazygit, etc.)
-3. Have a terminal that supports screenshots (most modern terminals do)
+The script starts a headless Zellij session, drives each UI state via
+`sat-hx-ide` / `zellij` actions, and writes:
 
-### Steps
-
-1. **Start a session with the sat-helix-ide repository:**
-   ```bash
-   cd /path/to/sat-helix-ide
-   sat-hx-ide init . --session screenshots
-   ```
-
-2. **Set up the desired state:**
-   - For initial workspace: Just start the session
-   - For file manager: Press `Ctrl-y` for floating or `Alt-y` for docked
-   - For terminal states: Use `Alt-t` and `Alt-Shift-t`
-   - For Git integration: Press `Alt-g`
-   - For review: Press `Alt-r`
-
-3. **Take screenshots:**
-   - Use your system's screenshot tool
-   - Or use terminal-specific screenshot capabilities
-   - Consider using a consistent color scheme and font for professional results
-
-4. **Save screenshots to the assets directory:**
-   ```bash
-   mkdir -p book/src/assets
-   # Copy your screenshots here with descriptive names
-   ```
-
-5. **Update the markdown:**
-   - Replace the placeholder `![Alt text](assets/filename.png)` with your actual images
-   - Ensure image paths are correct
-   - Add descriptive captions
-
-### Recommended Screenshot States
-
-1. `initial-workspace.png` - Default layout after `sat-hx-ide init .`
-2. `yazi-fullscreen.png` - Yazi in full-screen floating mode (`Ctrl-y`)
-3. `yazi-docked.png` - Yazi docked to the left of Helix (`Alt-y`)
-4. `terminal-visible.png` - Default terminal state
-5. `terminal-hidden.png` - Terminal hidden with `Alt-t`
-6. `terminal-zoomed.png` - Terminal zoomed with `Alt-Shift-t`
-7. `lazygit-integration.png` - Lazygit opened with `Alt-g`
-8. `development-workflow.png` - Full development setup (Yazi + Helix + Terminal)
-9. `review-workflow.png` - revdiff opened with `Alt-r`
+1. `initial-workspace.png` — default Helix + terminal layout
+2. `yazi-fullscreen.png` — Yazi floating (`Ctrl-y`)
+3. `yazi-docked.png` — Yazi docked (`Alt-y`)
+4. `terminal-visible.png` — default terminal dock
+5. `terminal-hidden.png` — terminal hidden (`Alt-t`)
+6. `terminal-zoomed.png` — terminal zoomed (`Alt-Shift-t`)
+7. `lazygit-integration.png` — Lazygit floating (`Alt-g`)
+8. `development-workflow.png` — docked Yazi + Helix + tests
+9. `review-workflow.png` — revdiff floating (`Alt-r`)
 
 ### Tips for Good Screenshots
 
@@ -379,11 +346,9 @@ To create actual screenshots for this documentation:
 - Ensure good contrast (light background with dark text or vice versa)
 - Show realistic content (actual code from the project)
 - Keep the terminal at a reasonable size for readability
-- Consider adding subtle borders or shadows in post-processing
 - Maintain consistent styling across all screenshots
 
 ## Next Steps
 
 - [Configuration](./configuration.md) - Learn how to customize your setup
 - [Architecture](./architecture.md) - Understand the design and implementation
-- Try creating your own screenshots to document your workflow
