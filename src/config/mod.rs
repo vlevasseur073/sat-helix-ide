@@ -179,6 +179,9 @@ pub struct KeybindingConfig {
 
     #[serde(default = "default_venv_key")]
     pub venv: String,
+
+    #[serde(default = "default_venv_select_key")]
+    pub venv_select: String,
 }
 
 impl Default for KeybindingConfig {
@@ -194,6 +197,7 @@ impl Default for KeybindingConfig {
             mindmap: default_mindmap_key(),
             mindmap_zoom: default_mindmap_zoom_key(),
             venv: default_venv_key(),
+            venv_select: default_venv_select_key(),
         }
     }
 }
@@ -293,6 +297,10 @@ fn default_venv_type() -> String {
 
 fn default_venv_key() -> String {
     "Alt v".to_string()
+}
+
+fn default_venv_select_key() -> String {
+    "Alt Shift v".to_string()
 }
 
 impl Config {

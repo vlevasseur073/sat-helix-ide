@@ -152,6 +152,7 @@ enum WorkflowCommands {
 #[derive(Subcommand, Debug)]
 enum VenvCommands {
     Toggle,
+    Select,
 }
 
 impl Default for Commands {
@@ -254,6 +255,7 @@ fn main() -> Result<()> {
             let config = Config::load(&cli.config)?;
             let action = match action {
                 VenvCommands::Toggle => VenvAction::Toggle,
+                VenvCommands::Select => VenvAction::Select,
             };
             venv_action(&config, action)?;
         }

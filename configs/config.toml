@@ -43,6 +43,8 @@ mindmap = "Alt m"
 mindmap_zoom = "Alt Shift m"
 # Toggle virtual environment activation
 venv = "Alt v"
+# Open environment selector TUI
+venv_select = "Alt Shift v"
 
 [tools.zellij]
 command = "zellij"
