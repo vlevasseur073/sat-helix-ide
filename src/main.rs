@@ -153,6 +153,10 @@ enum WorkflowCommands {
 enum VenvCommands {
     Toggle,
     Select,
+    /// Verify that a path exists and looks like an activatable environment.
+    ValidatePath {
+        path: PathBuf,
+    },
 }
 
 impl Default for Commands {
@@ -251,14 +255,23 @@ fn main() -> Result<()> {
             };
             workflow_action(&config, action)?;
         }
-        Commands::Venv { action } => {
-            let config = Config::load(&cli.config)?;
-            let action = match action {
-                VenvCommands::Toggle => VenvAction::Toggle,
-                VenvCommands::Select => VenvAction::Select,
-            };
-            venv_action(&config, action)?;
-        }
+        Commands::Venv { action } => match action {
+            VenvCommands::ValidatePath { path } => {
+                if let Err(err) = sat_helix_ide::venv::validate_custom_venv_path(&path) {
+                    eprintln!("{err:#}");
+                    std::process::exit(1);
+                }
+            }
+            other => {
+                let config = Config::load(&cli.config)?;
+                let action = match other {
+                    VenvCommands::Toggle => VenvAction::Toggle,
+                    VenvCommands::Select => VenvAction::Select,
+                    VenvCommands::ValidatePath { .. } => unreachable!(),
+                };
+                venv_action(&config, action)?;
+            }
+        },
     }
     Ok(())
 }

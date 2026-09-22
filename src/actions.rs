@@ -916,10 +916,6 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 
     match action {
         VenvAction::Toggle => {
-            // Determine the activation command based on detection or configuration
-            let (activate_cmd, deactivate_cmd) = determine_venv_commands(venv_config)?;
-
-            // Track state using a file in the runtime directory
             let session_name =
                 std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
             let runtime_dir = config.runtime_dir(&session_name);
@@ -927,15 +923,38 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 
             let is_active = venv_state_file.exists();
 
-            if is_active {
-                // Deactivate
-                send_command_to_pane(&zellij, terminal, &deactivate_cmd)?;
-                let _ = std::fs::remove_file(venv_state_file);
+            // Check if we have a saved selection
+            if let Ok(Some(saved_selection)) = crate::venv::load_venv_selection(&session_name) {
+                // Use the saved selection's activation command
+                let (activate_cmd, deactivate_cmd) = crate::venv::generate_commands(
+                    &saved_selection.venv_type,
+                    Some(&saved_selection.path),
+                )?;
+
+                if is_active {
+                    // Deactivate
+                    send_command_to_pane(&zellij, terminal, &deactivate_cmd)?;
+                    let _ = std::fs::remove_file(venv_state_file);
+                } else {
+                    // Activate the saved selection
+                    send_command_to_pane(&zellij, terminal, &activate_cmd)?;
+                    std::fs::create_dir_all(&runtime_dir)?;
+                    std::fs::write(venv_state_file, "active")?;
+                }
             } else {
-                // Activate
-                send_command_to_pane(&zellij, terminal, &activate_cmd)?;
-                std::fs::create_dir_all(&runtime_dir)?;
-                std::fs::write(venv_state_file, "active")?;
+                // Fall back to auto-detection
+                let (activate_cmd, deactivate_cmd) = determine_venv_commands(venv_config)?;
+
+                if is_active {
+                    // Deactivate
+                    send_command_to_pane(&zellij, terminal, &deactivate_cmd)?;
+                    let _ = std::fs::remove_file(venv_state_file);
+                } else {
+                    // Activate
+                    send_command_to_pane(&zellij, terminal, &activate_cmd)?;
+                    std::fs::create_dir_all(&runtime_dir)?;
+                    std::fs::write(venv_state_file, "active")?;
+                }
             }
         }
         VenvAction::Select => {
@@ -948,42 +967,37 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 
 /// Spawn an interactive selector to choose a virtual environment
 fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) -> Result<()> {
-    use crate::venv::{generate_selector_script, list_selectable_venvs};
+    use crate::venv::{
+        clear_selector_handoff, generate_commands, generate_selector_script,
+        get_all_available_venvs, read_selector_handoff, save_venv_collection, save_venv_selection,
+        VenvCollection, VENV_SELECTOR_DONE, VENV_SELECTOR_OUTPUT,
+    };
     use std::fs;
 
-    let project_dir = std::env::current_dir()?;
-    let environments = list_selectable_venvs(&project_dir)?;
-
-    if environments.is_empty() {
-        bail!("No virtual environments detected in this project");
-    }
-
-    if environments.len() == 1 {
-        // Only one environment found, activate it directly
-        let (activate_cmd, _) = crate::venv::determine_venv_commands(&config.venv)?;
-        send_command_to_pane(zellij, terminal, &activate_cmd)?;
-
-        // Update state
-        let session_name =
-            std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
-        let runtime_dir = config.runtime_dir(&session_name);
-        std::fs::create_dir_all(&runtime_dir)?;
-        std::fs::write(runtime_dir.join("venv_active"), "active")?;
-        return Ok(());
-    }
-
-    // Multiple environments found, spawn selector
+    let venv_config = &config.venv;
     let session_name =
         std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+
+    // Get all available environments (detected + previously saved custom paths)
+    let environments = get_all_available_venvs(venv_config, &session_name)?;
+
     let runtime_dir = config.runtime_dir(&session_name);
     std::fs::create_dir_all(&runtime_dir)?;
+    clear_selector_handoff(&runtime_dir)?;
 
-    let selector_output_file = runtime_dir.join("venv_selector_output");
+    let selector_output_file = runtime_dir.join(VENV_SELECTOR_OUTPUT);
+    let selection_handoff_file = runtime_dir.join(crate::venv::VENV_SELECTOR_SELECTION);
+    let custom_path_handoff_file = runtime_dir.join(crate::venv::VENV_SELECTOR_CUSTOM_PATH);
 
-    // Generate the selector script
-    let script = generate_selector_script(&environments, &selector_output_file)?;
+    let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
+    let script = generate_selector_script(
+        &environments,
+        &selector_output_file,
+        &selection_handoff_file,
+        &custom_path_handoff_file,
+        &executable,
+    )?;
 
-    // Write the script to a temporary file
     let script_path = runtime_dir.join("venv_selector.sh");
     fs::write(&script_path, script)?;
     fs::set_permissions(
@@ -991,9 +1005,13 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
         std::os::unix::fs::PermissionsExt::from_mode(0o755),
     )?;
 
-    // Spawn a floating pane to run the selector
     let output = Command::new(zellij)
-        .args(["action", "new-pane", "--close-on-exit"])
+        .args([
+            "action",
+            "new-pane",
+            "--close-on-exit",
+            "--block-until-exit",
+        ])
         .args([
             "--floating",
             "--x",
@@ -1012,29 +1030,56 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
         .output()
         .context("Failed to spawn venv selector pane")?;
 
+    if !output.status.success() && !selector_output_file.exists() {
+        return Ok(());
+    }
+
     if !output.status.success() {
         bail!(
-            "Failed to spawn venv selector pane: {}",
+            "Virtual environment selector failed: {}",
             String::from_utf8_lossy(&output.stderr)
         );
     }
 
-    // Wait for the selector to complete and write its output
-    // Poll for the output file
-    for _ in 0..20 {
-        if selector_output_file.exists() {
-            let command = fs::read_to_string(&selector_output_file)?;
-            send_command_to_pane(zellij, terminal, &command)?;
-            let _ = fs::remove_file(&selector_output_file);
-
-            // Update state
-            std::fs::write(runtime_dir.join("venv_active"), "active")?;
-            return Ok(());
-        }
-        std::thread::sleep(std::time::Duration::from_millis(500));
+    if !selector_output_file.exists() {
+        return Ok(());
     }
 
-    bail!("Venv selector did not produce output in time")
+    let marker = fs::read_to_string(&selector_output_file)?;
+    let _ = fs::remove_file(&selector_output_file);
+
+    if marker.trim() == "NO_ENVIRONMENTS" {
+        bail!("No virtual environments detected");
+    }
+
+    if marker.trim() != VENV_SELECTOR_DONE {
+        bail!("Virtual environment selector returned an unexpected result");
+    }
+
+    let selection = read_selector_handoff(&runtime_dir)?
+        .context("Selector finished but no environment was chosen")?;
+
+    let (activate_cmd, _) = generate_commands(&selection.venv_type, Some(&selection.path))?;
+    send_command_to_pane(zellij, terminal, &activate_cmd)?;
+
+    save_venv_selection(&session_name, &selection)?;
+
+    let mut updated_environments = environments;
+    if !updated_environments
+        .iter()
+        .any(|e| e.path == selection.path)
+    {
+        updated_environments.push(selection.clone());
+    }
+    save_venv_collection(
+        &session_name,
+        &VenvCollection {
+            environments: updated_environments,
+        },
+    )?;
+    std::fs::write(runtime_dir.join("venv_active"), "active")?;
+
+    Ok(())
 }
 
 /// Send a command to a specific pane and execute it

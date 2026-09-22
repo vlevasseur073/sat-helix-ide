@@ -209,19 +209,24 @@ pub struct VenvConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
 
-    /// Path to the virtual environment directory or activation script
-    /// If not set, auto-detection will be used
+    /// Path to a specific virtual environment to use
+    /// If set, this environment will be included in the selection list
+    /// Can be used alongside auto-detection
     #[serde(default)]
     pub path: Option<String>,
 
-    /// Type of virtual environment: "auto", "uv", "venv", "poetry", "conda"
-    /// "auto" will attempt to detect the type from the project
+    /// Type of virtual environment for the configured path: "auto", "uv", "venv", "poetry", "conda"
     #[serde(default = "default_venv_type")]
     pub venv_type: String,
 
-    /// Enable auto-detection of virtual environment when path is not set
+    /// Enable auto-detection of virtual environments
     #[serde(default = "default_true")]
     pub auto_detection: bool,
+
+    /// Additional directories to search for virtual environments
+    /// Default includes the project directory. Add paths like "~" to search home directory.
+    #[serde(default)]
+    pub search_paths: Vec<String>,
 }
 
 impl Default for VenvConfig {
@@ -231,6 +236,7 @@ impl Default for VenvConfig {
             path: None,
             venv_type: default_venv_type(),
             auto_detection: true,
+            search_paths: Vec::new(),
         }
     }
 }

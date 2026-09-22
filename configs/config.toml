@@ -85,14 +85,17 @@ args = []
 
 # Virtual environment management
 # Auto-detection is enabled by default when this section is not present
-# or when auto_detection = true. Set a specific path to override detection.
+# or when auto_detection = true.
 [venv]
 # Enable venv management features (default: true)
 enabled = true
-# Path to virtual environment directory (e.g., ".venv" or "~/myenv")
-# If not set, auto-detection will scan for common venv indicators
+# Path to a specific virtual environment to always include in selection
+# Can be used alongside auto-detection from search paths
 # path = ".venv"
-# Type of environment: "auto" (default), "uv", "venv", "poetry", "conda"
+# Type of environment for the configured path: "auto", "uv", "venv", "poetry", "conda"
 # venv_type = "auto"
-# Enable auto-detection when path is not set (default: true)
-# auto_detection = true
+# Enable auto-detection of virtual environments (default: true)
+auto_detection = true
+# Additional directories to search for virtual environments
+# Default searches the project directory. Add "~" to search home directory.
+# search_paths = ["~", "/opt/venvs"]

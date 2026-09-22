@@ -4,7 +4,9 @@
 //! in Python projects.
 
 use crate::config::{expand_tilde, VenvConfig};
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -248,11 +250,17 @@ pub fn determine_venv_commands(venv_config: &VenvConfig) -> Result<(String, Stri
 }
 
 /// Detected environment for selection
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SelectableVenv {
     pub name: String,
     pub path: PathBuf,
     pub venv_type: String,
+}
+
+/// All saved virtual environments (detected + custom)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VenvCollection {
+    pub environments: Vec<SelectableVenv>,
 }
 
 /// List all detected virtual environments in a directory
@@ -331,11 +339,380 @@ pub fn list_selectable_venvs(dir: &Path) -> Result<Vec<SelectableVenv>> {
     Ok(results)
 }
 
+/// List all selectable virtual environments from multiple search paths and config
+pub fn list_all_selectable_venvs(venv_config: &VenvConfig) -> Result<Vec<SelectableVenv>> {
+    use crate::config::expand_tilde;
+
+    let mut all_environments = Vec::new();
+
+    // Add user-configured path if set
+    if let Some(ref path) = venv_config.path {
+        let resolved_path = expand_tilde(Path::new(path));
+        let venv_type = if venv_config.venv_type == "auto" {
+            detect_venv_type(&resolved_path)?
+        } else {
+            venv_config.venv_type.clone()
+        };
+        all_environments.push(SelectableVenv {
+            name: format!("Configured: {}", resolved_path.display()),
+            path: resolved_path,
+            venv_type,
+        });
+    }
+
+    // Build list of directories to search
+    let mut search_dirs = Vec::new();
+
+    // Always search current directory first
+    if let Ok(current_dir) = std::env::current_dir() {
+        search_dirs.push(current_dir);
+    }
+
+    // Add configured search paths
+    for search_path in &venv_config.search_paths {
+        let expanded = expand_tilde(Path::new(search_path));
+        if expanded.exists() && expanded.is_dir() {
+            search_dirs.push(expanded);
+        }
+    }
+
+    // Also search home directory by default
+    if let Some(home) = home::home_dir() {
+        if !search_dirs.iter().any(|d| d == &home) {
+            search_dirs.push(home);
+        }
+    }
+
+    // Deduplicate search directories
+    let unique_search_dirs: Vec<PathBuf> = search_dirs
+        .into_iter()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+
+    // Search each directory for environments
+    for search_dir in &unique_search_dirs {
+        if let Ok(venvs) = list_selectable_venvs(search_dir) {
+            all_environments.extend(venvs);
+        }
+    }
+
+    // Remove duplicates based on path
+    let unique_environments: Vec<SelectableVenv> =
+        all_environments
+            .into_iter()
+            .fold(Vec::new(), |mut acc, env| {
+                if !acc.iter().any(|e| e.path == env.path) {
+                    acc.push(env);
+                }
+                acc
+            });
+
+    Ok(unique_environments)
+}
+
+/// Save the selected environment path to session runtime
+pub fn save_venv_selection(session_name: &str, selection: &SelectableVenv) -> Result<()> {
+    let runtime_dir = crate::config::Config::default().runtime_dir(session_name);
+    std::fs::create_dir_all(&runtime_dir)?;
+
+    let selection_file = runtime_dir.join("venv_selection.json");
+    let json = serde_json::to_string(selection)?;
+    std::fs::write(selection_file, json)?;
+
+    Ok(())
+}
+
+/// Load the saved environment selection from session runtime
+pub fn load_venv_selection(session_name: &str) -> Result<Option<SelectableVenv>> {
+    let runtime_dir = crate::config::Config::default().runtime_dir(session_name);
+    let selection_file = runtime_dir.join("venv_selection.json");
+
+    if !selection_file.exists() {
+        return Ok(None);
+    }
+
+    let content = std::fs::read_to_string(&selection_file)?;
+    let selection: SelectableVenv = serde_json::from_str(&content)?;
+
+    Ok(Some(selection))
+}
+
+/// Save all known environments (detected + custom) to session runtime
+pub fn save_venv_collection(session_name: &str, collection: &VenvCollection) -> Result<()> {
+    let runtime_dir = crate::config::Config::default().runtime_dir(session_name);
+    std::fs::create_dir_all(&runtime_dir)?;
+
+    let collection_file = runtime_dir.join("venv_collection.json");
+    let json = serde_json::to_string(collection)?;
+    std::fs::write(collection_file, json)?;
+
+    Ok(())
+}
+
+/// Load all saved environments from session runtime
+pub fn load_venv_collection(session_name: &str) -> Result<Option<VenvCollection>> {
+    let runtime_dir = crate::config::Config::default().runtime_dir(session_name);
+    let collection_file = runtime_dir.join("venv_collection.json");
+
+    if !collection_file.exists() {
+        return Ok(None);
+    }
+
+    let content = std::fs::read_to_string(&collection_file)?;
+    let collection: VenvCollection = serde_json::from_str(&content)?;
+
+    Ok(Some(collection))
+}
+
+/// Get all available environments including detected and previously saved custom paths
+pub fn get_all_available_venvs(
+    venv_config: &VenvConfig,
+    session_name: &str,
+) -> Result<Vec<SelectableVenv>> {
+    // Load previously saved collection
+    if let Ok(Some(saved_collection)) = load_venv_collection(session_name) {
+        // Get freshly detected environments
+        let detected = list_all_selectable_venvs(venv_config)?;
+
+        // Merge detected with saved, deduplicating by path
+        let mut all_environments = saved_collection.environments;
+
+        // Add detected environments that aren't already in the saved collection
+        for detected_env in detected {
+            if !all_environments.iter().any(|e| e.path == detected_env.path) {
+                all_environments.push(detected_env);
+            }
+        }
+
+        Ok(all_environments)
+    } else {
+        // No saved collection yet, just return detected environments
+        list_all_selectable_venvs(venv_config)
+    }
+}
+
+/// Transient handoff files used only while the selector TUI is open (not persisted).
+pub const VENV_SELECTOR_OUTPUT: &str = "venv_selector_output";
+pub const VENV_SELECTOR_SELECTION: &str = "venv_selector_selection.json";
+pub const VENV_SELECTOR_CUSTOM_PATH: &str = "venv_selector_custom_path";
+
+/// Marker written to [`VENV_SELECTOR_OUTPUT`] when the user made a selection.
+pub const VENV_SELECTOR_DONE: &str = "OK";
+
+/// Whether the stored selection can be activated as-is (used for list checkmarks).
+pub fn is_selection_activatable(env: &SelectableVenv) -> bool {
+    validate_selection_activatable(env).is_ok()
+}
+
+/// Verify that a saved selection path and type match what `generate_commands` expects.
+pub fn validate_selection_activatable(env: &SelectableVenv) -> Result<()> {
+    let path = expand_tilde(&env.path);
+    match env.venv_type.as_str() {
+        "venv" | "auto" => require_activate_at(&path),
+        "uv" => validate_uv_activatable(&path),
+        "poetry" => validate_poetry(&path),
+        "conda" => validate_conda(&path),
+        "pipenv" => validate_pipenv(&path),
+        _ => require_activate_at(&path),
+    }
+}
+
+/// Strict validation for a user-typed custom path (used by the selector TUI).
+pub fn validate_custom_venv_path(path: &Path) -> Result<()> {
+    resolve_custom_venv_path(path).map(|_| ())
+}
+
+fn activate_script_path(venv_root: &Path) -> Option<PathBuf> {
+    let unix = venv_root.join("bin").join("activate");
+    if unix.is_file() {
+        return Some(unix);
+    }
+    let windows = venv_root.join("Scripts").join("activate");
+    if windows.is_file() {
+        return Some(windows);
+    }
+    None
+}
+
+fn require_activate_at(path: &Path) -> Result<()> {
+    if activate_script_path(path).is_some() {
+        return Ok(());
+    }
+    bail!(
+        "No bin/activate script at {} (enter the venv directory, e.g. {}/.venv)",
+        path.display(),
+        path.display()
+    );
+}
+
+fn validate_uv_activatable(path: &Path) -> Result<()> {
+    if !path.exists() {
+        bail!("Path does not exist: {}", path.display());
+    }
+    if activate_script_path(path).is_some() {
+        return Ok(());
+    }
+    if path.is_dir() && uv_project_markers(path) {
+        return Ok(());
+    }
+    bail!(
+        "Not a uv project or virtual environment at {}",
+        path.display()
+    );
+}
+
+fn uv_project_markers(path: &Path) -> bool {
+    let pyproject = path.join("pyproject.toml");
+    if pyproject.is_file() {
+        if let Ok(content) = fs::read_to_string(&pyproject) {
+            if content.contains("[tool.uv]") {
+                return true;
+            }
+        }
+    }
+    path.join(".python-version").is_file()
+}
+
+fn validate_poetry(path: &Path) -> Result<()> {
+    if !path.is_dir() {
+        bail!("Path is not a directory: {}", path.display());
+    }
+    let pyproject = path.join("pyproject.toml");
+    if !pyproject.is_file() {
+        bail!("No pyproject.toml found at {}", path.display());
+    }
+    let content = fs::read_to_string(&pyproject)?;
+    if content.contains("[tool.poetry]") {
+        Ok(())
+    } else {
+        bail!(
+            "pyproject.toml is not a Poetry project at {}",
+            path.display()
+        );
+    }
+}
+
+fn validate_conda(path: &Path) -> Result<()> {
+    if !path.is_dir() {
+        bail!("Path is not a directory: {}", path.display());
+    }
+    if path.join("environment.yml").is_file() {
+        Ok(())
+    } else {
+        bail!("No environment.yml found at {}", path.display());
+    }
+}
+
+fn validate_pipenv(path: &Path) -> Result<()> {
+    if !path.is_dir() {
+        bail!("Path is not a directory: {}", path.display());
+    }
+    if path.join("Pipfile").is_file() {
+        Ok(())
+    } else {
+        bail!("No Pipfile found at {}", path.display());
+    }
+}
+
+/// Resolve and validate a user-typed path into a storable selection.
+pub fn resolve_custom_venv_path(path: &Path) -> Result<SelectableVenv> {
+    let path = expand_tilde(path);
+    if !path.exists() {
+        bail!("Path does not exist: {}", path.display());
+    }
+
+    if activate_script_path(&path).is_some() {
+        let venv_type = detect_venv_type(&path).unwrap_or_else(|_| "venv".to_string());
+        return Ok(custom_venv_entry(path, venv_type));
+    }
+
+    if validate_poetry(&path).is_ok() {
+        return Ok(custom_venv_entry(path, "poetry".to_string()));
+    }
+    if path.is_dir() && uv_project_markers(&path) {
+        return Ok(custom_venv_entry(path, "uv".to_string()));
+    }
+    if validate_conda(&path).is_ok() {
+        return Ok(custom_venv_entry(path, "conda".to_string()));
+    }
+    if validate_pipenv(&path).is_ok() {
+        return Ok(custom_venv_entry(path, "pipenv".to_string()));
+    }
+
+    let nested = path.join(".venv");
+    if nested.is_dir() && activate_script_path(&nested).is_some() {
+        bail!(
+            "No environment at {}. Enter the venv directory instead: {}",
+            path.display(),
+            nested.display()
+        );
+    }
+
+    bail!("No virtual environment found at {}", path.display());
+}
+
+fn custom_venv_entry(path: PathBuf, venv_type: String) -> SelectableVenv {
+    SelectableVenv {
+        name: format!("Custom: {}", path.display()),
+        path,
+        venv_type,
+    }
+}
+
+/// Read the user's choice from transient selector handoff files.
+pub fn read_selector_handoff(runtime_dir: &Path) -> Result<Option<SelectableVenv>> {
+    let selection_file = runtime_dir.join(VENV_SELECTOR_SELECTION);
+    if selection_file.exists() {
+        let content = fs::read_to_string(&selection_file)?;
+        let _ = fs::remove_file(&selection_file);
+        let selection: SelectableVenv = serde_json::from_str(content.trim())
+            .context("Invalid virtual environment selection from selector")?;
+        validate_selection_activatable(&selection)?;
+        return Ok(Some(selection));
+    }
+
+    let custom_path_file = runtime_dir.join(VENV_SELECTOR_CUSTOM_PATH);
+    if custom_path_file.exists() {
+        let path_line = fs::read_to_string(&custom_path_file)?;
+        let _ = fs::remove_file(&custom_path_file);
+        let path = PathBuf::from(path_line.trim());
+        if path.as_os_str().is_empty() {
+            bail!("Custom virtual environment path is empty");
+        }
+        return resolve_custom_venv_path(&path).map(Some);
+    }
+
+    Ok(None)
+}
+
+/// Remove leftover selector handoff files from a previous run.
+pub fn clear_selector_handoff(runtime_dir: &Path) -> Result<()> {
+    for name in [
+        VENV_SELECTOR_OUTPUT,
+        VENV_SELECTOR_SELECTION,
+        VENV_SELECTOR_CUSTOM_PATH,
+    ] {
+        let path = runtime_dir.join(name);
+        if path.exists() {
+            fs::remove_file(&path)?;
+        }
+    }
+    Ok(())
+}
+
+fn shell_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
 /// Generate a shell script that lets the user select a virtual environment
 /// The script writes the selection to a file and exits
 pub fn generate_selector_script(
     environments: &[SelectableVenv],
     output_file: &Path,
+    selection_file: &Path,
+    custom_path_file: &Path,
+    validator_executable: &Path,
 ) -> Result<String> {
     use std::fmt::Write;
 
@@ -351,18 +728,29 @@ pub fn generate_selector_script(
             script,
             "echo 'No virtual environments detected in this project.'"
         )?;
-        writeln!(script, "exit 1")?;
+        // Write a marker to the output file to signal completion
+        writeln!(script, "echo 'NO_ENVIRONMENTS' > {}", output_file.display())?;
+        writeln!(script, "exit 0")?;
         return Ok(script);
     }
 
     writeln!(script, "echo 'Select a virtual environment to activate:'")?;
+    writeln!(
+        script,
+        "echo '  [✓] verified   [ ] not found or incomplete'"
+    )?;
     writeln!(script, "echo ''")?;
 
-    // List all environments
     for (i, env) in environments.iter().enumerate() {
+        let checkbox = if is_selection_activatable(env) {
+            "[✓]"
+        } else {
+            "[ ]"
+        };
         writeln!(
             script,
-            "echo '{} - {} ({})'",
+            "echo '{} {} - {} ({})'",
+            checkbox,
             i + 1,
             env.name,
             env.venv_type
@@ -373,27 +761,73 @@ pub fn generate_selector_script(
     writeln!(script, "echo ''")?;
     writeln!(
         script,
-        "echo 'Enter the number of your choice (or q to quit):'"
+        "echo 'Enter the number of your choice, c to add a custom path, or q to quit:'"
     )?;
     writeln!(script, "read choice")?;
     writeln!(script)?;
 
     writeln!(script, r##"case "$choice" in"##)?;
 
+    let done = shell_single_quote(VENV_SELECTOR_DONE);
+
     for (i, env) in environments.iter().enumerate() {
         let index = i + 1;
-        // Get activation command for this environment
-        let (activate, _) = generate_commands(&env.venv_type, Some(&env.path))?;
+        let env_json = serde_json::to_string(env)?;
+        let env_json_quoted = shell_single_quote(&env_json);
         writeln!(script, "  {}*)", index)?;
         writeln!(
             script,
-            "    echo '{}' > {}",
-            activate,
+            "    printf '%s\\n' {} > {}",
+            env_json_quoted,
+            selection_file.display()
+        )?;
+        writeln!(
+            script,
+            "    printf '%s\\n' {} > {}",
+            done,
             output_file.display()
         )?;
         writeln!(script, "    exit 0")?;
         writeln!(script, "    ;;")?;
     }
+
+    let validator = shell_single_quote(&validator_executable.display().to_string());
+
+    // Add option to enter a custom path
+    writeln!(script, "  c|C)")?;
+    writeln!(
+        script,
+        "    echo 'Enter the path to a custom virtual environment:'"
+    )?;
+    writeln!(script, "    while true; do")?;
+    writeln!(script, "      printf '> '")?;
+    writeln!(script, "      read custom_path")?;
+    writeln!(script, "      if [ -z \"$custom_path\" ]; then")?;
+    writeln!(script, "        echo 'No path entered, cancelling.'")?;
+    writeln!(script, "        exit 1")?;
+    writeln!(script, "      fi")?;
+    writeln!(
+        script,
+        "      if {} __venv validate-path \"$custom_path\"; then",
+        validator
+    )?;
+    writeln!(script, "        break")?;
+    writeln!(script, "      fi")?;
+    writeln!(script, "      echo ''")?;
+    writeln!(script, "    done")?;
+    writeln!(
+        script,
+        "    printf '%s\\n' \"$custom_path\" > {}",
+        custom_path_file.display()
+    )?;
+    writeln!(
+        script,
+        "    printf '%s\\n' {} > {}",
+        done,
+        output_file.display()
+    )?;
+    writeln!(script, "    exit 0")?;
+    writeln!(script, "    ;;")?;
 
     writeln!(script, "  q|Q)")?;
     writeln!(script, "    exit 1")?;
@@ -405,4 +839,110 @@ pub fn generate_selector_script(
     writeln!(script, "esac")?;
 
     Ok(script)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn read_selector_handoff_parses_json_selection() {
+        let venv = tempfile::tempdir().unwrap();
+        let bin = venv.path().join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(bin.join("activate"), "").unwrap();
+        let handoff = tempfile::tempdir().unwrap();
+        let selection = SelectableVenv {
+            name: "test".to_string(),
+            path: venv.path().to_path_buf(),
+            venv_type: "venv".to_string(),
+        };
+        fs::write(
+            handoff.path().join(VENV_SELECTOR_SELECTION),
+            serde_json::to_string(&selection).unwrap(),
+        )
+        .unwrap();
+
+        let parsed = read_selector_handoff(handoff.path()).unwrap().unwrap();
+        assert_eq!(parsed.path, selection.path);
+        assert!(!handoff.path().join(VENV_SELECTOR_SELECTION).exists());
+    }
+
+    #[test]
+    fn read_selector_handoff_reads_custom_path_file() {
+        let venv = tempfile::tempdir().unwrap();
+        let bin = venv.path().join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(bin.join("activate"), "").unwrap();
+        let handoff = tempfile::tempdir().unwrap();
+        fs::write(
+            handoff.path().join(VENV_SELECTOR_CUSTOM_PATH),
+            format!("{}\n", venv.path().display()),
+        )
+        .unwrap();
+
+        let parsed = read_selector_handoff(handoff.path()).unwrap().unwrap();
+        assert_eq!(parsed.path, venv.path());
+        assert!(parsed.name.starts_with("Custom:"));
+    }
+
+    #[test]
+    fn resolve_custom_path_requires_activate_at_entered_path() {
+        let project = tempfile::tempdir().unwrap();
+        let dot_venv = project.path().join(".venv");
+        let bin = dot_venv.join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(bin.join("activate"), "").unwrap();
+
+        assert!(resolve_custom_venv_path(project.path()).is_err());
+        assert!(resolve_custom_venv_path(&dot_venv).is_ok());
+    }
+
+    #[test]
+    fn resolve_custom_path_accepts_poetry_project() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("pyproject.toml"),
+            "[tool.poetry]\nname = \"demo\"\n",
+        )
+        .unwrap();
+        let resolved = resolve_custom_venv_path(dir.path()).unwrap();
+        assert_eq!(resolved.venv_type, "poetry");
+    }
+
+    #[test]
+    fn selection_checkbox_false_when_project_root_auto_without_activate() {
+        let project = tempfile::tempdir().unwrap();
+        let dot_venv = project.path().join(".venv");
+        let bin = dot_venv.join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(bin.join("activate"), "").unwrap();
+        let env = SelectableVenv {
+            name: "Custom: demo".to_string(),
+            path: project.path().to_path_buf(),
+            venv_type: "auto".to_string(),
+        };
+        assert!(!is_selection_activatable(&env));
+    }
+
+    #[test]
+    fn clear_selector_handoff_removes_transient_files() {
+        let dir = tempfile::tempdir().unwrap();
+        for name in [
+            VENV_SELECTOR_OUTPUT,
+            VENV_SELECTOR_SELECTION,
+            VENV_SELECTOR_CUSTOM_PATH,
+        ] {
+            fs::write(dir.path().join(name), "x").unwrap();
+        }
+        clear_selector_handoff(dir.path()).unwrap();
+        for name in [
+            VENV_SELECTOR_OUTPUT,
+            VENV_SELECTOR_SELECTION,
+            VENV_SELECTOR_CUSTOM_PATH,
+        ] {
+            assert!(!dir.path().join(name).exists());
+        }
+    }
 }
