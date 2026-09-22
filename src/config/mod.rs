@@ -23,6 +23,9 @@ pub struct Config {
 
     #[serde(default)]
     pub keybindings: KeybindingConfig,
+
+    #[serde(default)]
+    pub venv: VenvConfig,
 }
 
 impl Default for Config {
@@ -173,6 +176,9 @@ pub struct KeybindingConfig {
 
     #[serde(default = "default_mindmap_zoom_key")]
     pub mindmap_zoom: String,
+
+    #[serde(default = "default_venv_key")]
+    pub venv: String,
 }
 
 impl Default for KeybindingConfig {
@@ -187,6 +193,40 @@ impl Default for KeybindingConfig {
             terminal_zoom: default_terminal_zoom_key(),
             mindmap: default_mindmap_key(),
             mindmap_zoom: default_mindmap_zoom_key(),
+            venv: default_venv_key(),
+        }
+    }
+}
+
+/// Virtual environment configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VenvConfig {
+    /// Enable virtual environment management
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+
+    /// Path to the virtual environment directory or activation script
+    /// If not set, auto-detection will be used
+    #[serde(default)]
+    pub path: Option<String>,
+
+    /// Type of virtual environment: "auto", "uv", "venv", "poetry", "conda"
+    /// "auto" will attempt to detect the type from the project
+    #[serde(default = "default_venv_type")]
+    pub venv_type: String,
+
+    /// Enable auto-detection of virtual environment when path is not set
+    #[serde(default = "default_true")]
+    pub auto_detection: bool,
+}
+
+impl Default for VenvConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            path: None,
+            venv_type: default_venv_type(),
+            auto_detection: true,
         }
     }
 }
@@ -245,6 +285,14 @@ fn default_mindmap_percent() -> u8 {
 
 fn default_mindmap_dock_position() -> DockPosition {
     DockPosition::Right
+}
+
+fn default_venv_type() -> String {
+    "auto".to_string()
+}
+
+fn default_venv_key() -> String {
+    "Alt v".to_string()
 }
 
 impl Config {

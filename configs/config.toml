@@ -41,6 +41,8 @@ terminal = "Alt t"
 terminal_zoom = "Alt Shift t"
 mindmap = "Alt m"
 mindmap_zoom = "Alt Shift m"
+# Toggle virtual environment activation
+venv = "Alt v"
 
 [tools.zellij]
 command = "zellij"
@@ -78,3 +80,17 @@ args = []
 [tools.mindmap]
 command = "shiki"
 args = []
+
+# Virtual environment management
+# Auto-detection is enabled by default when this section is not present
+# or when auto_detection = true. Set a specific path to override detection.
+[venv]
+# Enable venv management features (default: true)
+enabled = true
+# Path to virtual environment directory (e.g., ".venv" or "~/myenv")
+# If not set, auto-detection will scan for common venv indicators
+# path = ".venv"
+# Type of environment: "auto" (default), "uv", "venv", "poetry", "conda"
+# venv_type = "auto"
+# Enable auto-detection when path is not set (default: true)
+# auto_detection = true

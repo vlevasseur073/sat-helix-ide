@@ -134,6 +134,12 @@ pub enum WorkflowAction {
     Open,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum VenvAction {
+    /// Toggle virtual environment activation/deactivation
+    Toggle,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct PaneInfo {
     id: u64,
@@ -885,6 +891,72 @@ pub fn review_action(config: &Config, _action: ReviewAction) -> Result<()> {
 
 pub fn workflow_action(config: &Config, _action: WorkflowAction) -> Result<()> {
     spawn_floating_tool(config, "workflow", &config.tools.workflow)
+}
+
+/// Manages virtual environment activation/deactivation in the terminal pane.
+/// Uses auto-detection when path is not configured, or uses the configured path.
+pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
+    use crate::venv::determine_venv_commands;
+
+    let zellij = resolve(&config.tools.zellij.command)?;
+    let venv_config = &config.venv;
+
+    if !venv_config.enabled {
+        bail!("Virtual environment management is disabled in configuration. Enable it in [venv] section.");
+    }
+
+    let panes = list_panes(&zellij).context("Not running in a sat-hx-ide Zellij session")?;
+
+    let terminal = panes
+        .iter()
+        .find(|pane| !pane.is_plugin && pane.title == TERMINAL_PANE)
+        .context("Cannot find the sat-hx-ide terminal pane. The terminal may have been closed.")?;
+
+    match action {
+        VenvAction::Toggle => {
+            // Determine the activation command based on detection or configuration
+            let (activate_cmd, deactivate_cmd) = determine_venv_commands(venv_config)?;
+
+            // Track state using a file in the runtime directory
+            let session_name =
+                std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+            let runtime_dir = config.runtime_dir(&session_name);
+            let venv_state_file = runtime_dir.join("venv_active");
+
+            let is_active = venv_state_file.exists();
+
+            if is_active {
+                // Deactivate
+                send_command_to_pane(&zellij, terminal, &deactivate_cmd)?;
+                let _ = std::fs::remove_file(venv_state_file);
+            } else {
+                // Activate
+                send_command_to_pane(&zellij, terminal, &activate_cmd)?;
+                std::fs::create_dir_all(&runtime_dir)?;
+                std::fs::write(venv_state_file, "active")?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Send a command to a specific pane and execute it
+fn send_command_to_pane(zellij: &Path, pane: &PaneInfo, command: &str) -> Result<()> {
+    // Use write-chars for the command string (avoids keybinding parsing)
+    zellij_status(
+        Command::new(zellij)
+            .args(["action", "write-chars", "--pane-id"])
+            .arg(pane.cli_id())
+            .arg(command),
+    )?;
+    // Send Enter to execute
+    zellij_status(
+        Command::new(zellij)
+            .args(["action", "send-keys", "--pane-id"])
+            .arg(pane.cli_id())
+            .arg("Enter"),
+    )
 }
 
 fn spawn_floating_tool(config: &Config, pane_name: &str, tool: &CommandConfig) -> Result<()> {

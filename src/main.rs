@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use sat_helix_ide::actions::{
-    file_manager_action, git_action, mind_map_action, review_action, terminal_action,
+    file_manager_action, git_action, mind_map_action, review_action, terminal_action, venv_action,
     workflow_action, FileManagerAction, GitAction, MindMapAction, ReviewAction, TerminalAction,
-    WorkflowAction,
+    VenvAction, WorkflowAction,
 };
 use sat_helix_ide::{Config, WorkspaceManager};
 use std::path::PathBuf;
@@ -107,6 +107,12 @@ enum Commands {
         #[command(subcommand)]
         action: WorkflowCommands,
     },
+
+    #[command(name = "__venv", hide = true)]
+    Venv {
+        #[command(subcommand)]
+        action: VenvCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -141,6 +147,11 @@ enum ReviewCommands {
 #[derive(Subcommand, Debug)]
 enum WorkflowCommands {
     Open,
+}
+
+#[derive(Subcommand, Debug)]
+enum VenvCommands {
+    Toggle,
 }
 
 impl Default for Commands {
@@ -238,6 +249,13 @@ fn main() -> Result<()> {
                 WorkflowCommands::Open => WorkflowAction::Open,
             };
             workflow_action(&config, action)?;
+        }
+        Commands::Venv { action } => {
+            let config = Config::load(&cli.config)?;
+            let action = match action {
+                VenvCommands::Toggle => VenvAction::Toggle,
+            };
+            venv_action(&config, action)?;
         }
     }
     Ok(())

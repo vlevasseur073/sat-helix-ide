@@ -12,3 +12,4 @@ book/src/**/*#*
 
 # Local asciinema recordings (regenerate demo.gif from these; do not commit)
 *.cast
+.venv/
