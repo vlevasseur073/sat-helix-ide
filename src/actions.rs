@@ -969,9 +969,9 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) -> Result<()> {
     use crate::venv::{
         clear_selector_handoff, filter_activatable_environments, generate_commands,
-        get_all_available_venvs, normalize_selectable_venv, read_selector_handoff,
-        save_venv_collection, save_venv_selection, same_venv_path, VenvCollection,
-        VENV_SELECTOR_DONE, VENV_SELECTOR_OUTPUT,
+        get_all_available_venvs, normalize_selectable_venv, read_selector_handoff, same_venv_path,
+        save_venv_collection, save_venv_selection, VenvCollection, VENV_SELECTOR_DONE,
+        VENV_SELECTOR_OUTPUT,
     };
     use std::fs;
 

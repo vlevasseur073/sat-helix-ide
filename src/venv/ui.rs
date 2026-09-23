@@ -146,16 +146,11 @@ impl VenvSelectorApp {
                     Line::from(""),
                     Line::from(format!("> {buffer}")),
                 ])
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Custom path"),
-                );
+                .block(Block::default().borders(Borders::ALL).title("Custom path"));
                 frame.render_widget(prompt, chunks[1]);
 
-                let mut footer_lines = vec![Line::from(
-                    "[Enter] confirm  [Esc] back  [Backspace] edit",
-                )];
+                let mut footer_lines =
+                    vec![Line::from("[Enter] confirm  [Esc] back  [Backspace] edit")];
                 if let Some(err) = error {
                     footer_lines.push(Line::from(Span::styled(
                         err.clone(),
@@ -274,10 +269,7 @@ pub fn run_selector_ui(
     active_path: Option<&Path>,
 ) -> Result<SelectorRun> {
     if environments.is_empty() {
-        fs::write(
-            runtime_dir.join(VENV_SELECTOR_OUTPUT),
-            "NO_ENVIRONMENTS\n",
-        )?;
+        fs::write(runtime_dir.join(VENV_SELECTOR_OUTPUT), "NO_ENVIRONMENTS\n")?;
         return Ok(SelectorRun::NoEnvironments);
     }
     VenvSelectorApp::new(
@@ -297,8 +289,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let run = run_selector_ui(dir.path(), vec![], None).unwrap();
         assert_eq!(run, SelectorRun::NoEnvironments);
-        let content =
-            fs::read_to_string(dir.path().join(VENV_SELECTOR_OUTPUT)).unwrap();
+        let content = fs::read_to_string(dir.path().join(VENV_SELECTOR_OUTPUT)).unwrap();
         assert_eq!(content.trim(), "NO_ENVIRONMENTS");
     }
 }

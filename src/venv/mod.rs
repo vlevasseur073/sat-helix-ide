@@ -6,12 +6,12 @@
 mod ui;
 
 use crate::config::{expand_tilde, Config, VenvConfig};
-pub use ui::{run_selector_ui, SelectorRun};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+pub use ui::{run_selector_ui, SelectorRun};
 
 /// Detected virtual environment information
 #[derive(Debug, Clone)]
@@ -774,11 +774,7 @@ mod tests {
         let bin = dot_venv.join("bin");
         fs::create_dir_all(&bin).unwrap();
         fs::write(bin.join("activate"), "").unwrap();
-        fs::write(
-            project.path().join("pyproject.toml"),
-            "[tool.uv]\n",
-        )
-        .unwrap();
+        fs::write(project.path().join("pyproject.toml"), "[tool.uv]\n").unwrap();
 
         let (activate, _) =
             generate_commands("uv", Some(project.path())).expect("activate command");

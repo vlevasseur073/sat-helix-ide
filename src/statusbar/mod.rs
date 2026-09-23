@@ -1,4 +1,4 @@
-//! Session status line: git branch/state and active virtual environment.
+//! Session status line: Zellij session name, git branch/state, and active venv.
 
 use crate::config::{expand_tilde, Config};
 use crate::resolve::resolve_git_cli;
@@ -14,6 +14,7 @@ const REFRESH_INTERVAL: Duration = Duration::from_secs(2);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StatusBarSnapshot {
+    pub session_name: String,
     pub branch: String,
     pub git_state: GitState,
     pub venv_label: Option<String>,
@@ -51,6 +52,7 @@ pub fn collect_status(
     let (branch, git_state) = git_summary(&git, &project_dir)?;
     let venv_label = active_venv_label(config, session_name);
     Ok(StatusBarSnapshot {
+        session_name: session_name.to_string(),
         branch,
         git_state,
         venv_label,
@@ -167,7 +169,8 @@ pub fn format_status_line(snapshot: &StatusBarSnapshot) -> String {
     const STAGED: &str = "\x1b[38;2;148;226;213m"; // teal
     const UNTRACKED: &str = "\x1b[38;2;243;139;168m"; // red
     const NOGIT: &str = "\x1b[38;2;108;112;134m"; // overlay
-    const VENV: &str = "\x1b[38;2;203;166;247m"; // mauve
+    const SESSION: &str = "\x1b[38;2;203;166;247m"; // mauve
+    const VENV: &str = "\x1b[38;2;180;190;254m"; // lavender
     const VENV_OFF: &str = "\x1b[38;2;108;112;134m";
 
     let git_color = match snapshot.git_state {
@@ -184,7 +187,8 @@ pub fn format_status_line(snapshot: &StatusBarSnapshot) -> String {
     };
 
     format!(
-        "{BAR} {LABEL}git{RESET} {BRANCH}{}{RESET} {BAR}│{RESET} {LABEL}status{RESET} {git_color}{}{RESET} {BAR}│{RESET} {LABEL}venv{RESET} {venv_part}",
+        "{BAR} {LABEL}session{RESET} {SESSION}{}{RESET} {BAR}│{RESET} {LABEL}git{RESET} {BRANCH}{}{RESET} {BAR}│{RESET} {LABEL}status{RESET} {git_color}{}{RESET} {BAR}│{RESET} {LABEL}venv{RESET} {venv_part}",
+        snapshot.session_name,
         snapshot.branch,
         snapshot.git_state.label(),
     )
@@ -222,5 +226,20 @@ mod tests {
         assert_eq!(classify_porcelain(" M file\n"), GitState::Modified);
         assert_eq!(classify_porcelain("?? new\n"), GitState::Untracked);
         assert_eq!(classify_porcelain("A  staged\n"), GitState::Staged);
+    }
+
+    #[test]
+    fn format_includes_session_before_git() {
+        let line = format_status_line(&StatusBarSnapshot {
+            session_name: "my-project".to_string(),
+            branch: "main".to_string(),
+            git_state: GitState::Clean,
+            venv_label: None,
+        });
+        assert!(line.contains("session"));
+        assert!(line.contains("my-project"));
+        let session_pos = line.find("my-project").unwrap();
+        let git_pos = line.find("git").unwrap();
+        assert!(session_pos < git_pos);
     }
 }

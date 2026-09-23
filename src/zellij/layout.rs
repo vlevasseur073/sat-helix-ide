@@ -22,8 +22,9 @@ pub fn session_layout(
     status_launch: StatusBarLaunch<'_>,
 ) -> String {
     let mut layout = String::from("layout {\n");
-    layout.push_str("    tab_template name=\"status_tab\" {\n");
-    layout.push_str("    children\n");
+    // Applies to every tab in this layout and to tabs the user opens later.
+    layout.push_str("    default_tab_template {\n");
+    layout.push_str("        children\n");
     layout.push_str(&sat_status_bar_pane(status_launch, project_dir, 2));
     if zellij_status_bar {
         layout.push_str("        pane size=1 borderless=true {\n");
@@ -31,8 +32,7 @@ pub fn session_layout(
         layout.push_str("        }\n");
     }
     layout.push_str("    }\n");
-    layout.push_str("    status_tab");
-    layout.push_str(" name=\"code\" focus=true {\n");
+    layout.push_str("    tab name=\"code\" focus=true {\n");
     layout.push_str(&code_tab_panes(
         editor,
         editor_path,
@@ -402,12 +402,13 @@ mod tests {
     }
 
     #[test]
-    fn status_tab_always_includes_sat_summary_line() {
+    fn default_tab_template_includes_sat_summary_on_all_tabs() {
         let editor = CommandConfig::new("hx");
+        let ai = CommandConfig::new("agent");
         let layout = session_layout(
             &editor,
             Path::new("/usr/bin/hx"),
-            None,
+            Some((&ai, Path::new("/usr/bin/agent"))),
             None,
             None,
             Path::new("/work"),
@@ -415,9 +416,13 @@ mod tests {
             test_launch(),
         );
 
+        assert!(layout.contains("default_tab_template"));
         assert!(layout.contains("name=\"sat-status-bar\""));
         assert!(layout.contains("__status-bar"));
         assert!(layout.contains("--project-dir"));
+        assert!(layout.contains("tab name=\"code\""));
+        assert!(layout.contains("tab name=\"ai\""));
+        assert!(!layout.contains("tab_template name="));
         assert!(!layout.contains("zellij:status-bar"));
     }
 
