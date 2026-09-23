@@ -968,9 +968,10 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 /// Spawn an interactive selector to choose a virtual environment
 fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) -> Result<()> {
     use crate::venv::{
-        clear_selector_handoff, generate_commands, generate_selector_script,
-        get_all_available_venvs, read_selector_handoff, save_venv_collection, save_venv_selection,
-        VenvCollection, VENV_SELECTOR_DONE, VENV_SELECTOR_OUTPUT,
+        clear_selector_handoff, filter_activatable_environments, generate_commands,
+        get_all_available_venvs, normalize_selectable_venv, read_selector_handoff,
+        save_venv_collection, save_venv_selection, same_venv_path, VenvCollection,
+        VENV_SELECTOR_DONE, VENV_SELECTOR_OUTPUT,
     };
     use std::fs;
 
@@ -986,24 +987,8 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
     clear_selector_handoff(&runtime_dir)?;
 
     let selector_output_file = runtime_dir.join(VENV_SELECTOR_OUTPUT);
-    let selection_handoff_file = runtime_dir.join(crate::venv::VENV_SELECTOR_SELECTION);
-    let custom_path_handoff_file = runtime_dir.join(crate::venv::VENV_SELECTOR_CUSTOM_PATH);
 
     let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
-    let script = generate_selector_script(
-        &environments,
-        &selector_output_file,
-        &selection_handoff_file,
-        &custom_path_handoff_file,
-        &executable,
-    )?;
-
-    let script_path = runtime_dir.join("venv_selector.sh");
-    fs::write(&script_path, script)?;
-    fs::set_permissions(
-        &script_path,
-        std::os::unix::fs::PermissionsExt::from_mode(0o755),
-    )?;
 
     let output = Command::new(zellij)
         .args([
@@ -1015,9 +1000,9 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
         .args([
             "--floating",
             "--x",
-            "0%",
+            "10%",
             "--y",
-            "0%",
+            "20%",
             "--width",
             "80%",
             "--height",
@@ -1026,7 +1011,9 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
         .arg("--name")
         .arg("sat-venv-selector")
         .arg("--")
-        .arg(&script_path)
+        .arg(&executable)
+        .args(["__venv", "run-selector", "--session"])
+        .arg(&session_name)
         .output()
         .context("Failed to spawn venv selector pane")?;
 
@@ -1058,6 +1045,7 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
 
     let selection = read_selector_handoff(&runtime_dir)?
         .context("Selector finished but no environment was chosen")?;
+    let selection = normalize_selectable_venv(selection)?;
 
     let (activate_cmd, _) = generate_commands(&selection.venv_type, Some(&selection.path))?;
     send_command_to_pane(zellij, terminal, &activate_cmd)?;
@@ -1067,14 +1055,14 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
     let mut updated_environments = environments;
     if !updated_environments
         .iter()
-        .any(|e| e.path == selection.path)
+        .any(|e| same_venv_path(&e.path, &selection.path))
     {
         updated_environments.push(selection.clone());
     }
     save_venv_collection(
         &session_name,
         &VenvCollection {
-            environments: updated_environments,
+            environments: filter_activatable_environments(updated_environments),
         },
     )?;
     std::fs::write(runtime_dir.join("venv_active"), "active")?;

@@ -170,6 +170,11 @@ enum StatusBarCommands {
 enum VenvCommands {
     Toggle,
     Select,
+    /// Interactive ratatui selector (spawned in a floating Zellij pane).
+    RunSelector {
+        #[arg(long)]
+        session: String,
+    },
     /// Verify that a path exists and looks like an activatable environment.
     ValidatePath {
         path: PathBuf,
@@ -279,12 +284,25 @@ fn main() -> Result<()> {
                     std::process::exit(1);
                 }
             }
+            VenvCommands::RunSelector { session } => {
+                let config = Config::load(&cli.config)?;
+                match sat_helix_ide::venv::run_selector_for_session(&config, &session) {
+                    Ok(sat_helix_ide::venv::SelectorRun::Cancelled) => std::process::exit(1),
+                    Ok(_) => {}
+                    Err(err) => {
+                        eprintln!("{err:#}");
+                        std::process::exit(1);
+                    }
+                }
+            }
             other => {
                 let config = Config::load(&cli.config)?;
                 let action = match other {
                     VenvCommands::Toggle => VenvAction::Toggle,
                     VenvCommands::Select => VenvAction::Select,
-                    VenvCommands::ValidatePath { .. } => unreachable!(),
+                    VenvCommands::RunSelector { .. } | VenvCommands::ValidatePath { .. } => {
+                        unreachable!()
+                    }
                 };
                 venv_action(&config, action)?;
             }

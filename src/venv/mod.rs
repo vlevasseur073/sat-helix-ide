@@ -3,7 +3,10 @@
 //! This module provides functionality for detecting and activating virtual environments
 //! in Python projects.
 
-use crate::config::{expand_tilde, VenvConfig};
+mod ui;
+
+use crate::config::{expand_tilde, Config, VenvConfig};
+pub use ui::{run_selector_ui, SelectorRun};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -39,17 +42,12 @@ pub fn auto_detect_venv(dir: &Path) -> Result<Option<DetectedVenv>> {
         // Check for uv
         if content.contains("[tool.uv]") {
             let uv_venv = dir.join(".venv");
-            if uv_venv.exists() {
+            if uv_venv.exists() && uv_venv.join("bin").join("activate").exists() {
                 return Ok(Some(DetectedVenv {
                     path: uv_venv,
-                    venv_type: "uv".to_string(),
+                    venv_type: "venv".to_string(),
                 }));
             }
-            // uv can work without .venv directory
-            return Ok(Some(DetectedVenv {
-                path: dir.to_path_buf(),
-                venv_type: "uv".to_string(),
-            }));
         }
 
         // Check for poetry
@@ -61,14 +59,7 @@ pub fn auto_detect_venv(dir: &Path) -> Result<Option<DetectedVenv>> {
         }
     }
 
-    // Check for .python-version (often used with pyenv or uv)
-    let python_version = dir.join(".python-version");
-    if python_version.exists() {
-        return Ok(Some(DetectedVenv {
-            path: dir.to_path_buf(),
-            venv_type: "uv".to_string(),
-        }));
-    }
+    // .python-version alone is not enough without a local .venv
 
     // Check for environment.yml (conda)
     let env_yaml = dir.join("environment.yml");
@@ -116,32 +107,7 @@ pub fn generate_commands(venv_type: &str, path: Option<&Path>) -> Result<(String
     let shell = detect_shell();
 
     match venv_type {
-        "uv" => {
-            // uv shell activates the environment in the current directory
-            let activate = "uv shell".to_string();
-            let deactivate = if shell == "fish" {
-                "conda deactivate 2>/dev/null; deactivate 2>/dev/null; set -gx VIRTUAL_ENV"
-                    .to_string()
-            } else {
-                "deactivate 2>/dev/null || true".to_string()
-            };
-            Ok((activate, deactivate))
-        }
-        "venv" => {
-            let path = path.context("Path required for venv type")?;
-            let activate_path = path.join("bin").join("activate");
-            let activate = format!(
-                "source {}",
-                shell_quote(activate_path.display().to_string())
-            );
-            let deactivate = if shell == "fish" {
-                "conda deactivate 2>/dev/null; deactivate 2>/dev/null; set -gx VIRTUAL_ENV"
-                    .to_string()
-            } else {
-                "deactivate 2>/dev/null || true".to_string()
-            };
-            Ok((activate, deactivate))
-        }
+        "uv" | "venv" | "auto" => activate_via_script(path, &shell),
         "poetry" => {
             let activate = "poetry shell".to_string();
             let deactivate = "exit".to_string();
@@ -162,23 +128,24 @@ pub fn generate_commands(venv_type: &str, path: Option<&Path>) -> Result<(String
             let deactivate = "exit".to_string();
             Ok((activate, deactivate))
         }
-        _ => {
-            // Default to venv-style activation for "auto" and unknown types
-            let path = path.context("Path required for venv type")?;
-            let activate_path = path.join("bin").join("activate");
-            let activate = format!(
-                "source {}",
-                shell_quote(activate_path.display().to_string())
-            );
-            let deactivate = if shell == "fish" {
-                "conda deactivate 2>/dev/null; deactivate 2>/dev/null; set -gx VIRTUAL_ENV"
-                    .to_string()
-            } else {
-                "deactivate 2>/dev/null || true".to_string()
-            };
-            Ok((activate, deactivate))
-        }
+        _ => activate_via_script(path, &shell),
     }
+}
+
+fn activate_via_script(path: Option<&Path>, shell: &str) -> Result<(String, String)> {
+    let path = path.context("Path required for venv activation")?;
+    let venv_root = resolve_activate_root(path)?;
+    let activate_path = venv_root.join("bin").join("activate");
+    let activate = format!(
+        "source {}",
+        shell_quote(activate_path.display().to_string())
+    );
+    let deactivate = if shell == "fish" {
+        "conda deactivate 2>/dev/null; deactivate 2>/dev/null; set -gx VIRTUAL_ENV".to_string()
+    } else {
+        "deactivate 2>/dev/null || true".to_string()
+    };
+    Ok((activate, deactivate))
 }
 
 /// Detect conda environment name from environment.yml or directory name
@@ -280,22 +247,10 @@ pub fn list_selectable_venvs(dir: &Path) -> Result<Vec<SelectableVenv>> {
         }
     }
 
-    // Check for pyproject.toml with uv
+    // Check for pyproject.toml with uv — only listable when .venv exists (handled above)
     let pyproject = dir.join("pyproject.toml");
     if pyproject.exists() {
         if let Ok(content) = fs::read_to_string(&pyproject) {
-            if content.contains("[tool.uv]") {
-                let uv_venv = dir.join(".venv");
-                results.push(SelectableVenv {
-                    name: "uv (pyproject.toml)".to_string(),
-                    path: if uv_venv.exists() {
-                        uv_venv
-                    } else {
-                        dir.to_path_buf()
-                    },
-                    venv_type: "uv".to_string(),
-                });
-            }
             if content.contains("[tool.poetry]") {
                 results.push(SelectableVenv {
                     name: "poetry (pyproject.toml)".to_string(),
@@ -304,16 +259,6 @@ pub fn list_selectable_venvs(dir: &Path) -> Result<Vec<SelectableVenv>> {
                 });
             }
         }
-    }
-
-    // Check for .python-version
-    let python_version = dir.join(".python-version");
-    if python_version.exists() {
-        results.push(SelectableVenv {
-            name: ".python-version".to_string(),
-            path: dir.to_path_buf(),
-            venv_type: "uv".to_string(),
-        });
     }
 
     // Check for environment.yml
@@ -353,11 +298,13 @@ pub fn list_all_selectable_venvs(venv_config: &VenvConfig) -> Result<Vec<Selecta
         } else {
             venv_config.venv_type.clone()
         };
-        all_environments.push(SelectableVenv {
+        if let Ok(normalized) = normalize_selectable_venv(SelectableVenv {
             name: format!("Configured: {}", resolved_path.display()),
             path: resolved_path,
             venv_type,
-        });
+        }) {
+            all_environments.push(normalized);
+        }
     }
 
     // Build list of directories to search
@@ -408,7 +355,7 @@ pub fn list_all_selectable_venvs(venv_config: &VenvConfig) -> Result<Vec<Selecta
                 acc
             });
 
-    Ok(unique_environments)
+    Ok(filter_activatable_environments(unique_environments))
 }
 
 /// Save the selected environment path to session runtime
@@ -485,11 +432,51 @@ pub fn get_all_available_venvs(
             }
         }
 
-        Ok(all_environments)
+        Ok(filter_activatable_environments(all_environments))
     } else {
         // No saved collection yet, just return detected environments
         list_all_selectable_venvs(venv_config)
     }
+}
+
+/// Path to the environment currently activated in the session, if any.
+pub fn active_venv_path(config: &Config, session_name: &str) -> Option<PathBuf> {
+    let runtime_dir = config.runtime_dir(session_name);
+    if !runtime_dir.join("venv_active").exists() {
+        return None;
+    }
+    load_venv_selection(session_name)
+        .ok()
+        .flatten()
+        .map(|s| expand_tilde(&s.path))
+}
+
+/// Whether two paths refer to the same environment (best-effort).
+pub fn same_venv_path(a: &Path, b: &Path) -> bool {
+    let a = expand_tilde(a);
+    let b = expand_tilde(b);
+    if a == b {
+        return true;
+    }
+    if let (Ok(a_canon), Ok(b_canon)) = (a.canonicalize(), b.canonicalize()) {
+        return a_canon == b_canon;
+    }
+    false
+}
+
+pub fn filter_activatable_environments(environments: Vec<SelectableVenv>) -> Vec<SelectableVenv> {
+    let mut out: Vec<SelectableVenv> = Vec::new();
+    for env in environments {
+        if let Ok(normalized) = normalize_selectable_venv(env) {
+            if !out
+                .iter()
+                .any(|e: &SelectableVenv| same_venv_path(&e.path, &normalized.path))
+            {
+                out.push(normalized);
+            }
+        }
+    }
+    out
 }
 
 /// Transient handoff files used only while the selector TUI is open (not persisted).
@@ -500,27 +487,62 @@ pub const VENV_SELECTOR_CUSTOM_PATH: &str = "venv_selector_custom_path";
 /// Marker written to [`VENV_SELECTOR_OUTPUT`] when the user made a selection.
 pub const VENV_SELECTOR_DONE: &str = "OK";
 
-/// Whether the stored selection can be activated as-is (used for list checkmarks).
+/// Whether the stored selection can be activated as-is.
 pub fn is_selection_activatable(env: &SelectableVenv) -> bool {
-    validate_selection_activatable(env).is_ok()
+    normalize_selectable_venv(env.clone()).is_ok()
+}
+
+/// Normalize paths and types so activation uses `source …/bin/activate` where possible.
+pub fn normalize_selectable_venv(env: SelectableVenv) -> Result<SelectableVenv> {
+    validate_selection_activatable(&env)?;
+    match env.venv_type.as_str() {
+        "poetry" | "conda" | "pipenv" => Ok(env),
+        _ => {
+            let root = resolve_activate_root(&env.path)?;
+            Ok(SelectableVenv {
+                name: env.name,
+                path: root,
+                venv_type: "venv".to_string(),
+            })
+        }
+    }
 }
 
 /// Verify that a saved selection path and type match what `generate_commands` expects.
 pub fn validate_selection_activatable(env: &SelectableVenv) -> Result<()> {
     let path = expand_tilde(&env.path);
     match env.venv_type.as_str() {
-        "venv" | "auto" => require_activate_at(&path),
-        "uv" => validate_uv_activatable(&path),
+        "venv" | "auto" | "uv" => resolve_activate_root(&path).map(|_| ()),
         "poetry" => validate_poetry(&path),
         "conda" => validate_conda(&path),
         "pipenv" => validate_pipenv(&path),
-        _ => require_activate_at(&path),
+        _ => resolve_activate_root(&path).map(|_| ()),
     }
 }
 
 /// Strict validation for a user-typed custom path (used by the selector TUI).
 pub fn validate_custom_venv_path(path: &Path) -> Result<()> {
     resolve_custom_venv_path(path).map(|_| ())
+}
+
+/// Directory that contains `bin/activate` (the path itself or a `.venv` child).
+pub fn resolve_activate_root(path: &Path) -> Result<PathBuf> {
+    let path = expand_tilde(path);
+    if !path.exists() {
+        bail!("Path does not exist: {}", path.display());
+    }
+    if activate_script_path(&path).is_some() {
+        return Ok(path);
+    }
+    let nested = path.join(".venv");
+    if activate_script_path(&nested).is_some() {
+        return Ok(nested);
+    }
+    bail!(
+        "No bin/activate at {} or {}/.venv",
+        path.display(),
+        path.display()
+    );
 }
 
 fn activate_script_path(venv_root: &Path) -> Option<PathBuf> {
@@ -533,33 +555,6 @@ fn activate_script_path(venv_root: &Path) -> Option<PathBuf> {
         return Some(windows);
     }
     None
-}
-
-fn require_activate_at(path: &Path) -> Result<()> {
-    if activate_script_path(path).is_some() {
-        return Ok(());
-    }
-    bail!(
-        "No bin/activate script at {} (enter the venv directory, e.g. {}/.venv)",
-        path.display(),
-        path.display()
-    );
-}
-
-fn validate_uv_activatable(path: &Path) -> Result<()> {
-    if !path.exists() {
-        bail!("Path does not exist: {}", path.display());
-    }
-    if activate_script_path(path).is_some() {
-        return Ok(());
-    }
-    if path.is_dir() && uv_project_markers(path) {
-        return Ok(());
-    }
-    bail!(
-        "Not a uv project or virtual environment at {}",
-        path.display()
-    );
 }
 
 fn uv_project_markers(path: &Path) -> bool {
@@ -627,11 +622,14 @@ pub fn resolve_custom_venv_path(path: &Path) -> Result<SelectableVenv> {
         return Ok(custom_venv_entry(path, venv_type));
     }
 
+    let nested = path.join(".venv");
+    if nested.is_dir() && activate_script_path(&nested).is_some() {
+        let venv_type = detect_venv_type(&nested).unwrap_or_else(|_| "venv".to_string());
+        return Ok(custom_venv_entry(nested, venv_type));
+    }
+
     if validate_poetry(&path).is_ok() {
         return Ok(custom_venv_entry(path, "poetry".to_string()));
-    }
-    if path.is_dir() && uv_project_markers(&path) {
-        return Ok(custom_venv_entry(path, "uv".to_string()));
     }
     if validate_conda(&path).is_ok() {
         return Ok(custom_venv_entry(path, "conda".to_string()));
@@ -640,12 +638,10 @@ pub fn resolve_custom_venv_path(path: &Path) -> Result<SelectableVenv> {
         return Ok(custom_venv_entry(path, "pipenv".to_string()));
     }
 
-    let nested = path.join(".venv");
-    if nested.is_dir() && activate_script_path(&nested).is_some() {
+    if path.is_dir() && uv_project_markers(&path) {
         bail!(
-            "No environment at {}. Enter the venv directory instead: {}",
-            path.display(),
-            nested.display()
+            "No .venv at {}. Run `uv sync` or enter the .venv directory.",
+            path.display()
         );
     }
 
@@ -668,8 +664,7 @@ pub fn read_selector_handoff(runtime_dir: &Path) -> Result<Option<SelectableVenv
         let _ = fs::remove_file(&selection_file);
         let selection: SelectableVenv = serde_json::from_str(content.trim())
             .context("Invalid virtual environment selection from selector")?;
-        validate_selection_activatable(&selection)?;
-        return Ok(Some(selection));
+        return normalize_selectable_venv(selection).map(Some);
     }
 
     let custom_path_file = runtime_dir.join(VENV_SELECTOR_CUSTOM_PATH);
@@ -680,7 +675,9 @@ pub fn read_selector_handoff(runtime_dir: &Path) -> Result<Option<SelectableVenv
         if path.as_os_str().is_empty() {
             bail!("Custom virtual environment path is empty");
         }
-        return resolve_custom_venv_path(&path).map(Some);
+        return resolve_custom_venv_path(&path)
+            .and_then(normalize_selectable_venv)
+            .map(Some);
     }
 
     Ok(None)
@@ -701,144 +698,14 @@ pub fn clear_selector_handoff(runtime_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn shell_single_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\"'\"'"))
-}
-
-/// Generate a shell script that lets the user select a virtual environment
-/// The script writes the selection to a file and exits
-pub fn generate_selector_script(
-    environments: &[SelectableVenv],
-    output_file: &Path,
-    selection_file: &Path,
-    custom_path_file: &Path,
-    validator_executable: &Path,
-) -> Result<String> {
-    use std::fmt::Write;
-
-    let mut script = String::new();
-
-    writeln!(script, "#!/bin/sh")?;
-    writeln!(script, "# Virtual Environment Selector")?;
-    writeln!(script, "# Generated by sat-hx-ide")?;
-    writeln!(script)?;
-
-    if environments.is_empty() {
-        writeln!(
-            script,
-            "echo 'No virtual environments detected in this project.'"
-        )?;
-        // Write a marker to the output file to signal completion
-        writeln!(script, "echo 'NO_ENVIRONMENTS' > {}", output_file.display())?;
-        writeln!(script, "exit 0")?;
-        return Ok(script);
-    }
-
-    writeln!(script, "echo 'Select a virtual environment to activate:'")?;
-    writeln!(
-        script,
-        "echo '  [✓] verified   [ ] not found or incomplete'"
-    )?;
-    writeln!(script, "echo ''")?;
-
-    for (i, env) in environments.iter().enumerate() {
-        let checkbox = if is_selection_activatable(env) {
-            "[✓]"
-        } else {
-            "[ ]"
-        };
-        writeln!(
-            script,
-            "echo '{} {} - {} ({})'",
-            checkbox,
-            i + 1,
-            env.name,
-            env.venv_type
-        )?;
-    }
-
-    writeln!(script)?;
-    writeln!(script, "echo ''")?;
-    writeln!(
-        script,
-        "echo 'Enter the number of your choice, c to add a custom path, or q to quit:'"
-    )?;
-    writeln!(script, "read choice")?;
-    writeln!(script)?;
-
-    writeln!(script, r##"case "$choice" in"##)?;
-
-    let done = shell_single_quote(VENV_SELECTOR_DONE);
-
-    for (i, env) in environments.iter().enumerate() {
-        let index = i + 1;
-        let env_json = serde_json::to_string(env)?;
-        let env_json_quoted = shell_single_quote(&env_json);
-        writeln!(script, "  {}*)", index)?;
-        writeln!(
-            script,
-            "    printf '%s\\n' {} > {}",
-            env_json_quoted,
-            selection_file.display()
-        )?;
-        writeln!(
-            script,
-            "    printf '%s\\n' {} > {}",
-            done,
-            output_file.display()
-        )?;
-        writeln!(script, "    exit 0")?;
-        writeln!(script, "    ;;")?;
-    }
-
-    let validator = shell_single_quote(&validator_executable.display().to_string());
-
-    // Add option to enter a custom path
-    writeln!(script, "  c|C)")?;
-    writeln!(
-        script,
-        "    echo 'Enter the path to a custom virtual environment:'"
-    )?;
-    writeln!(script, "    while true; do")?;
-    writeln!(script, "      printf '> '")?;
-    writeln!(script, "      read custom_path")?;
-    writeln!(script, "      if [ -z \"$custom_path\" ]; then")?;
-    writeln!(script, "        echo 'No path entered, cancelling.'")?;
-    writeln!(script, "        exit 1")?;
-    writeln!(script, "      fi")?;
-    writeln!(
-        script,
-        "      if {} __venv validate-path \"$custom_path\"; then",
-        validator
-    )?;
-    writeln!(script, "        break")?;
-    writeln!(script, "      fi")?;
-    writeln!(script, "      echo ''")?;
-    writeln!(script, "    done")?;
-    writeln!(
-        script,
-        "    printf '%s\\n' \"$custom_path\" > {}",
-        custom_path_file.display()
-    )?;
-    writeln!(
-        script,
-        "    printf '%s\\n' {} > {}",
-        done,
-        output_file.display()
-    )?;
-    writeln!(script, "    exit 0")?;
-    writeln!(script, "    ;;")?;
-
-    writeln!(script, "  q|Q)")?;
-    writeln!(script, "    exit 1")?;
-    writeln!(script, "    ;;")?;
-    writeln!(script, "  *)")?;
-    writeln!(script, "    echo 'Invalid choice'")?;
-    writeln!(script, "    exit 1")?;
-    writeln!(script, "    ;;")?;
-    writeln!(script, "esac")?;
-
-    Ok(script)
+/// Load environments and run the selector TUI in the session runtime directory.
+pub fn run_selector_for_session(config: &Config, session: &str) -> Result<SelectorRun> {
+    let environments = get_all_available_venvs(&config.venv, session)?;
+    let active_path = active_venv_path(config, session);
+    let runtime_dir = config.runtime_dir(session);
+    fs::create_dir_all(&runtime_dir)?;
+    clear_selector_handoff(&runtime_dir)?;
+    run_selector_ui(&runtime_dir, environments, active_path.as_deref())
 }
 
 #[cfg(test)]
@@ -888,15 +755,35 @@ mod tests {
     }
 
     #[test]
-    fn resolve_custom_path_requires_activate_at_entered_path() {
+    fn resolve_custom_path_accepts_project_root_with_dot_venv() {
         let project = tempfile::tempdir().unwrap();
         let dot_venv = project.path().join(".venv");
         let bin = dot_venv.join("bin");
         fs::create_dir_all(&bin).unwrap();
         fs::write(bin.join("activate"), "").unwrap();
 
-        assert!(resolve_custom_venv_path(project.path()).is_err());
+        let from_root = resolve_custom_venv_path(project.path()).unwrap();
+        assert_eq!(from_root.path, dot_venv);
         assert!(resolve_custom_venv_path(&dot_venv).is_ok());
+    }
+
+    #[test]
+    fn generate_commands_uv_project_uses_activate_script() {
+        let project = tempfile::tempdir().unwrap();
+        let dot_venv = project.path().join(".venv");
+        let bin = dot_venv.join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(bin.join("activate"), "").unwrap();
+        fs::write(
+            project.path().join("pyproject.toml"),
+            "[tool.uv]\n",
+        )
+        .unwrap();
+
+        let (activate, _) =
+            generate_commands("uv", Some(project.path())).expect("activate command");
+        assert!(activate.contains("bin/activate"));
+        assert!(!activate.contains("uv shell"));
     }
 
     #[test]
@@ -912,7 +799,7 @@ mod tests {
     }
 
     #[test]
-    fn selection_checkbox_false_when_project_root_auto_without_activate() {
+    fn normalize_maps_project_root_auto_to_dot_venv() {
         let project = tempfile::tempdir().unwrap();
         let dot_venv = project.path().join(".venv");
         let bin = dot_venv.join("bin");
@@ -923,7 +810,9 @@ mod tests {
             path: project.path().to_path_buf(),
             venv_type: "auto".to_string(),
         };
-        assert!(!is_selection_activatable(&env));
+        let normalized = normalize_selectable_venv(env).unwrap();
+        assert_eq!(normalized.path, dot_venv);
+        assert_eq!(normalized.venv_type, "venv");
     }
 
     #[test]
