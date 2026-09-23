@@ -113,6 +113,12 @@ enum Commands {
         #[command(subcommand)]
         action: VenvCommands,
     },
+
+    #[command(name = "__status-bar", hide = true)]
+    StatusBar {
+        #[command(subcommand)]
+        action: StatusBarCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -147,6 +153,17 @@ enum ReviewCommands {
 #[derive(Subcommand, Debug)]
 enum WorkflowCommands {
     Open,
+}
+
+#[derive(Subcommand, Debug)]
+enum StatusBarCommands {
+    /// Refresh the session status line until the pane closes.
+    Run {
+        #[arg(long)]
+        session: String,
+        #[arg(long)]
+        project_dir: PathBuf,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -272,6 +289,17 @@ fn main() -> Result<()> {
                 venv_action(&config, action)?;
             }
         },
+        Commands::StatusBar { action } => {
+            let config = Config::load(&cli.config)?;
+            match action {
+                StatusBarCommands::Run {
+                    session,
+                    project_dir,
+                } => {
+                    sat_helix_ide::statusbar::run_status_bar_loop(&config, &project_dir, &session)?;
+                }
+            }
+        }
     }
     Ok(())
 }

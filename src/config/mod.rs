@@ -50,7 +50,7 @@ pub struct SessionConfig {
     #[serde(default)]
     pub zellij_config: Option<PathBuf>,
 
-    /// Add the status bar in zellij tabs
+    /// Show Zellij's built-in input-mode status bar under the sat-hx-ide summary line
     #[serde(default)]
     pub status_bar: bool,
 }
