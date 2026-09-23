@@ -17,11 +17,12 @@ flowchart LR
 ```
 
 1. Resolve the project directory and session name.
-2. Write `layout.kdl` (editor, optional docked terminal, optional AI tab).
+2. Write `layout.kdl` (`default_tab_template` with sat status bar, code tab, optional AI tab).
 3. Merge keybindings into a private copy of the user's Zellij config.
 4. Create or attach the Zellij session.
 
-Runtime files live under `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/`.
+Runtime files live under `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/` (including
+optional `venv_*.json` / `venv_active` for virtual environment state).
 
 ## Helper commands
 
@@ -35,6 +36,9 @@ Zellij bindings invoke hidden subcommands on the `sat-hx-ide` binary:
 | Alt-Shift-t | `__terminal zoom` | Zoom terminal or dock back |
 | Alt-g | `__git open` | Spawn configured Git TUI in floating pane |
 | Alt-r | `__review open` | Spawn configured review tool in floating pane (default: revdiff) |
+| Alt-v | `__venv toggle` | Activate/deactivate venv in terminal pane |
+| Alt-Shift-v | `__venv select` | Venv selector TUI (floating pane) |
+| (layout) | `__status-bar run` | Session/git/venv summary line on every tab |
 
 Helpers run in tiny floating panes (`close_on_exit true`) so Zellij keeps the
 keybinding helper's TTY for actions that need it (file-manager spawn).

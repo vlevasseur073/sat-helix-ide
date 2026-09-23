@@ -129,6 +129,7 @@ After running `sat-hx-ide init .`, you should see:
   - Helix editor in the main pane
   - A docked terminal below (15% height by default)
 - An **`ai`** tab (if the configured AI agent is installed)
+- A **status line** at the bottom of every tab: session name, git branch/state, and active venv
 
 ### Basic Navigation
 
@@ -143,6 +144,8 @@ After running `sat-hx-ide init .`, you should see:
 | Open Git TUI | `Alt-g` |
 | Open review tool | `Alt-r` |
 | Open workflow tool | `Alt-w` |
+| Toggle virtual env in terminal | `Alt-v` |
+| Select virtual env (TUI) | `Alt-Shift-v` |
 
 ### Exiting the Session
 

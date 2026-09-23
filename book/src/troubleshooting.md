@@ -319,6 +319,39 @@ which yazi
    sat-hx-ide init .
    ```
 
+### Session status bar
+
+#### No git/venv line on a tab
+
+**Problem**: The sat-hx-ide summary (session / git / venv) is missing.
+
+**Solutions**:
+
+1. **Start a new session** after upgrading — the line is injected via `default_tab_template` in `layout.kdl`.
+2. **New tabs** should include the bar automatically; if an old session was created before this layout, re-run `sat-hx-ide init` for that project.
+3. **Git field shows errors** — ensure `git` is on `PATH` (`sat-hx-ide doctor`).
+
+#### Only Zellij's mode bar, or two bars
+
+- The **sat-hx-ide** line is always present when using current layouts.
+- **`[session] status_bar = true`** adds Zellij's plugin **below** it. Set `status_bar = false` if you only want the sat-hx-ide summary.
+
+### Virtual environments
+
+#### Selector lists no environments
+
+- Enable `[venv] enabled = true` and ensure the project has a detectable env (e.g. `.venv/bin/activate`) or add `[venv] path`.
+- Use **`Alt-Shift-v`** → **`c`** to enter a custom path (project root with `.venv` is accepted).
+
+#### `Alt-v` does nothing
+
+- Virtual env commands target the named **`terminal`** pane on the **`code`** tab. If the terminal was closed, show it with **`Alt-t`** first.
+- Run `sat-hx-ide __venv select` from a shell inside the Zellij session to surface errors.
+
+#### UV project without `.venv`
+
+- Run `uv sync` to create `.venv`, or select the `.venv` directory directly in the custom path prompt.
+
 ### Configuration Issues
 
 #### Configuration file not found

@@ -18,6 +18,8 @@ The features/tools currently implemented in `sat-helix-ide` are:
 - a *review TUI* (Default: revdiff, tested with revdiff and `git diff`, possibly including git-delta)
 - a *workflow TUI*; this should be understood as any kind of project management tool such as Github/Gitlab, jira, ... (Default: glab-tui)
 - a *mind map TUI* (Default: [Shiki](https://github.com/sazardev/shiki)), docked beside Helix
+- a *session status bar* (git branch/state, active venv, session name) on every tab
+- *virtual environment* auto-detection, selector TUI, and terminal activation
 
 `sat-hx-ide` starts a project session with:
 
@@ -34,6 +36,8 @@ Then, the different tools are accessible via zellij keybindings:
 - `Alt-g` to open Lazygit, GitUI, or another Git TUI in a floating pane;
 - `Alt-r` to open the configured review tool (revdiff by default) in a floating pane.
 - `Alt-w` to open the configured workflow tool (glab-tui by default) in a floating pane.
+- `Alt-v` to activate or deactivate the selected Python virtual environment in the terminal.
+- `Alt-Shift-v` to open the environment selector (ratatui TUI, including custom paths).
 
 
 `sat-hx-ide` is deliberately **not** a dotfile manager: it does not rewrite your
@@ -163,8 +167,11 @@ below the editor). Set `terminal.dock_position = "right"` for a vertical split:
 A second tab runs the configured AI agent whenever that command is on `PATH`:
 
 ```text
-tabs: [ code: Helix ] [ ai: configured agent ]
+tabs: [ code: Helix ] [ ai: configured agent ] [ … new tabs … ]
 ```
+
+Every tab includes a **sat-hx-ide status line** at the bottom (session name, git
+branch/state, active venv). Optional Zellij input-mode bar: `[session] status_bar`.
 
 The AI tab is best-effort. When `tools.ai.command` cannot be found, sat-hx-ide
 prints a note and starts the session without that tab, so a machine without the
@@ -186,6 +193,8 @@ Bindings are active in every Zellij mode except locked mode:
 | `Alt-Shift-t` | Zoom the terminal to full tab height, or dock it back to `terminal.dock_percent` |
 | `Alt-g` | Open the configured Git client via `sat-hx-ide __git open` (floating pane) |
 | `Alt-r` | Open the configured review tool via `sat-hx-ide __review open` (default: revdiff) |
+| `Alt-v` | Toggle virtual environment activation in the terminal |
+| `Alt-Shift-v` | Open the virtual environment selector TUI |
 | `Ctrl-g` | Existing Zellij lock/unlock binding; sat-hx-ide intentionally leaves it alone |
 
 The keys are configurable. sat-hx-ide refuses to launch if a selected key
@@ -264,6 +273,8 @@ Example:
 [session]
 attach_existing = true
 ai_by_default = true
+# sat-hx-ide git/venv line is always on; this adds Zellij's input-mode bar below it
+# status_bar = true
 # zellij_config = "/home/me/.config/zellij/config.kdl"
 
 [terminal]
@@ -278,6 +289,14 @@ git = "Alt g"
 review = "Alt r"
 terminal = "Alt t"
 terminal_zoom = "Alt Shift t"
+venv = "Alt v"
+venv_select = "Alt Shift v"
+
+[venv]
+enabled = true
+auto_detection = true
+# path = ".venv"
+# search_paths = ["~"]
 
 [tools.zellij]
 command = "zellij"

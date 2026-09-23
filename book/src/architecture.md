@@ -61,8 +61,9 @@ flowchart LR
 
 2. **Write `layout.kdl`**
    - Create the Zellij layout definition
-   - Define the `code` tab with Helix and terminal
-   - Optionally create the `ai` tab with the configured agent
+   - Define a `default_tab_template` with the sat-hx-ide status bar pane (and optional Zellij status-bar plugin)
+   - Define the `code` tab with Helix and terminal inside that template
+   - Optionally create the `ai` tab with the configured agent (same template)
    - Set up pane names and initial commands
 
 3. **Merge Keybindings**
@@ -82,8 +83,11 @@ All runtime files are stored under:
 
 ```text
 $XDG_RUNTIME_DIR/sat-helix-ide/<session>/
-├── config.kdl          # Merged Zellij configuration
-└── layout.kdl          # Session layout definition
+├── config.kdl              # Merged Zellij configuration
+├── layout.kdl              # Session layout definition
+├── venv_selection.json     # Last selected virtual environment (optional)
+├── venv_collection.json    # Known environments for selector (optional)
+└── venv_active             # Present when terminal venv is active (optional)
 ```
 
 **Fallback**: If `XDG_RUNTIME_DIR` is unavailable, the system temporary directory (`/tmp` on most systems) is used.
@@ -107,6 +111,9 @@ Zellij bindings invoke hidden subcommands on the `sat-hx-ide` binary:
 | `Alt-g` | `__git open` | Spawn configured Git TUI in floating pane |
 | `Alt-r` | `__review open` | Spawn configured review tool in floating pane |
 | `Alt-w` | `__workflow open` | Spawn configured workflow tool in floating pane |
+| `Alt-v` | `__venv toggle` | Activate/deactivate saved or auto-detected venv in terminal |
+| `Alt-Shift-v` | `__venv select` | Open venv selector (spawns `__venv run-selector` in floating pane) |
+| (layout pane) | `__status-bar run` | Refresh git/venv/session line in `sat-status-bar` pane |
 
 ### Helper Process Design
 
@@ -156,6 +163,15 @@ The main action categories are:
 6. **Workflow Actions**
    - Open: Spawn workflow tool in floating pane
    - Manage project management integrations
+
+7. **Virtual Environment Actions**
+   - Select: ratatui list + custom path; writes handoff files; activates in terminal
+   - Toggle: use saved selection or `[venv]` auto-detection; track `venv_active`
+   - Logic in [`src/venv/`](../src/venv/) and [`src/actions.rs`](../src/actions.rs)
+
+8. **Status Bar**
+   - Layout spawns `sat-hx-ide __status-bar run` in each tab via `default_tab_template`
+   - [`src/statusbar/`](../src/statusbar/) polls git and session venv state
 
 ### File Manager Logic
 
