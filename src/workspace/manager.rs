@@ -163,13 +163,25 @@ impl<'a> WorkspaceManager<'a> {
 
     pub fn check_tools(&self) -> Result<()> {
         println!("Checking configured commands...");
-        check("Zellij", &self.config.tools.zellij)?;
-        check("Editor", &self.config.tools.editor)?;
-        check_file_manager(&self.config.tools.file_manager.command)?;
-        check("Git client", &self.config.tools.git)?;
-        check("Review", &self.config.tools.review)?;
-        check("Workflow", &self.config.tools.workflow)?;
-        check("Mind map", &self.config.tools.mindmap)?;
+        let mut failures = Vec::new();
+
+        check_required(&mut failures, "Zellij", &self.config.tools.zellij);
+        check_required(&mut failures, "Editor", &self.config.tools.editor);
+        check_required_file_manager(&mut failures, &self.config.tools.file_manager.command);
+        check_required(&mut failures, "Git client", &self.config.tools.git);
+        check_required(&mut failures, "Review", &self.config.tools.review);
+        check_required(&mut failures, "Workflow", &self.config.tools.workflow);
+        if self.config.mindmap.enabled {
+            check_required(&mut failures, "Mind map", &self.config.tools.mindmap);
+        } else {
+            match resolve_executable(&self.config.tools.mindmap.command) {
+                Ok(path) => println!("  ✓ Mind map: {}", path.display()),
+                Err(_) => println!(
+                    "  - Mind map: '{}' not found (optional while mindmap.enabled is false)",
+                    self.config.tools.mindmap.command
+                ),
+            }
+        }
         match self.config.tools.ai.as_ref() {
             Some(ai) => match resolve_executable(&ai.command) {
                 Ok(path) => println!("  ✓ AI: {}", path.display()),
@@ -180,22 +192,45 @@ impl<'a> WorkspaceManager<'a> {
             },
             None => println!("  - AI: not configured (optional)"),
         }
-        println!("\nAll required commands are available.");
-        Ok(())
+
+        if failures.is_empty() {
+            println!("\nAll required commands are available.");
+            Ok(())
+        } else {
+            println!(
+                "\nSummary: {} required command(s) missing or misconfigured:",
+                failures.len()
+            );
+            for label in &failures {
+                println!("  • {label}");
+            }
+            bail!(
+                "doctor found {} missing or misconfigured required command(s)",
+                failures.len()
+            );
+        }
     }
 }
 
-fn check(label: &str, command: &CommandConfig) -> Result<()> {
-    let path = resolve_command(command)?;
-    println!("  ✓ {label}: {}", path.display());
-    Ok(())
+fn check_required(failures: &mut Vec<String>, label: &str, command: &CommandConfig) {
+    match resolve_command(command) {
+        Ok(path) => println!("  ✓ {label}: {}", path.display()),
+        Err(err) => {
+            println!("  ✗ {label}: {err:#}");
+            failures.push(label.to_string());
+        }
+    }
 }
 
-fn check_file_manager(command: &str) -> Result<()> {
-    let path = resolve_executable(command)
-        .with_context(|| format!("Cannot find file manager '{command}'"))?;
-    println!("  ✓ File manager: {}", path.display());
-    Ok(())
+fn check_required_file_manager(failures: &mut Vec<String>, command: &str) {
+    match resolve_executable(command) {
+        Ok(path) => println!("  ✓ File manager: {}", path.display()),
+        Err(err) => {
+            let err = err.context(format!("Cannot find file manager '{command}'"));
+            println!("  ✗ File manager: {err:#}");
+            failures.push("File manager".to_string());
+        }
+    }
 }
 
 fn resolve_command(command: &CommandConfig) -> Result<PathBuf> {
