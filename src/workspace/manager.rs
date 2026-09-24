@@ -2,7 +2,8 @@ use crate::config::{expand_tilde, CommandConfig, Config, MindMapConfig};
 use crate::error::HxIdeError;
 use crate::resolve::resolve_executable;
 use crate::zellij::{
-    build_runtime_config, session_layout, RuntimeConfigInput, SessionStatus, ZellijClient,
+    build_runtime_config, session_layout, RuntimeConfigInput, SessionStatus, StatusBarLaunch,
+    ZellijClient,
 };
 use anyhow::{bail, Context, Result};
 use std::fs;
@@ -57,6 +58,12 @@ impl<'a> WorkspaceManager<'a> {
         fs::create_dir_all(&runtime_dir)?;
         let layout_path = runtime_dir.join("layout.kdl");
         let config_path = runtime_dir.join("config.kdl");
+        let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
+        let status_launch = StatusBarLaunch {
+            executable: &executable,
+            config_path: &self.app_config_path,
+            session_name: &session_name,
+        };
         let layout = session_layout(
             &self.config.tools.editor,
             &editor_path,
@@ -71,10 +78,9 @@ impl<'a> WorkspaceManager<'a> {
                 .map(|(config, command, path)| (*config, *command, path.as_path())),
             &project_dir,
             status_bar,
+            status_launch,
         );
         fs::write(&layout_path, layout)?;
-
-        let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
         build_runtime_config(&RuntimeConfigInput {
             source: self.config.zellij_config_path().as_deref(),
             destination: &config_path,

@@ -26,6 +26,14 @@ pub fn resolve_executable(command: &str) -> Result<PathBuf> {
     )
 }
 
+/// Git CLI used for repository metadata (distinct from `[tools.git]` UI clients).
+pub fn resolve_git_cli() -> Result<PathBuf> {
+    resolve_executable("git").context(
+        "Cannot find git on PATH (required for the session status bar). \
+         Install git or add it to PATH.",
+    )
+}
+
 fn resolve_via_login_shell(command: &str) -> Result<Option<PathBuf>> {
     if !is_safe_command_name(command) {
         return Ok(None);

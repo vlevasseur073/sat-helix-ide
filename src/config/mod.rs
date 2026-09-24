@@ -23,6 +23,9 @@ pub struct Config {
 
     #[serde(default)]
     pub keybindings: KeybindingConfig,
+
+    #[serde(default)]
+    pub venv: VenvConfig,
 }
 
 impl Default for Config {
@@ -47,7 +50,7 @@ pub struct SessionConfig {
     #[serde(default)]
     pub zellij_config: Option<PathBuf>,
 
-    /// Add the status bar in zellij tabs
+    /// Show Zellij's built-in input-mode status bar under the sat-hx-ide summary line
     #[serde(default)]
     pub status_bar: bool,
 }
@@ -173,6 +176,12 @@ pub struct KeybindingConfig {
 
     #[serde(default = "default_mindmap_zoom_key")]
     pub mindmap_zoom: String,
+
+    #[serde(default = "default_venv_key")]
+    pub venv: String,
+
+    #[serde(default = "default_venv_select_key")]
+    pub venv_select: String,
 }
 
 impl Default for KeybindingConfig {
@@ -187,6 +196,47 @@ impl Default for KeybindingConfig {
             terminal_zoom: default_terminal_zoom_key(),
             mindmap: default_mindmap_key(),
             mindmap_zoom: default_mindmap_zoom_key(),
+            venv: default_venv_key(),
+            venv_select: default_venv_select_key(),
+        }
+    }
+}
+
+/// Virtual environment configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VenvConfig {
+    /// Enable virtual environment management
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+
+    /// Path to a specific virtual environment to use
+    /// If set, this environment will be included in the selection list
+    /// Can be used alongside auto-detection
+    #[serde(default)]
+    pub path: Option<String>,
+
+    /// Type of virtual environment for the configured path: "auto", "uv", "venv", "poetry", "conda"
+    #[serde(default = "default_venv_type")]
+    pub venv_type: String,
+
+    /// Enable auto-detection of virtual environments
+    #[serde(default = "default_true")]
+    pub auto_detection: bool,
+
+    /// Additional directories to search for virtual environments
+    /// Default includes the project directory. Add paths like "~" to search home directory.
+    #[serde(default)]
+    pub search_paths: Vec<String>,
+}
+
+impl Default for VenvConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            path: None,
+            venv_type: default_venv_type(),
+            auto_detection: true,
+            search_paths: Vec::new(),
         }
     }
 }
@@ -245,6 +295,18 @@ fn default_mindmap_percent() -> u8 {
 
 fn default_mindmap_dock_position() -> DockPosition {
     DockPosition::Right
+}
+
+fn default_venv_type() -> String {
+    "auto".to_string()
+}
+
+fn default_venv_key() -> String {
+    "Alt v".to_string()
+}
+
+fn default_venv_select_key() -> String {
+    "Alt Shift v".to_string()
 }
 
 impl Config {

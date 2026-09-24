@@ -28,6 +28,8 @@ At its core, `sat-helix-ide` is a small command-line tool that creates and manag
 - **Review Tools**: Open diff tools for code review workflows
 - **Workflow Tools**: Access project management TUIs (GitHub, GitLab, etc.)
 - **Mind Map**: Dock [Shiki](https://github.com/sazardev/shiki) beside Helix for notes and mind maps (`Alt-m`)
+- **Session Status Bar**: A one-line git / venv summary on **every tab** (including AI and user-created tabs), refreshed automatically
+- **Virtual Environments**: Auto-detect Python envs in the project, pick one with a ratatui selector, toggle activation in the terminal (`Alt-v` / `Alt-Shift-v`)
 - **Configuration Flexibility**: Customize every aspect without modifying your global configs
 - **Non-Intrusive**: Never writes to your global Zellij, Helix, or tool configurations
 

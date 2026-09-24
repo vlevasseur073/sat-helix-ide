@@ -4,6 +4,13 @@ use std::path::Path;
 /// Optional mind-map dock: config plus the resolved tool binary.
 pub type MindMapLayout<'a> = (&'a MindMapConfig, &'a CommandConfig, &'a Path);
 
+pub struct StatusBarLaunch<'a> {
+    pub executable: &'a Path,
+    pub config_path: &'a Path,
+    pub session_name: &'a str,
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn session_layout(
     editor: &CommandConfig,
     editor_path: &Path,
@@ -11,20 +18,21 @@ pub fn session_layout(
     terminal: Option<&TerminalConfig>,
     mindmap: Option<MindMapLayout<'_>>,
     project_dir: &Path,
-    status_bar: bool,
+    zellij_status_bar: bool,
+    status_launch: StatusBarLaunch<'_>,
 ) -> String {
     let mut layout = String::from("layout {\n");
-    if status_bar {
-        layout.push_str("    tab_template name=\"status_tab\" {\n");
-        layout.push_str("    children\n");
-        layout.push_str("        pane size=2 borderless=true {\n");
+    // Applies to every tab in this layout and to tabs the user opens later.
+    layout.push_str("    default_tab_template {\n");
+    layout.push_str("        children\n");
+    layout.push_str(&sat_status_bar_pane(status_launch, project_dir, 2));
+    if zellij_status_bar {
+        layout.push_str("        pane size=1 borderless=true {\n");
         layout.push_str("            plugin location=\"zellij:status-bar\"\n");
         layout.push_str("        }\n");
-        layout.push_str("    }\n");
     }
-    let tab = if status_bar { "status_tab" } else { "tab" };
-    layout.push_str(&format!("    {tab}"));
-    layout.push_str(" name=\"code\" focus=true {\n");
+    layout.push_str("    }\n");
+    layout.push_str("    tab name=\"code\" focus=true {\n");
     layout.push_str(&code_tab_panes(
         editor,
         editor_path,
@@ -140,6 +148,19 @@ fn code_tab_panes(
     }
 }
 
+fn sat_status_bar_pane(launch: StatusBarLaunch<'_>, cwd: &Path, indent: usize) -> String {
+    let indentation = " ".repeat(indent * 4);
+    format!(
+        "{indentation}pane size=1 borderless=true name=\"sat-status-bar\" command={exe:?} cwd={cwd:?} {{\n\
+         {indentation}    args \"--config\" {config:?} \"__status-bar\" \"run\" \"--session\" {session:?} \"--project-dir\" {cwd:?}\n\
+         {indentation}}}\n",
+        exe = launch.executable.display(),
+        config = launch.config_path.display(),
+        session = launch.session_name,
+        cwd = cwd.display(),
+    )
+}
+
 fn shell_pane(name: &str, percent: u8, cwd: &Path, indent: usize) -> String {
     let indentation = " ".repeat(indent * 4);
     format!(
@@ -202,6 +223,14 @@ mod tests {
         }
     }
 
+    fn test_launch() -> StatusBarLaunch<'static> {
+        StatusBarLaunch {
+            executable: Path::new("/usr/bin/sat-hx-ide"),
+            config_path: Path::new("/tmp/config.toml"),
+            session_name: "demo",
+        }
+    }
+
     #[test]
     fn builds_code_only_layout() {
         let editor = CommandConfig::new("hx");
@@ -213,6 +242,7 @@ mod tests {
             None,
             Path::new("/work"),
             false,
+            test_launch(),
         );
 
         assert!(layout.contains("tab name=\"code\" focus=true"));
@@ -237,6 +267,7 @@ mod tests {
             None,
             Path::new("/work"),
             false,
+            test_launch(),
         );
 
         assert!(layout.contains("tab name=\"ai\""));
@@ -256,6 +287,7 @@ mod tests {
             None,
             Path::new("/work"),
             false,
+            test_launch(),
         );
 
         assert!(layout.contains("split_direction=\"horizontal\""));
@@ -280,6 +312,7 @@ mod tests {
             None,
             Path::new("/work"),
             false,
+            test_launch(),
         );
 
         assert!(layout.contains("split_direction=\"vertical\""));
@@ -305,6 +338,7 @@ mod tests {
             Some((&mindmap, &tool, Path::new("/usr/bin/shiki"))),
             Path::new("/work"),
             false,
+            test_launch(),
         );
 
         assert!(layout.contains("split_direction=\"vertical\""));
@@ -333,6 +367,7 @@ mod tests {
             Some((&mindmap, &tool, Path::new("/usr/bin/shiki"))),
             Path::new("/work"),
             false,
+            test_launch(),
         );
 
         assert!(!layout.contains("name=\"mindmapping\""));
@@ -352,6 +387,7 @@ mod tests {
             Some((&mindmap, &tool, Path::new("/usr/bin/shiki"))),
             Path::new("/work"),
             false,
+            test_launch(),
         );
 
         assert!(layout.contains("split_direction=\"horizontal\""));
@@ -363,5 +399,47 @@ mod tests {
         let terminal_at = layout.find("name=\"terminal\"").unwrap();
         assert!(editor_at < mindmap_at);
         assert!(mindmap_at < terminal_at);
+    }
+
+    #[test]
+    fn default_tab_template_includes_sat_summary_on_all_tabs() {
+        let editor = CommandConfig::new("hx");
+        let ai = CommandConfig::new("agent");
+        let layout = session_layout(
+            &editor,
+            Path::new("/usr/bin/hx"),
+            Some((&ai, Path::new("/usr/bin/agent"))),
+            None,
+            None,
+            Path::new("/work"),
+            false,
+            test_launch(),
+        );
+
+        assert!(layout.contains("default_tab_template"));
+        assert!(layout.contains("name=\"sat-status-bar\""));
+        assert!(layout.contains("__status-bar"));
+        assert!(layout.contains("--project-dir"));
+        assert!(layout.contains("tab name=\"code\""));
+        assert!(layout.contains("tab name=\"ai\""));
+        assert!(!layout.contains("tab_template name="));
+        assert!(!layout.contains("zellij:status-bar"));
+    }
+
+    #[test]
+    fn zellij_status_plugin_follows_session_config() {
+        let editor = CommandConfig::new("hx");
+        let layout = session_layout(
+            &editor,
+            Path::new("/usr/bin/hx"),
+            None,
+            None,
+            None,
+            Path::new("/work"),
+            true,
+            test_launch(),
+        );
+
+        assert!(layout.contains("zellij:status-bar"));
     }
 }

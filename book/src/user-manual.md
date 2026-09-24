@@ -10,18 +10,19 @@ This chapter provides a comprehensive guide to using `sat-helix-ide` effectively
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│  Tabs: [ code* ] [ ai ]                                         │
+│  Tabs: [ code* ] [ ai ] [ … user tabs … ]                    │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │                                                         │ │
-│  │                    Helix Editor                       │ │
-│  │                                                         │ │
-│  │                                                         │ │
+│  │                    Helix Editor                         │ │
 │  ├─────────────────────────────────────────────────────────┤ │
 │  │                    Terminal (15%)                       │ │
 │  └─────────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────┤
+│  session … │ git … │ status … │ venv …   (sat status bar)   │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+The **sat-hx-ide status line** is always present at the bottom of every tab via Zellij’s `default_tab_template`. It is separate from Zellij’s optional input-mode bar (`[session] status_bar`).
 
 ### Tab Structure
 
@@ -108,6 +109,8 @@ This will work from your Helix editor in `sat-helix-ide`. It will also work if y
 | `Alt-g` | Git Open | Spawn Git TUI in floating pane |
 | `Alt-r` | Review Open | Spawn review tool in floating pane |
 | `Alt-w` | Workflow Open | Spawn workflow tool in floating pane |
+| `Alt-v` | Venv Toggle | Activate or deactivate the selected environment in the terminal pane |
+| `Alt-Shift-v` | Venv Select | Open the environment selector (ratatui TUI) |
 
 ### Keybinding Behavior Details
 
@@ -206,6 +209,74 @@ Opens the configured review tool (default: revdiff) in a floating pane. Useful f
 #### Workflow Tool (`Alt-w`)
 
 Opens the configured workflow tool (default: glab-tui) in a floating pane. This provides access to project management features like PR/MR management, issues, CI/CD, etc.
+
+## Session Status Bar
+
+Each tab includes a **sat-hx-ide summary line** (1 row) at the bottom, updated about every two seconds:
+
+| Field | Meaning |
+|-------|---------|
+| **session** | Zellij session name (same as `sat-hx-ide init --session` or the project-derived name) |
+| **git** | Current branch in the project directory |
+| **status** | Working tree state: clean, modified, staged, untracked, or no git |
+| **venv** | Active virtual environment path, or `none` |
+
+The bar runs in a dedicated pane (`sat-status-bar`) that executes `sat-hx-ide __status-bar run`. It uses the project directory passed at session init and requires `git` on `PATH`.
+
+**All tabs:** The layout uses Zellij’s `default_tab_template`, so the summary appears on the `code` tab, the `ai` tab, and any tab you create later in the session.
+
+**Optional Zellij bar:** Setting `[session] status_bar = true` adds Zellij’s own `zellij:status-bar` plugin **below** the sat-hx-ide line (input mode, etc.). That plugin is off by default in sat-hx-ide; the git/venv summary is always on regardless of this setting.
+
+## Virtual Environments
+
+Python (and related) environments are managed from the **terminal** pane on the `code` tab.
+
+### Auto-detection
+
+When `[venv] enabled = true` (default), sat-hx-ide scans for:
+
+- **`.venv`** with `bin/activate` (standard venv / uv-managed env)
+- **Poetry** projects (`pyproject.toml` with `[tool.poetry]`)
+- **Conda** (`environment.yml`)
+- **Pipenv** (`Pipfile`)
+
+It also merges:
+
+- A fixed path from `[venv] path` if set
+- Paths from `[venv] search_paths` (the project directory is always searched; home is included by default when scanning)
+- Custom paths you added earlier in the same session (stored under the session runtime directory)
+
+Only environments that can actually be activated (for example a `.venv` with `bin/activate`, or a valid Poetry project root) appear in the list.
+
+### Selecting an environment (`Alt-Shift-v`)
+
+Opens a **ratatui** floating pane:
+
+- Move with `↑`/`↓` or `j`/`k`
+- **`Space`** or **Enter** to select
+- **`c`** to type a custom path (project root with `.venv` is accepted and resolves to `.venv`)
+- **`q`** / **Esc** to cancel
+
+The choice is saved for the session, injected into the terminal via `source …/bin/activate` (or Poetry/Pipenv/Conda commands where applicable), and shown in the status bar as **venv**.
+
+The active row is marked with **`[x]`**; others show **`[ ]`**.
+
+### Toggling activation (`Alt-v`)
+
+- If an environment is selected and active → deactivate in the terminal
+- If selected but inactive → activate using the saved selection
+- If nothing was selected yet → fall back to auto-detection in the project directory (`[venv]` config)
+
+Session state lives under:
+
+```text
+$XDG_RUNTIME_DIR/sat-helix-ide/<session>/
+├── venv_selection.json    # last chosen environment
+├── venv_collection.json   # list including custom paths
+└── venv_active            # marker when the terminal env is active
+```
+
+Disable the feature entirely with `[venv] enabled = false`.
 
 ## File Manager Integration
 

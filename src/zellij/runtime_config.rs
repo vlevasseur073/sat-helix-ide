@@ -57,6 +57,8 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
         (&input.keys.terminal_zoom, "terminal zoom toggle"),
         (&input.keys.mindmap, "mind map toggle"),
         (&input.keys.mindmap_zoom, "mind map zoom toggle"),
+        (&input.keys.venv, "venv toggle"),
+        (&input.keys.venv_select, "venv selector"),
     ];
     if let Some(keybinds) = document.get("keybinds") {
         for (key, action) in requested {
@@ -131,6 +133,20 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
             input,
             &["__workflow", "open"],
             "sat-workflow-open",
+            false,
+        )?,
+        helper_binding(
+            &input.keys.venv,
+            input,
+            &["__venv", "toggle"],
+            "sat-venv-toggle",
+            false,
+        )?,
+        helper_binding(
+            &input.keys.venv_select,
+            input,
+            &["__venv", "select"],
+            "sat-venv-select",
             false,
         )?,
     ];
@@ -361,7 +377,9 @@ mod tests {
                 "Alt Shift m",
                 "Alt g",
                 "Alt r",
-                "Alt w"
+                "Alt w",
+                "Alt v",
+                "Alt Shift v"
             ]
         );
     }

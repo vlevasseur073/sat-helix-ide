@@ -134,6 +134,14 @@ pub enum WorkflowAction {
     Open,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum VenvAction {
+    /// Toggle virtual environment activation/deactivation
+    Toggle,
+    /// Open a TUI to select from detected environments
+    Select,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct PaneInfo {
     id: u64,
@@ -885,6 +893,199 @@ pub fn review_action(config: &Config, _action: ReviewAction) -> Result<()> {
 
 pub fn workflow_action(config: &Config, _action: WorkflowAction) -> Result<()> {
     spawn_floating_tool(config, "workflow", &config.tools.workflow)
+}
+
+/// Manages virtual environment activation/deactivation in the terminal pane.
+/// Uses auto-detection when path is not configured, or uses the configured path.
+pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
+    use crate::venv::determine_venv_commands;
+
+    let zellij = resolve(&config.tools.zellij.command)?;
+    let venv_config = &config.venv;
+
+    if !venv_config.enabled {
+        bail!("Virtual environment management is disabled in configuration. Enable it in [venv] section.");
+    }
+
+    let panes = list_panes(&zellij).context("Not running in a sat-hx-ide Zellij session")?;
+
+    let terminal = panes
+        .iter()
+        .find(|pane| !pane.is_plugin && pane.title == TERMINAL_PANE)
+        .context("Cannot find the sat-hx-ide terminal pane. The terminal may have been closed.")?;
+
+    match action {
+        VenvAction::Toggle => {
+            let session_name =
+                std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+            let runtime_dir = config.runtime_dir(&session_name);
+            let venv_state_file = runtime_dir.join("venv_active");
+
+            let is_active = venv_state_file.exists();
+
+            // Check if we have a saved selection
+            if let Ok(Some(saved_selection)) = crate::venv::load_venv_selection(&session_name) {
+                // Use the saved selection's activation command
+                let (activate_cmd, deactivate_cmd) = crate::venv::generate_commands(
+                    &saved_selection.venv_type,
+                    Some(&saved_selection.path),
+                )?;
+
+                if is_active {
+                    // Deactivate
+                    send_command_to_pane(&zellij, terminal, &deactivate_cmd)?;
+                    let _ = std::fs::remove_file(venv_state_file);
+                } else {
+                    // Activate the saved selection
+                    send_command_to_pane(&zellij, terminal, &activate_cmd)?;
+                    std::fs::create_dir_all(&runtime_dir)?;
+                    std::fs::write(venv_state_file, "active")?;
+                }
+            } else {
+                // Fall back to auto-detection
+                let (activate_cmd, deactivate_cmd) = determine_venv_commands(venv_config)?;
+
+                if is_active {
+                    // Deactivate
+                    send_command_to_pane(&zellij, terminal, &deactivate_cmd)?;
+                    let _ = std::fs::remove_file(venv_state_file);
+                } else {
+                    // Activate
+                    send_command_to_pane(&zellij, terminal, &activate_cmd)?;
+                    std::fs::create_dir_all(&runtime_dir)?;
+                    std::fs::write(venv_state_file, "active")?;
+                }
+            }
+        }
+        VenvAction::Select => {
+            select_venv_interactive(config, &zellij, terminal)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Spawn an interactive selector to choose a virtual environment
+fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) -> Result<()> {
+    use crate::venv::{
+        clear_selector_handoff, filter_activatable_environments, generate_commands,
+        get_all_available_venvs, normalize_selectable_venv, read_selector_handoff, same_venv_path,
+        save_venv_collection, save_venv_selection, VenvCollection, VENV_SELECTOR_DONE,
+        VENV_SELECTOR_OUTPUT,
+    };
+    use std::fs;
+
+    let venv_config = &config.venv;
+    let session_name =
+        std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+
+    // Get all available environments (detected + previously saved custom paths)
+    let environments = get_all_available_venvs(venv_config, &session_name)?;
+
+    let runtime_dir = config.runtime_dir(&session_name);
+    std::fs::create_dir_all(&runtime_dir)?;
+    clear_selector_handoff(&runtime_dir)?;
+
+    let selector_output_file = runtime_dir.join(VENV_SELECTOR_OUTPUT);
+
+    let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
+
+    let output = Command::new(zellij)
+        .args([
+            "action",
+            "new-pane",
+            "--close-on-exit",
+            "--block-until-exit",
+        ])
+        .args([
+            "--floating",
+            "--x",
+            "10%",
+            "--y",
+            "20%",
+            "--width",
+            "80%",
+            "--height",
+            "60%",
+        ])
+        .arg("--name")
+        .arg("sat-venv-selector")
+        .arg("--")
+        .arg(&executable)
+        .args(["__venv", "run-selector", "--session"])
+        .arg(&session_name)
+        .output()
+        .context("Failed to spawn venv selector pane")?;
+
+    if !output.status.success() && !selector_output_file.exists() {
+        return Ok(());
+    }
+
+    if !output.status.success() {
+        bail!(
+            "Virtual environment selector failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    if !selector_output_file.exists() {
+        return Ok(());
+    }
+
+    let marker = fs::read_to_string(&selector_output_file)?;
+    let _ = fs::remove_file(&selector_output_file);
+
+    if marker.trim() == "NO_ENVIRONMENTS" {
+        bail!("No virtual environments detected");
+    }
+
+    if marker.trim() != VENV_SELECTOR_DONE {
+        bail!("Virtual environment selector returned an unexpected result");
+    }
+
+    let selection = read_selector_handoff(&runtime_dir)?
+        .context("Selector finished but no environment was chosen")?;
+    let selection = normalize_selectable_venv(selection)?;
+
+    let (activate_cmd, _) = generate_commands(&selection.venv_type, Some(&selection.path))?;
+    send_command_to_pane(zellij, terminal, &activate_cmd)?;
+
+    save_venv_selection(&session_name, &selection)?;
+
+    let mut updated_environments = environments;
+    if !updated_environments
+        .iter()
+        .any(|e| same_venv_path(&e.path, &selection.path))
+    {
+        updated_environments.push(selection.clone());
+    }
+    save_venv_collection(
+        &session_name,
+        &VenvCollection {
+            environments: filter_activatable_environments(updated_environments),
+        },
+    )?;
+    std::fs::write(runtime_dir.join("venv_active"), "active")?;
+
+    Ok(())
+}
+
+/// Send a command to a specific pane and execute it
+fn send_command_to_pane(zellij: &Path, pane: &PaneInfo, command: &str) -> Result<()> {
+    // Use write-chars for the command string (avoids keybinding parsing)
+    zellij_status(
+        Command::new(zellij)
+            .args(["action", "write-chars", "--pane-id"])
+            .arg(pane.cli_id())
+            .arg(command),
+    )?;
+    // Send Enter to execute
+    zellij_status(
+        Command::new(zellij)
+            .args(["action", "send-keys", "--pane-id"])
+            .arg(pane.cli_id())
+            .arg("Enter"),
+    )
 }
 
 fn spawn_floating_tool(config: &Config, pane_name: &str, tool: &CommandConfig) -> Result<()> {

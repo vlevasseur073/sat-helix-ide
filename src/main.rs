@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use sat_helix_ide::actions::{
-    file_manager_action, git_action, mind_map_action, review_action, terminal_action,
+    file_manager_action, git_action, mind_map_action, review_action, terminal_action, venv_action,
     workflow_action, FileManagerAction, GitAction, MindMapAction, ReviewAction, TerminalAction,
-    WorkflowAction,
+    VenvAction, WorkflowAction,
 };
 use sat_helix_ide::{Config, WorkspaceManager};
 use std::path::PathBuf;
@@ -107,6 +107,18 @@ enum Commands {
         #[command(subcommand)]
         action: WorkflowCommands,
     },
+
+    #[command(name = "__venv", hide = true)]
+    Venv {
+        #[command(subcommand)]
+        action: VenvCommands,
+    },
+
+    #[command(name = "__status-bar", hide = true)]
+    StatusBar {
+        #[command(subcommand)]
+        action: StatusBarCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -141,6 +153,32 @@ enum ReviewCommands {
 #[derive(Subcommand, Debug)]
 enum WorkflowCommands {
     Open,
+}
+
+#[derive(Subcommand, Debug)]
+enum StatusBarCommands {
+    /// Refresh the session status line until the pane closes.
+    Run {
+        #[arg(long)]
+        session: String,
+        #[arg(long)]
+        project_dir: PathBuf,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum VenvCommands {
+    Toggle,
+    Select,
+    /// Interactive ratatui selector (spawned in a floating Zellij pane).
+    RunSelector {
+        #[arg(long)]
+        session: String,
+    },
+    /// Verify that a path exists and looks like an activatable environment.
+    ValidatePath {
+        path: PathBuf,
+    },
 }
 
 impl Default for Commands {
@@ -238,6 +276,47 @@ fn main() -> Result<()> {
                 WorkflowCommands::Open => WorkflowAction::Open,
             };
             workflow_action(&config, action)?;
+        }
+        Commands::Venv { action } => match action {
+            VenvCommands::ValidatePath { path } => {
+                if let Err(err) = sat_helix_ide::venv::validate_custom_venv_path(&path) {
+                    eprintln!("{err:#}");
+                    std::process::exit(1);
+                }
+            }
+            VenvCommands::RunSelector { session } => {
+                let config = Config::load(&cli.config)?;
+                match sat_helix_ide::venv::run_selector_for_session(&config, &session) {
+                    Ok(sat_helix_ide::venv::SelectorRun::Cancelled) => std::process::exit(1),
+                    Ok(_) => {}
+                    Err(err) => {
+                        eprintln!("{err:#}");
+                        std::process::exit(1);
+                    }
+                }
+            }
+            other => {
+                let config = Config::load(&cli.config)?;
+                let action = match other {
+                    VenvCommands::Toggle => VenvAction::Toggle,
+                    VenvCommands::Select => VenvAction::Select,
+                    VenvCommands::RunSelector { .. } | VenvCommands::ValidatePath { .. } => {
+                        unreachable!()
+                    }
+                };
+                venv_action(&config, action)?;
+            }
+        },
+        Commands::StatusBar { action } => {
+            let config = Config::load(&cli.config)?;
+            match action {
+                StatusBarCommands::Run {
+                    session,
+                    project_dir,
+                } => {
+                    sat_helix_ide::statusbar::run_status_bar_loop(&config, &project_dir, &session)?;
+                }
+            }
         }
     }
     Ok(())

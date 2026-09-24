@@ -45,6 +45,10 @@ attach_existing = true
 # Whether to include the AI tab by default
 ai_by_default = true
 
+# Show Zellij's input-mode status bar under the sat-hx-ide git/venv line.
+# The sat-hx-ide summary line is always on; this only toggles Zellij's plugin.
+status_bar = true
+
 # Custom Zellij config path (optional)
 # zellij_config = "/home/user/.config/zellij/config.kdl"
 
@@ -162,6 +166,20 @@ ai_by_default = false  # Don't create AI tab
 [session]
 zellij_config = "/path/to/custom/zellij/config.kdl"
 ```
+
+### `session.status_bar`
+
+- **Type**: Boolean
+- **Default**: `false` in bundled defaults; sample config sets `true`
+- **Description**: When `true`, append Zellij’s `zellij:status-bar` plugin below the sat-hx-ide git/venv summary on every tab. The sat-hx-ide summary itself is **always** enabled and is not controlled by this flag.
+
+```toml
+[session]
+status_bar = false   # sat-hx-ide line only
+status_bar = true    # sat-hx-ide line + Zellij input-mode bar
+```
+
+You can override for one session at init time: `sat-hx-ide init . --status-bar` (see `sat-hx-ide init --help`).
 
 **Auto-detection order:**
 1. `session.zellij_config` if specified
@@ -389,6 +407,8 @@ All `sat-helix-ide` keybindings can be customized. The tool will **refuse to sta
 | `keybindings.terminal_zoom` | `"Alt Shift t"` | Zoom terminal |
 | `keybindings.mindmap` | `"Alt m"` | Toggle mind map dock |
 | `keybindings.mindmap_zoom` | `"Alt Shift m"` | Zoom mind map |
+| `keybindings.venv` | `"Alt v"` | Toggle venv activation in terminal |
+| `keybindings.venv_select` | `"Alt Shift v"` | Open venv selector TUI |
 
 ### Customizing Keybindings
 
@@ -403,7 +423,36 @@ terminal = "Alt t"
 terminal_zoom = "Alt Shift t"
 mindmap = "Alt n"
 mindmap_zoom = "Alt Shift n"
+venv = "Alt v"
+venv_select = "Alt Shift v"
 ```
+
+## Virtual Environment Settings
+
+Configuration for Python (and related) environment detection and activation.
+
+### `[venv]` section
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `enabled` | `true` | Enable venv keybindings and activation |
+| `path` | unset | Optional fixed env path always included in the selector |
+| `venv_type` | `"auto"` | Type for `path`: `auto`, `venv`, `uv`, `poetry`, `conda` |
+| `auto_detection` | `true` | Scan project/search paths when toggling without a saved selection |
+| `search_paths` | `[]` | Extra directories to scan (project dir is always searched) |
+
+```toml
+[venv]
+enabled = true
+# path = ".venv"
+# venv_type = "auto"
+auto_detection = true
+# search_paths = ["~", "/opt/venvs"]
+```
+
+**Activation model:** Standard envs use `source <venv>/bin/activate` in the terminal pane. Entering a project directory that contains `.venv` in the selector resolves to that `.venv` directory. Poetry, Pipenv, and Conda use their usual shell commands when those project layouts are detected.
+
+**Requirements:** `[venv] enabled = false` disables keybindings logic; the status bar still shows `venv none` unless you re-enable the feature.
 
 ### Keybinding Format
 
