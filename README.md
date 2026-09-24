@@ -267,36 +267,54 @@ mkdir -p ~/.config/sat-helix-ide
 cp configs/config.toml ~/.config/sat-helix-ide/config.toml
 ```
 
-Example:
+Example (same as [`configs/config.toml`](configs/config.toml)):
 
 ```toml
 [session]
+# Attach when a session with the project-derived name already exists.
 attach_existing = true
+# Add the AI tab whenever the [tools.ai] agent below is on PATH. When it is
+# not, the tab is skipped and the session still starts.
 ai_by_default = true
-# sat-hx-ide git/venv line is always on; this adds Zellij's input-mode bar below it
-# status_bar = true
-# zellij_config = "/home/me/.config/zellij/config.kdl"
+# Optional explicit merge source. By default, ZELLIJ_CONFIG_FILE or the normal
+# XDG path (~/.config/zellij/config.kdl) is used read-only.
+# zellij_config = "/home/user/.config/zellij/config.kdl"
+# Show Zellij's input-mode bar under the git/venv summary (summary is always on)
+status_bar = true
 
 [terminal]
+# Dock a shell beside Helix in the code tab. It runs Zellij's default shell.
 enabled = true
+# Size of that shell as a percentage of the code tab (height when dock_position = "down", width when "right").
 dock_percent = 15
-# dock_position = "down"  # or "right" for a vertical editor/terminal split
+# Terminal placement: "down" (default) or "right".
+# dock_position = "down"
+
+[mindmap]
+# Include the mindmap pane in the code tab at session start.
+# Off by default; Alt-m still opens it on demand when false.
+enabled = false
+# Size of that pane as a percentage of the code tab (height when dock_position = "down", width when "right").
+dock_percent = 50
+# dock placement: "down" or "right" (default).
+# dock_position = "right"
 
 [keybindings]
+# Zellij key notation. Bindings are added to shared_except "locked".
 file_manager = "Ctrl y"
 file_manager_dock = "Alt y"
 git = "Alt g"
 review = "Alt r"
+# Hide the terminal behind a fullscreen Helix, or bring it back.
 terminal = "Alt t"
+# Switch the terminal between its docked height and fullscreen.
 terminal_zoom = "Alt Shift t"
+mindmap = "Alt m"
+mindmap_zoom = "Alt Shift m"
+# Toggle virtual environment activation
 venv = "Alt v"
+# Open environment selector TUI
 venv_select = "Alt Shift v"
-
-[venv]
-enabled = true
-auto_detection = true
-# path = ".venv"
-# search_paths = ["~"]
 
 [tools.zellij]
 command = "zellij"
@@ -315,17 +333,42 @@ float_height = "100%"
 dock_percent = 28
 
 [tools.git]
-command = "lazygit" # or "gitui"
+command = "lazygit"
 args = []
 
 [tools.review]
 command = "revdiff"
 args = []
 
-# Any agent command. Skipped silently when it is not installed.
-[tools.ai]
-command = "cursor-agent"
+[tools.workflow]
+command = "glab-tui"
 args = []
+
+# The agent for the AI tab. Ignored when the command is not on PATH.
+[tools.ai]
+command = "vibe"
+args = []
+
+[tools.mindmap]
+command = "shiki"
+args = []
+
+# Virtual environment management
+# Auto-detection is enabled by default when this section is not present
+# or when auto_detection = true.
+[venv]
+# Enable venv management features (default: true)
+enabled = true
+# Path to a specific virtual environment to always include in selection
+# Can be used alongside auto-detection from search paths
+# path = ".venv"
+# Type of environment for the configured path: "auto", "uv", "venv", "poetry", "conda"
+# venv_type = "auto"
+# Enable auto-detection of virtual environments (default: true)
+auto_detection = true
+# Additional directories to search for virtual environments
+# Default searches the project directory. Add "~" to search home directory.
+# search_paths = ["~", "/opt/venvs"]
 ```
 
 The Zellij merge source is selected in this order:
