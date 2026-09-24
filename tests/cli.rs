@@ -188,3 +188,61 @@ fn no_ai_skips_the_tab_even_when_the_agent_exists() {
     fixture.init(&["--no-ai"]).success();
     assert!(!fixture.layout().contains("tab name=\"ai\""));
 }
+
+#[test]
+fn doctor_reports_every_missing_required_tool() {
+    let temp = tempfile::tempdir().unwrap();
+    let app_config = temp.path().join("sat.toml");
+    let prefix = "sat-hx-ide-doctor-missing-";
+    fs::write(
+        &app_config,
+        format!(
+            r#"
+[tools.zellij]
+command = "{prefix}zellij"
+
+[tools.editor]
+command = "{prefix}editor"
+
+[tools.file_manager]
+command = "{prefix}yazi"
+
+[tools.git]
+command = "{prefix}lazygit"
+
+[tools.review]
+command = "{prefix}revdiff"
+
+[tools.workflow]
+command = "{prefix}glab-tui"
+
+[tools.mindmap]
+command = "{prefix}shiki"
+"#
+        ),
+    )
+    .unwrap();
+
+    let output = Command::cargo_bin("sat-hx-ide")
+        .unwrap()
+        .args(["--config", app_config.to_str().unwrap(), "doctor"])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for label in [
+        "✗ Zellij",
+        "✗ Editor",
+        "✗ File manager",
+        "✗ Git client",
+        "✗ Review",
+        "✗ Workflow",
+    ] {
+        assert!(
+            stdout.contains(label),
+            "expected doctor output to contain {label:?}, got:\n{stdout}"
+        );
+    }
+    assert!(stdout.contains("Summary: 6 required command(s)"));
+}
