@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
+            window.path_to_searchindex_js = "searchindex-96e7804e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -184,18 +184,18 @@
 <p><code>sat-helix-ide</code> creates a Zellij workspace with a carefully designed layout optimized for development workflows.</p>
 <h3 id="default-layout"><a class="header" href="#default-layout">Default Layout</a></h3>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
-│  Tabs: [ code* ] [ ai ]                                         │
+│  Tabs: [ code* ] [ ai ] [ … user tabs … ]                    │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │                                                         │ │
-│  │                    Helix Editor                       │ │
-│  │                                                         │ │
-│  │                                                         │ │
+│  │                    Helix Editor                         │ │
 │  ├─────────────────────────────────────────────────────────┤ │
 │  │                    Terminal (15%)                       │ │
 │  └─────────────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────┤
+│  session … │ git … │ status … │ venv …   (sat status bar)   │
 └─────────────────────────────────────────────────────────────┘
 </code></pre>
+<p>The <strong>sat-hx-ide status line</strong> is always present at the bottom of every tab via Zellij’s <code>default_tab_template</code>. It is separate from Zellij’s optional input-mode bar (<code>[session] status_bar</code>).</p>
 <h3 id="tab-structure"><a class="header" href="#tab-structure">Tab Structure</a></h3>
 <div class="table-wrapper">
 <table>
@@ -283,6 +283,8 @@ w = ":sh sat-hx-ide __workflow open"
 <tr><td><code>Alt-g</code></td><td>Git Open</td><td>Spawn Git TUI in floating pane</td></tr>
 <tr><td><code>Alt-r</code></td><td>Review Open</td><td>Spawn review tool in floating pane</td></tr>
 <tr><td><code>Alt-w</code></td><td>Workflow Open</td><td>Spawn workflow tool in floating pane</td></tr>
+<tr><td><code>Alt-v</code></td><td>Venv Toggle</td><td>Activate or deactivate the selected environment in the terminal pane</td></tr>
+<tr><td><code>Alt-Shift-v</code></td><td>Venv Select</td><td>Open the environment selector (ratatui TUI)</td></tr>
 </tbody>
 </table>
 </div>
@@ -358,6 +360,64 @@ binary is on <code>PATH</code>.</p>
 <p>Opens the configured review tool (default: revdiff) in a floating pane. Useful for viewing diffs, commits, or code reviews.</p>
 <h4 id="workflow-tool-alt-w"><a class="header" href="#workflow-tool-alt-w">Workflow Tool (<code>Alt-w</code>)</a></h4>
 <p>Opens the configured workflow tool (default: glab-tui) in a floating pane. This provides access to project management features like PR/MR management, issues, CI/CD, etc.</p>
+<h2 id="session-status-bar"><a class="header" href="#session-status-bar">Session Status Bar</a></h2>
+<p>Each tab includes a <strong>sat-hx-ide summary line</strong> (1 row) at the bottom, updated about every two seconds:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>session</strong></td><td>Zellij session name (same as <code>sat-hx-ide init --session</code> or the project-derived name)</td></tr>
+<tr><td><strong>git</strong></td><td>Current branch in the project directory</td></tr>
+<tr><td><strong>status</strong></td><td>Working tree state: clean, modified, staged, untracked, or no git</td></tr>
+<tr><td><strong>venv</strong></td><td>Active virtual environment path, or <code>none</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The bar runs in a dedicated pane (<code>sat-status-bar</code>) that executes <code>sat-hx-ide __status-bar run</code>. It uses the project directory passed at session init and requires <code>git</code> on <code>PATH</code>.</p>
+<p><strong>All tabs:</strong> The layout uses Zellij’s <code>default_tab_template</code>, so the summary appears on the <code>code</code> tab, the <code>ai</code> tab, and any tab you create later in the session.</p>
+<p><strong>Optional Zellij bar:</strong> Setting <code>[session] status_bar = true</code> adds Zellij’s own <code>zellij:status-bar</code> plugin <strong>below</strong> the sat-hx-ide line (input mode, etc.). That plugin is off by default in sat-hx-ide; the git/venv summary is always on regardless of this setting.</p>
+<h2 id="virtual-environments"><a class="header" href="#virtual-environments">Virtual Environments</a></h2>
+<p>Python (and related) environments are managed from the <strong>terminal</strong> pane on the <code>code</code> tab.</p>
+<h3 id="auto-detection"><a class="header" href="#auto-detection">Auto-detection</a></h3>
+<p>When <code>[venv] enabled = true</code> (default), sat-hx-ide scans for:</p>
+<ul>
+<li><strong><code>.venv</code></strong> with <code>bin/activate</code> (standard venv / uv-managed env)</li>
+<li><strong>Poetry</strong> projects (<code>pyproject.toml</code> with <code>[tool.poetry]</code>)</li>
+<li><strong>Conda</strong> (<code>environment.yml</code>)</li>
+<li><strong>Pipenv</strong> (<code>Pipfile</code>)</li>
+</ul>
+<p>It also merges:</p>
+<ul>
+<li>A fixed path from <code>[venv] path</code> if set</li>
+<li>Paths from <code>[venv] search_paths</code> (the project directory is always searched; home is included by default when scanning)</li>
+<li>Custom paths you added earlier in the same session (stored under the session runtime directory)</li>
+</ul>
+<p>Only environments that can actually be activated (for example a <code>.venv</code> with <code>bin/activate</code>, or a valid Poetry project root) appear in the list.</p>
+<h3 id="selecting-an-environment-alt-shift-v"><a class="header" href="#selecting-an-environment-alt-shift-v">Selecting an environment (<code>Alt-Shift-v</code>)</a></h3>
+<p>Opens a <strong>ratatui</strong> floating pane:</p>
+<ul>
+<li>Move with <code>↑</code>/<code>↓</code> or <code>j</code>/<code>k</code></li>
+<li><strong><code>Space</code></strong> or <strong>Enter</strong> to select</li>
+<li><strong><code>c</code></strong> to type a custom path (project root with <code>.venv</code> is accepted and resolves to <code>.venv</code>)</li>
+<li><strong><code>q</code></strong> / <strong>Esc</strong> to cancel</li>
+</ul>
+<p>The choice is saved for the session, injected into the terminal via <code>source …/bin/activate</code> (or Poetry/Pipenv/Conda commands where applicable), and shown in the status bar as <strong>venv</strong>.</p>
+<p>The active row is marked with <strong><code>[x]</code></strong>; others show <strong><code>[ ]</code></strong>.</p>
+<h3 id="toggling-activation-alt-v"><a class="header" href="#toggling-activation-alt-v">Toggling activation (<code>Alt-v</code>)</a></h3>
+<ul>
+<li>If an environment is selected and active → deactivate in the terminal</li>
+<li>If selected but inactive → activate using the saved selection</li>
+<li>If nothing was selected yet → fall back to auto-detection in the project directory (<code>[venv]</code> config)</li>
+</ul>
+<p>Session state lives under:</p>
+<pre><code class="language-text">$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/
+├── venv_selection.json    # last chosen environment
+├── venv_collection.json   # list including custom paths
+└── venv_active            # marker when the terminal env is active
+</code></pre>
+<p>Disable the feature entirely with <code>[venv] enabled = false</code>.</p>
 <h2 id="file-manager-integration"><a class="header" href="#file-manager-integration">File Manager Integration</a></h2>
 <h3 id="yazi-integration"><a class="header" href="#yazi-integration">Yazi Integration</a></h3>
 <p><code>sat-helix-ide</code> integrates tightly with Yazi for file management:</p>

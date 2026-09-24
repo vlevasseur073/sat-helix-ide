@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
+            window.path_to_searchindex_js = "searchindex-96e7804e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -234,8 +234,9 @@
 <p><strong>Write <code>layout.kdl</code></strong></p>
 <ul>
 <li>Create the Zellij layout definition</li>
-<li>Define the <code>code</code> tab with Helix and terminal</li>
-<li>Optionally create the <code>ai</code> tab with the configured agent</li>
+<li>Define a <code>default_tab_template</code> with the sat-hx-ide status bar pane (and optional Zellij status-bar plugin)</li>
+<li>Define the <code>code</code> tab with Helix and terminal inside that template</li>
+<li>Optionally create the <code>ai</code> tab with the configured agent (same template)</li>
 <li>Set up pane names and initial commands</li>
 </ul>
 </li>
@@ -260,8 +261,11 @@
 <h3 id="runtime-files"><a class="header" href="#runtime-files">Runtime Files</a></h3>
 <p>All runtime files are stored under:</p>
 <pre><code class="language-text">$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/
-├── config.kdl          # Merged Zellij configuration
-└── layout.kdl          # Session layout definition
+├── config.kdl              # Merged Zellij configuration
+├── layout.kdl              # Session layout definition
+├── venv_selection.json     # Last selected virtual environment (optional)
+├── venv_collection.json    # Known environments for selector (optional)
+└── venv_active             # Present when terminal venv is active (optional)
 </code></pre>
 <p><strong>Fallback</strong>: If <code>XDG_RUNTIME_DIR</code> is unavailable, the system temporary directory (<code>/tmp</code> on most systems) is used.</p>
 <h2 id="helper-commands"><a class="header" href="#helper-commands">Helper Commands</a></h2>
@@ -283,6 +287,9 @@
 <tr><td><code>Alt-g</code></td><td><code>__git open</code></td><td>Spawn configured Git TUI in floating pane</td></tr>
 <tr><td><code>Alt-r</code></td><td><code>__review open</code></td><td>Spawn configured review tool in floating pane</td></tr>
 <tr><td><code>Alt-w</code></td><td><code>__workflow open</code></td><td>Spawn configured workflow tool in floating pane</td></tr>
+<tr><td><code>Alt-v</code></td><td><code>__venv toggle</code></td><td>Activate/deactivate saved or auto-detected venv in terminal</td></tr>
+<tr><td><code>Alt-Shift-v</code></td><td><code>__venv select</code></td><td>Open venv selector (spawns <code>__venv run-selector</code> in floating pane)</td></tr>
+<tr><td>(layout pane)</td><td><code>__status-bar run</code></td><td>Refresh git/venv/session line in <code>sat-status-bar</code> pane</td></tr>
 </tbody>
 </table>
 </div>
@@ -348,6 +355,21 @@
 <ul>
 <li>Open: Spawn workflow tool in floating pane</li>
 <li>Manage project management integrations</li>
+</ul>
+</li>
+<li>
+<p><strong>Virtual Environment Actions</strong></p>
+<ul>
+<li>Select: ratatui list + custom path; writes handoff files; activates in terminal</li>
+<li>Toggle: use saved selection or <code>[venv]</code> auto-detection; track <code>venv_active</code></li>
+<li>Logic in <a href="../src/venv/"><code>src/venv/</code></a> and <a href="../src/actions.rs"><code>src/actions.rs</code></a></li>
+</ul>
+</li>
+<li>
+<p><strong>Status Bar</strong></p>
+<ul>
+<li>Layout spawns <code>sat-hx-ide __status-bar run</code> in each tab via <code>default_tab_template</code></li>
+<li><a href="../src/statusbar/"><code>src/statusbar/</code></a> polls git and session venv state</li>
 </ul>
 </li>
 </ol>

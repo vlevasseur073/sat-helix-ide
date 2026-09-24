@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
+            window.path_to_searchindex_js = "searchindex-96e7804e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -490,6 +490,35 @@ sat-hx-ide init .
 </code></pre>
 </li>
 </ol>
+<h3 id="session-status-bar"><a class="header" href="#session-status-bar">Session status bar</a></h3>
+<h4 id="no-gitvenv-line-on-a-tab"><a class="header" href="#no-gitvenv-line-on-a-tab">No git/venv line on a tab</a></h4>
+<p><strong>Problem</strong>: The sat-hx-ide summary (session / git / venv) is missing.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li><strong>Start a new session</strong> after upgrading — the line is injected via <code>default_tab_template</code> in <code>layout.kdl</code>.</li>
+<li><strong>New tabs</strong> should include the bar automatically; if an old session was created before this layout, re-run <code>sat-hx-ide init</code> for that project.</li>
+<li><strong>Git field shows errors</strong> — ensure <code>git</code> is on <code>PATH</code> (<code>sat-hx-ide doctor</code>).</li>
+</ol>
+<h4 id="only-zellijs-mode-bar-or-two-bars"><a class="header" href="#only-zellijs-mode-bar-or-two-bars">Only Zellij’s mode bar, or two bars</a></h4>
+<ul>
+<li>The <strong>sat-hx-ide</strong> line is always present when using current layouts.</li>
+<li><strong><code>[session] status_bar = true</code></strong> adds Zellij’s plugin <strong>below</strong> it. Set <code>status_bar = false</code> if you only want the sat-hx-ide summary.</li>
+</ul>
+<h3 id="virtual-environments"><a class="header" href="#virtual-environments">Virtual environments</a></h3>
+<h4 id="selector-lists-no-environments"><a class="header" href="#selector-lists-no-environments">Selector lists no environments</a></h4>
+<ul>
+<li>Enable <code>[venv] enabled = true</code> and ensure the project has a detectable env (e.g. <code>.venv/bin/activate</code>) or add <code>[venv] path</code>.</li>
+<li>Use <strong><code>Alt-Shift-v</code></strong> → <strong><code>c</code></strong> to enter a custom path (project root with <code>.venv</code> is accepted).</li>
+</ul>
+<h4 id="alt-v-does-nothing"><a class="header" href="#alt-v-does-nothing"><code>Alt-v</code> does nothing</a></h4>
+<ul>
+<li>Virtual env commands target the named <strong><code>terminal</code></strong> pane on the <strong><code>code</code></strong> tab. If the terminal was closed, show it with <strong><code>Alt-t</code></strong> first.</li>
+<li>Run <code>sat-hx-ide __venv select</code> from a shell inside the Zellij session to surface errors.</li>
+</ul>
+<h4 id="uv-project-without-venv"><a class="header" href="#uv-project-without-venv">UV project without <code>.venv</code></a></h4>
+<ul>
+<li>Run <code>uv sync</code> to create <code>.venv</code>, or select the <code>.venv</code> directory directly in the custom path prompt.</li>
+</ul>
 <h3 id="configuration-issues"><a class="header" href="#configuration-issues">Configuration Issues</a></h3>
 <h4 id="configuration-file-not-found"><a class="header" href="#configuration-file-not-found">Configuration file not found</a></h4>
 <p><strong>Problem</strong>: <code>sat-hx-ide</code> reports that the configuration file is not found.</p>

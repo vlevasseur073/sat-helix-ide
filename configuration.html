@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-49aa4f88.js";
+            window.path_to_searchindex_js = "searchindex-96e7804e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -211,6 +211,10 @@ attach_existing = true
 # Whether to include the AI tab by default
 ai_by_default = true
 
+# Show Zellij's input-mode status bar under the sat-hx-ide git/venv line.
+# The sat-hx-ide summary line is always on; this only toggles Zellij's plugin.
+status_bar = true
+
 # Custom Zellij config path (optional)
 # zellij_config = "/home/user/.config/zellij/config.kdl"
 
@@ -320,6 +324,17 @@ ai_by_default = false  # Don't create AI tab
 <pre><code class="language-toml">[session]
 zellij_config = "/path/to/custom/zellij/config.kdl"
 </code></pre>
+<h3 id="sessionstatus_bar"><a class="header" href="#sessionstatus_bar"><code>session.status_bar</code></a></h3>
+<ul>
+<li><strong>Type</strong>: Boolean</li>
+<li><strong>Default</strong>: <code>false</code> in bundled defaults; sample config sets <code>true</code></li>
+<li><strong>Description</strong>: When <code>true</code>, append Zellij’s <code>zellij:status-bar</code> plugin below the sat-hx-ide git/venv summary on every tab. The sat-hx-ide summary itself is <strong>always</strong> enabled and is not controlled by this flag.</li>
+</ul>
+<pre><code class="language-toml">[session]
+status_bar = false   # sat-hx-ide line only
+status_bar = true    # sat-hx-ide line + Zellij input-mode bar
+</code></pre>
+<p>You can override for one session at init time: <code>sat-hx-ide init . --status-bar</code> (see <code>sat-hx-ide init --help</code>).</p>
 <p><strong>Auto-detection order:</strong></p>
 <ol>
 <li><code>session.zellij_config</code> if specified</li>
@@ -497,6 +512,8 @@ args = []
 <tr><td><code>keybindings.terminal_zoom</code></td><td><code>"Alt Shift t"</code></td><td>Zoom terminal</td></tr>
 <tr><td><code>keybindings.mindmap</code></td><td><code>"Alt m"</code></td><td>Toggle mind map dock</td></tr>
 <tr><td><code>keybindings.mindmap_zoom</code></td><td><code>"Alt Shift m"</code></td><td>Zoom mind map</td></tr>
+<tr><td><code>keybindings.venv</code></td><td><code>"Alt v"</code></td><td>Toggle venv activation in terminal</td></tr>
+<tr><td><code>keybindings.venv_select</code></td><td><code>"Alt Shift v"</code></td><td>Open venv selector TUI</td></tr>
 </tbody>
 </table>
 </div>
@@ -511,7 +528,35 @@ terminal = "Alt t"
 terminal_zoom = "Alt Shift t"
 mindmap = "Alt n"
 mindmap_zoom = "Alt Shift n"
+venv = "Alt v"
+venv_select = "Alt Shift v"
 </code></pre>
+<h2 id="virtual-environment-settings"><a class="header" href="#virtual-environment-settings">Virtual Environment Settings</a></h2>
+<p>Configuration for Python (and related) environment detection and activation.</p>
+<h3 id="venv-section"><a class="header" href="#venv-section"><code>[venv]</code> section</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td><code>true</code></td><td>Enable venv keybindings and activation</td></tr>
+<tr><td><code>path</code></td><td>unset</td><td>Optional fixed env path always included in the selector</td></tr>
+<tr><td><code>venv_type</code></td><td><code>"auto"</code></td><td>Type for <code>path</code>: <code>auto</code>, <code>venv</code>, <code>uv</code>, <code>poetry</code>, <code>conda</code></td></tr>
+<tr><td><code>auto_detection</code></td><td><code>true</code></td><td>Scan project/search paths when toggling without a saved selection</td></tr>
+<tr><td><code>search_paths</code></td><td><code>[]</code></td><td>Extra directories to scan (project dir is always searched)</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-toml">[venv]
+enabled = true
+# path = ".venv"
+# venv_type = "auto"
+auto_detection = true
+# search_paths = ["~", "/opt/venvs"]
+</code></pre>
+<p><strong>Activation model:</strong> Standard envs use <code>source &lt;venv&gt;/bin/activate</code> in the terminal pane. Entering a project directory that contains <code>.venv</code> in the selector resolves to that <code>.venv</code> directory. Poetry, Pipenv, and Conda use their usual shell commands when those project layouts are detected.</p>
+<p><strong>Requirements:</strong> <code>[venv] enabled = false</code> disables keybindings logic; the status bar still shows <code>venv none</code> unless you re-enable the feature.</p>
 <h3 id="keybinding-format"><a class="header" href="#keybinding-format">Keybinding Format</a></h3>
 <p>Keybindings use Zellij’s keybinding syntax:</p>
 <ul>
