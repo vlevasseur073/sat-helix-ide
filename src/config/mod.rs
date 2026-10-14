@@ -182,6 +182,12 @@ pub struct KeybindingConfig {
 
     #[serde(default = "default_venv_select_key")]
     pub venv_select: String,
+
+    /// Zellij keys released to the focused pane (Helix) instead of being
+    /// handled by Zellij, so locked mode (`Ctrl g`) is not needed for them.
+    /// Empty by default; entries use Zellij key notation, e.g. "Ctrl b".
+    #[serde(default)]
+    pub passthrough: Vec<String>,
 }
 
 impl Default for KeybindingConfig {
@@ -198,6 +204,7 @@ impl Default for KeybindingConfig {
             mindmap_zoom: default_mindmap_zoom_key(),
             venv: default_venv_key(),
             venv_select: default_venv_select_key(),
+            passthrough: Vec::new(),
         }
     }
 }
@@ -433,5 +440,21 @@ mod tests {
         assert_eq!(default_config.tools.git.command, "lazygit");
         assert_eq!(default_config.tools.review.command, "revdiff");
         assert_eq!(default_config.tools.workflow.command, "glab-tui");
+    }
+
+    #[test]
+    fn passthrough_defaults_to_empty_and_parses_an_override() {
+        let default_config = Config::default();
+        assert!(default_config.keybindings.passthrough.is_empty());
+
+        let config: Config = toml::from_str(
+            r#"
+            [keybindings]
+            passthrough = ["Ctrl b", "Ctrl o"]
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(config.keybindings.passthrough, ["Ctrl b", "Ctrl o"]);
     }
 }

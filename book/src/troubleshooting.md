@@ -169,6 +169,25 @@ which yazi
    file_manager = "Ctrl f"  # Try a different key
    ```
 
+#### Helix keys don't reach the editor without locking Zellij
+
+**Problem**: Keys like `Ctrl-b` (page up) or `Ctrl-o` are intercepted by
+Zellij, so you must toggle locked mode with `Ctrl-g` for Helix to receive
+them — which also disables all `sat-hx-ide` keybindings.
+
+**Solution**: Add the keys to the passthrough list. Each entry is unbound
+from Zellij in the generated runtime config and forwarded to the focused
+pane, so locked mode is not needed for them:
+
+```toml
+[keybindings]
+passthrough = ["Ctrl b", "Ctrl o"]
+```
+
+The list is empty by default; your Zellij `config.kdl` is never modified. See
+[Configuration](./configuration.md#passthrough-keys) for the rules (notation,
+collisions with `sat-hx-ide` keys are rejected at `init`).
+
 ### Terminal Issues
 
 #### Terminal doesn't appear

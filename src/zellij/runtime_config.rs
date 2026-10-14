@@ -71,6 +71,18 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
         }
     }
 
+    let passthrough = prepare_passthrough(&input.keys.passthrough, &requested)?;
+    if let Some(keybinds) = document.get("keybinds") {
+        for key in &passthrough {
+            if contains_binding(keybinds, key) {
+                log::warn!(
+                    "Zellij key '{key}' is bound in the Zellij config; \
+                     releasing it to the focused pane for this session"
+                );
+            }
+        }
+    }
+
     let bindings = [
         helper_binding(
             &input.keys.file_manager,
@@ -158,8 +170,94 @@ fn merge_config(source: &str, input: &RuntimeConfigInput<'_>) -> Result<String> 
     let shared = ensure_shared_except_locked(keybinds);
     let children = shared.ensure_children();
     children.nodes_mut().extend(bindings);
+    if !passthrough.is_empty() {
+        append_global_unbind(keybinds, &passthrough)?;
+    }
 
     Ok(document.to_string())
+}
+
+/// Emits the passthrough keys as a top-level `unbind` of the `keybinds`
+/// node. Zellij applies those after every shared and named-mode section is
+/// merged, so a binding added later in the user's own config cannot
+/// re-claim the key; an `unbind` inside a shared section would be undone by
+/// any such later binding.
+fn append_global_unbind(keybinds: &mut KdlNode, passthrough: &[String]) -> Result<()> {
+    let children = keybinds.ensure_children();
+    // Zellij applies only the first top-level `unbind` node, so merge our
+    // keys into an existing one instead of adding a second.
+    let mut keys: Vec<String> = Vec::new();
+    if let Some(index) = children
+        .nodes()
+        .iter()
+        .position(|node| node.name().value() == "unbind")
+    {
+        for key in children.nodes_mut()[index]
+            .entries()
+            .iter()
+            .filter_map(|entry| entry.value().as_string())
+        {
+            if !key.trim().is_empty()
+                && !keys
+                    .iter()
+                    .any(|bound| normalize_key(bound) == normalize_key(key))
+            {
+                keys.push(key.to_string());
+            }
+        }
+        for key in passthrough {
+            if !keys
+                .iter()
+                .any(|bound| normalize_key(bound) == normalize_key(key))
+            {
+                keys.push(key.clone());
+            }
+        }
+        let node = unbind_node(&keys)?;
+        children.nodes_mut()[index] = node;
+    } else {
+        children.nodes_mut().push(unbind_node(passthrough)?);
+    }
+    Ok(())
+}
+
+/// Keys the user wants forwarded to the focused pane (e.g. Helix) instead of
+/// being handled by Zellij, so locked mode (`Ctrl g`) is not needed for them.
+/// Emitted as `unbind` entries; Zellij passes unbound keys straight through.
+fn prepare_passthrough(
+    keys: &[String],
+    requested: &[(&String, &str)],
+) -> Result<Vec<String>> {
+    let mut passthrough: Vec<String> = Vec::new();
+    for key in keys.iter().map(String::as_str).map(str::trim) {
+        if key.is_empty() {
+            continue;
+        }
+        if passthrough
+            .iter()
+            .any(|bound| normalize_key(bound) == normalize_key(key))
+        {
+            continue;
+        }
+        for (bound, action) in requested {
+            if normalize_key(key) == normalize_key(bound) {
+                bail!(
+                    "Zellij key '{key}' cannot be a passthrough key; it is \
+                     the sat-hx-ide {action} keybinding"
+                );
+            }
+        }
+        passthrough.push(key.to_string());
+    }
+    Ok(passthrough)
+}
+
+fn unbind_node(keys: &[String]) -> Result<KdlNode> {
+    let keys = keys
+        .iter()
+        .map(|key| format!(" {key:?}"))
+        .collect::<String>();
+    parse_single_node(&format!("unbind{keys}"))
 }
 
 fn set_session_name(document: &mut KdlDocument, session_name: &str) -> Result<()> {
@@ -413,5 +511,143 @@ mod tests {
         let error = merge_config(source, &input).unwrap_err();
 
         assert!(error.to_string().contains("Alt g"));
+    }
+
+    #[test]
+    fn passthrough_keys_are_unbound_across_all_modes() {
+        let keys = KeybindingConfig {
+            passthrough: vec!["Ctrl b".to_string(), "Ctrl o".to_string()],
+            ..KeybindingConfig::default()
+        };
+        let input = input(Path::new("/unused"), &keys);
+        // Sections later in the document re-bind the keys, as Zellij's own
+        // default config does; only a top-level `unbind`, applied after all
+        // sections, can release them.
+        let source = r#"
+            keybinds clear-defaults=true {
+                shared_except "locked" "session" {
+                    bind "Ctrl o" { SwitchToMode "session"; }
+                }
+                shared_except "locked" "scroll" "search" "tmux" {
+                    bind "Ctrl b" { SwitchToMode "tmux"; }
+                }
+            }
+        "#;
+
+        let merged = merge_config(source, &input).unwrap();
+
+        let document = merged
+            .parse::<KdlDocument>()
+            .expect("merged config must still be valid KDL");
+        let unbind = document
+            .get("keybinds")
+            .and_then(|keybinds| keybinds.children())
+            .and_then(|children| children.get("unbind"))
+            .expect("top-level unbind node must exist");
+        let released = unbind
+            .entries()
+            .iter()
+            .filter_map(|entry| entry.value().as_string())
+            .collect::<Vec<_>>();
+        assert_eq!(released, ["Ctrl b", "Ctrl o"]);
+    }
+
+    #[test]
+    fn passthrough_keys_merge_into_an_existing_global_unbind() {
+        let keys = KeybindingConfig {
+            passthrough: vec!["Ctrl o".to_string()],
+            ..KeybindingConfig::default()
+        };
+        let input = input(Path::new("/unused"), &keys);
+        let source = r#"
+            keybinds {
+                unbind "Ctrl h"
+            }
+        "#;
+
+        let merged = merge_config(source, &input).unwrap();
+
+        let document = merged.parse::<KdlDocument>().unwrap();
+        let keybinds_children = document
+            .get("keybinds")
+            .and_then(|keybinds| keybinds.children())
+            .expect("keybinds section must survive the merge");
+        let unbinds = keybinds_children
+            .nodes()
+            .iter()
+            .filter(|node| node.name().value() == "unbind")
+            .count();
+        let released = keybinds_children
+            .get("unbind")
+            .unwrap()
+            .entries()
+            .iter()
+            .filter_map(|entry| entry.value().as_string())
+            .collect::<Vec<_>>();
+        assert_eq!(unbinds, 1);
+        assert_eq!(released, ["Ctrl h", "Ctrl o"]);
+    }
+
+    #[test]
+    fn empty_passthrough_emits_no_unbind() {
+        let keys = KeybindingConfig::default();
+        let input = input(Path::new("/unused"), &keys);
+
+        let merged = merge_config("", &input).unwrap();
+
+        assert!(!merged.contains("unbind"));
+    }
+
+    #[test]
+    fn passthrough_duplicates_and_blanks_are_dropped() {
+        let keys = KeybindingConfig {
+            passthrough: vec![
+                "Ctrl b".to_string(),
+                " ctrl b ".to_string(),
+                String::new(),
+                "   ".to_string(),
+            ],
+            ..KeybindingConfig::default()
+        };
+        let input = input(Path::new("/unused"), &keys);
+
+        let merged = merge_config("", &input).unwrap();
+
+        assert_eq!(merged.matches("Ctrl b").count(), 1);
+        assert!(merged.contains(r#"unbind "Ctrl b""#));
+    }
+
+    #[test]
+    fn passthrough_key_bound_by_the_user_is_still_unbound() {
+        let keys = KeybindingConfig {
+            passthrough: vec!["Ctrl o".to_string()],
+            ..KeybindingConfig::default()
+        };
+        let input = input(Path::new("/unused"), &keys);
+        let source = r#"
+            keybinds {
+                normal {
+                    bind "Ctrl o" { Quit; }
+                }
+            }
+        "#;
+
+        let merged = merge_config(source, &input).unwrap();
+
+        assert!(merged.contains(r#"unbind "Ctrl o""#));
+    }
+
+    #[test]
+    fn passthrough_key_colliding_with_an_action_key_is_rejected() {
+        let keys = KeybindingConfig {
+            passthrough: vec!["ctrl y".to_string()],
+            ..KeybindingConfig::default()
+        };
+        let input = input(Path::new("/unused"), &keys);
+
+        let error = merge_config("", &input).unwrap_err();
+
+        assert!(error.to_string().contains("ctrl y"));
+        assert!(error.to_string().contains("file manager"));
     }
 }

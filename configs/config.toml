@@ -45,6 +45,9 @@ mindmap_zoom = "Alt Shift m"
 venv = "Alt v"
 # Open environment selector TUI
 venv_select = "Alt Shift v"
+# Zellij keys released to the focused pane (Helix) instead of being handled by
+# Zellij, so locked mode (Ctrl g) is not needed for them.
+# passthrough = ["Ctrl b", "Ctrl o"]
 
 [tools.zellij]
 command = "zellij"
