@@ -224,10 +224,7 @@ fn append_global_unbind(keybinds: &mut KdlNode, passthrough: &[String]) -> Resul
 /// Keys the user wants forwarded to the focused pane (e.g. Helix) instead of
 /// being handled by Zellij, so locked mode (`Ctrl g`) is not needed for them.
 /// Emitted as `unbind` entries; Zellij passes unbound keys straight through.
-fn prepare_passthrough(
-    keys: &[String],
-    requested: &[(&String, &str)],
-) -> Result<Vec<String>> {
+fn prepare_passthrough(keys: &[String], requested: &[(&String, &str)]) -> Result<Vec<String>> {
     let mut passthrough: Vec<String> = Vec::new();
     for key in keys.iter().map(String::as_str).map(str::trim) {
         if key.is_empty() {

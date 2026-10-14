@@ -8,7 +8,7 @@
 </h1>
 </div>
 
-<!-- # sat-helix-ide --> 
+<!-- # sat-helix-ide -->
 ## A workspace orchestrator for a full IDE.
 
 `sat-hx-ide` is a small [Zellij](https://zellij.dev/) session composer for a [Helix](https://helix-editor.com/)-centered workflow.
