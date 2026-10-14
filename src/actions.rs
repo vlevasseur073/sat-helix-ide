@@ -8,10 +8,70 @@ use std::process::{Command, ExitStatus};
 use std::sync::{OnceLock, RwLock};
 use std::time::{Duration, Instant};
 
+use home;
+
 const FILE_MANAGER_PANE: &str = "file-manager";
 const EDITOR_PANE: &str = "editor";
 const TERMINAL_PANE: &str = "terminal";
 const MIND_MAP_PANE: &str = "mindmapping";
+
+/// Path to the state file indicating Yazi should use docked (single-panel) mode
+fn yazi_docked_state_file(runtime_dir: &Path) -> PathBuf {
+    runtime_dir.join("yazi-docked.state")
+}
+
+/// Path to the docked Yazi configuration directory
+fn docked_yazi_config_dir(runtime_dir: &Path) -> PathBuf {
+    runtime_dir.join("yazi-docked")
+}
+
+/// User's Yazi configuration directory
+fn user_yazi_config_dir() -> Option<PathBuf> {
+    std::env::var_os("YAZI_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| {
+            home::home_dir().and_then(|home| {
+                let path = home.join(".config").join("yazi");
+                if path.exists() {
+                    Some(path)
+                } else {
+                    None
+                }
+            })
+        })
+}
+
+/// Create or ensure the docked Yazi config directory and file exist
+/// Copies user's config files (keymap.toml, theme.toml) and creates a custom yazi.toml with single-panel layout
+fn ensure_docked_yazi_config(runtime_dir: &Path) -> Result<PathBuf> {
+    let config_dir = docked_yazi_config_dir(runtime_dir);
+    let config_path = config_dir.join("yazi.toml");
+
+    if !config_path.exists() {
+        std::fs::create_dir_all(&config_dir)?;
+
+        // Copy user's config files if they exist
+        if let Some(user_config_dir) = user_yazi_config_dir() {
+            let files_to_copy = ["keymap.toml", "theme.toml", "init.lua"];
+            for filename in files_to_copy {
+                let src = user_config_dir.join(filename);
+                let dst = config_dir.join(filename);
+                if src.exists() {
+                    if let Err(e) = std::fs::copy(&src, &dst) {
+                        eprintln!("Warning: Failed to copy {}: {}", filename, e);
+                    }
+                }
+            }
+        }
+
+        // Create custom yazi.toml with single-panel layout
+        let content = r#"[mgr]
+ratio = [0, 8, 0]
+"#;
+        std::fs::write(&config_path, content)?;
+    }
+    Ok(config_dir)
+}
 
 /// Default TTL for pane cache in milliseconds
 const PANE_CACHE_TTL_MS: u64 = 500;
@@ -219,6 +279,7 @@ pub fn file_manager_action(
             .arg(format!("terminal_{current_id}"))
             .arg(FILE_MANAGER_PANE),
     )?;
+
     run_file_manager(config, &zellij, current_id)
 }
 
@@ -291,17 +352,29 @@ fn run_file_manager(config: &Config, zellij: &Path, pane_id: u64) -> Result<()> 
     }
     let manager = resolve(&config.tools.file_manager.command)?;
     let session = std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
-    let chooser = config
-        .runtime_dir(&session)
-        .join(format!("chooser-{pane_id}-{}.txt", std::process::id()));
+    let runtime_dir = config.runtime_dir(&session);
+    let state_file = yazi_docked_state_file(&runtime_dir);
+    let chooser = runtime_dir.join(format!("chooser-{pane_id}-{}.txt", std::process::id()));
     if let Some(parent) = chooser.parent() {
         fs::create_dir_all(parent)?;
     }
 
+    // Check if Yazi should be in docked (single-panel) mode
+    let use_docked_config = state_file.exists();
+
     loop {
         let _ = fs::remove_file(&chooser);
-        let status = Command::new(&manager)
-            .args(&config.tools.file_manager.args)
+
+        let mut yazi_cmd = Command::new(&manager);
+        yazi_cmd.args(&config.tools.file_manager.args);
+
+        // Use docked config if state file exists
+        if use_docked_config {
+            let config_dir = ensure_docked_yazi_config(&runtime_dir)?;
+            yazi_cmd.env("YAZI_CONFIG_HOME", &config_dir);
+        }
+
+        let status = yazi_cmd
             .arg("--chooser-file")
             .arg(&chooser)
             .status()
@@ -650,6 +723,10 @@ fn toggle_dock(
     editor: &PaneInfo,
 ) -> Result<()> {
     let was_floating = pane.is_floating;
+    let session = std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+    let runtime_dir = config.runtime_dir(&session);
+    let state_file = yazi_docked_state_file(&runtime_dir);
+
     zellij_status(
         Command::new(zellij)
             .args(["action", "close-pane", "--pane-id"])
@@ -657,8 +734,16 @@ fn toggle_dock(
     )?;
 
     if !was_floating {
+        // Undocking: remove state file for floating mode
+        let _ = std::fs::remove_file(&state_file);
         return become_floating_manager(config, zellij, current_pane_id()?);
     }
+
+    // Docking: create state file for docked mode
+    if let Some(parent) = state_file.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&state_file, "docked")?;
 
     zellij_status(
         Command::new(zellij)
