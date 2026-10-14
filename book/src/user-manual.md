@@ -96,6 +96,24 @@ w = ":sh sat-hx-ide __workflow open"
 
 This will work from your Helix editor in `sat-helix-ide`. It will also work if you run `hx` standalone inside any Zellij session.
 
+#### Passthrough Keys
+
+Keys Helix uses but Zellij also claims (for example `Ctrl-b` and `Ctrl-o`) do
+not reach the editor unless Zellij is in locked mode. Instead of toggling
+locked mode with `Ctrl-g` — which disables every `sat-hx-ide` keybinding —
+you can release individual keys to the focused pane:
+
+```toml
+[keybindings]
+passthrough = ["Ctrl b", "Ctrl o"]
+```
+
+Each key is unbound from Zellij in the generated runtime config (in every
+mode, via a top-level `unbind` Zellij applies after all other sections), so
+Zellij forwards it to Helix directly while all `sat-hx-ide` keybindings stay
+active. The list is empty by default; see
+[Configuration](./configuration.md#passthrough-keys) for details.
+
 ### Primary Keybindings
 
 | Key | Action | Description |

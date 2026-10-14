@@ -409,6 +409,7 @@ All `sat-helix-ide` keybindings can be customized. The tool will **refuse to sta
 | `keybindings.mindmap_zoom` | `"Alt Shift m"` | Zoom mind map |
 | `keybindings.venv` | `"Alt v"` | Toggle venv activation in terminal |
 | `keybindings.venv_select` | `"Alt Shift v"` | Open venv selector TUI |
+| `keybindings.passthrough` | `[]` | Zellij keys forwarded to the focused pane instead of being handled by Zellij |
 
 ### Customizing Keybindings
 
@@ -426,6 +427,41 @@ mindmap_zoom = "Alt Shift n"
 venv = "Alt v"
 venv_select = "Alt Shift v"
 ```
+
+### Passthrough Keys
+
+Some keys Helix uses daily (for example `Ctrl b` for page-up and `Ctrl o`)
+are also claimed by Zellij in unlocked mode. Normally you would toggle
+Zellij's locked mode with `Ctrl g` so Helix receives them — but locked mode
+also disables every `sat-hx-ide` keybinding.
+
+The `passthrough` list releases those keys instead: each entry is emitted as
+a top-level `unbind` in the generated runtime Zellij config - a node Zellij
+applies only after every mode and shared keybinding section is merged, so
+bindings from its default config or your own config cannot re-claim the key.
+Zellij then forwards the key to the focused pane (Helix) without needing
+locked mode. `Ctrl g` itself is never touched; locked mode stays available.
+
+```toml
+[keybindings]
+passthrough = ["Ctrl b", "Ctrl o"]
+```
+
+- **Type**: Array of strings (Zellij key notation, same as other keybindings)
+- **Default**: `[]` (opt-in)
+- The keys are released in **every Zellij mode**, not just normal mode: with
+  `Ctrl b` in the list, `Ctrl b` no longer pages up in Zellij's scroll mode
+  and no longer leaves Tmux mode - it always goes to the focused pane
+- Empty entries and duplicates are ignored
+- A passthrough key may not collide with a `sat-hx-ide` action keybinding;
+  `init` fails with an error naming the key
+- If your own Zellij config binds a passthrough key, the binding is released
+  for the `sat-hx-ide` session only (your `config.kdl` is never modified);
+  a warning is logged
+
+Zellij defaults that conflict with Helix (and can be added here) include
+`Ctrl p` (pane mode), `Ctrl n` (resize mode), `Ctrl h`/`Ctrl j`/`Ctrl k`/
+`Ctrl l` (move focus), and `Ctrl z` (suspend).
 
 ## Virtual Environment Settings
 

@@ -106,6 +106,12 @@ command = "{}"
         }
     }
 
+    fn set_passthrough(&self, keys: &str) {
+        let mut config = fs::read_to_string(&self.app_config).unwrap();
+        config.push_str(&format!("\n[keybindings]\npassthrough = {keys}\n"));
+        fs::write(&self.app_config, config).unwrap();
+    }
+
     fn init(&self, extra: &[&str]) -> assert_cmd::assert::Assert {
         let mut command = Command::cargo_bin("sat-hx-ide").unwrap();
         command
@@ -154,6 +160,7 @@ fn init_preserves_user_config_and_launches_with_runtime_files() {
     assert!(merged.contains("bind \"Alt t\""));
     assert!(merged.contains("bind \"Alt Shift t\""));
     assert!(merged.contains("bind \"Alt g\""));
+    assert!(!merged.contains("unbind"));
 
     let layout = fixture.layout();
     assert!(layout.contains("tab name=\"code\""));
@@ -166,6 +173,22 @@ fn init_preserves_user_config_and_launches_with_runtime_files() {
     assert!(args.contains("--new-session-with-layout"));
     assert!(args.contains("integration"));
     drop(fixture.temp);
+}
+
+#[test]
+fn passthrough_keys_are_unbound_in_the_runtime_config() {
+    let fixture = Fixture::new(false);
+    fixture.set_passthrough("[\"Ctrl b\", \"Ctrl o\"]");
+    fixture.init(&[]).success();
+
+    let merged = fs::read_to_string(
+        fixture
+            .runtime
+            .join("sat-helix-ide/integration")
+            .join("config.kdl"),
+    )
+    .unwrap();
+    assert!(merged.contains(r#"unbind "Ctrl b" "Ctrl o""#));
 }
 
 #[test]
