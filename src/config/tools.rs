@@ -9,16 +9,16 @@ pub struct CommandConfig {
     #[serde(default)]
     pub args: Vec<String>,
 
-    #[serde(default)]
+    #[serde(default = "default_float_width")]
     pub float_width: String,
 
-    #[serde(default)]
+    #[serde(default = "default_float_height")]
     pub float_height: String,
 
-    #[serde(default)]
+    #[serde(default = "default_x_pos")]
     pub x_pos: String,
 
-    #[serde(default)]
+    #[serde(default = "default_y_pos")]
     pub y_pos: String,
 }
 
@@ -159,11 +159,11 @@ fn default_float_height() -> String {
 }
 
 fn default_x_pos() -> String {
-    "100%".to_string()
+    "0%".to_string()
 }
 
 fn default_y_pos() -> String {
-    "100%".to_string()
+    "0%".to_string()
 }
 
 fn default_dock_percent() -> u8 {
