@@ -1,9 +1,10 @@
 //! Session status line: Zellij session name, git branch/state, and active venv.
 
 use crate::config::{expand_tilde, Config};
-use crate::resolve::resolve_git_cli;
+use crate::resolve::{resolve_executable, resolve_git_cli};
 use crate::venv::load_venv_selection;
 use anyhow::{Context, Result};
+use crossterm::terminal::enable_raw_mode;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -201,8 +202,76 @@ pub fn print_status_line(config: &Config, project_dir: &Path, session_name: &str
     Ok(())
 }
 
+/// Terminal focus-in sequence (focus reporting, DECSET 1004).
+const FOCUS_IN: [u8; 3] = [0x1b, b'[', b'I'];
+
+/// Advance a partial match of the focus-in sequence with one input byte.
+/// Returns the new match length and whether the sequence just completed.
+fn advance_focus_in_match(matched: usize, byte: u8) -> (usize, bool) {
+    if byte == FOCUS_IN[matched] {
+        let matched = matched + 1;
+        if matched == FOCUS_IN.len() {
+            (0, true)
+        } else {
+            (matched, false)
+        }
+    } else if byte == FOCUS_IN[0] {
+        (1, false)
+    } else {
+        (0, false)
+    }
+}
+
+/// Zellij has no non-focusable pane: a directional tab switch
+/// (`MoveFocusOrTab`, bound to Alt+arrows in many configurations) focuses
+/// whichever pane sits on the reached screen edge, and this status bar
+/// spans that edge. The bar therefore listens for terminal focus events
+/// and hands focus back to the previous pane as soon as Zellij focuses it.
+/// Reading stdin in raw mode also keeps stray keystrokes from echoing in
+/// the pane, so it never looks editable.
+fn spawn_focus_guard(zellij: &Path, session_name: &str) {
+    if enable_raw_mode().is_err() {
+        return;
+    }
+    print!("\x1b[?1004h");
+    let _ = std::io::stdout().flush();
+
+    let zellij = zellij.to_path_buf();
+    let session_name = session_name.to_string();
+    thread::spawn(move || {
+        let stdin = std::io::stdin();
+        let mut stdin = stdin.lock();
+        let mut buf = [0u8; 64];
+        let mut matched = 0usize;
+        loop {
+            let read = match std::io::Read::read(&mut stdin, &mut buf) {
+                Ok(0) | Err(_) => return,
+                Ok(read) => read,
+            };
+            for &byte in &buf[..read] {
+                let (next, focus_in) = advance_focus_in_match(matched, byte);
+                matched = next;
+                if focus_in {
+                    let _ = Command::new(&zellij)
+                        .args([
+                            "--session",
+                            session_name.as_str(),
+                            "action",
+                            "focus-previous-pane",
+                        ])
+                        .stdin(std::process::Stdio::null())
+                        .status();
+                }
+            }
+        }
+    });
+}
+
 /// Refresh the status line in the current terminal (used by the layout pane).
 pub fn run_status_bar_loop(config: &Config, project_dir: &Path, session_name: &str) -> Result<()> {
+    if let Ok(zellij) = resolve_executable(&config.tools.zellij.command) {
+        spawn_focus_guard(&zellij, session_name);
+    }
     loop {
         let snapshot = collect_status(config, project_dir, session_name)?;
         let line = format_status_line(&snapshot);
@@ -241,5 +310,47 @@ mod tests {
         let session_pos = line.find("my-project").unwrap();
         let git_pos = line.find("git").unwrap();
         assert!(session_pos < git_pos);
+    }
+
+    #[test]
+    fn focus_in_sequence_completes_across_reads() {
+        let mut matched = 0;
+        let mut focus_ins = 0;
+        for &byte in b"\x1b" {
+            let (next, done) = advance_focus_in_match(matched, byte);
+            matched = next;
+            focus_ins += done as u8;
+        }
+        for &byte in b"[I" {
+            let (next, done) = advance_focus_in_match(matched, byte);
+            matched = next;
+            focus_ins += done as u8;
+        }
+        assert_eq!(focus_ins, 1);
+    }
+
+    #[test]
+    fn keystrokes_never_produce_a_focus_in() {
+        let mut matched = 0;
+        let mut focus_ins = 0;
+        for &byte in b"hello\x1b[Oh\x1b[Iworld\x1b[ITyping" {
+            let (next, done) = advance_focus_in_match(matched, byte);
+            matched = next;
+            focus_ins += done as u8;
+        }
+        assert_eq!(focus_ins, 2);
+    }
+
+    #[test]
+    fn interrupted_sequence_restarts_from_escape() {
+        // ESC ESC [ I: the second ESC restarts the match, then completes it.
+        let mut matched = 0;
+        let mut focus_ins = 0;
+        for &byte in b"\x1b\x1b[I" {
+            let (next, done) = advance_focus_in_match(matched, byte);
+            matched = next;
+            focus_ins += done as u8;
+        }
+        assert_eq!(focus_ins, 1);
     }
 }

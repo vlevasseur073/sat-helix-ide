@@ -44,7 +44,15 @@ pub fn session_layout(
 
     if let Some((ai, ai_path)) = ai {
         layout.push_str("    tab name=\"ai\" {\n");
-        layout.push_str(&command_pane("ai", ai_path, &ai.args, project_dir, None, 2));
+        layout.push_str(&command_pane(
+            "ai",
+            ai_path,
+            &ai.args,
+            project_dir,
+            None,
+            true,
+            2,
+        ));
         layout.push_str("    }\n");
     }
     layout.push_str("}\n");
@@ -63,7 +71,15 @@ fn code_tab_panes(
     project_dir: &Path,
 ) -> String {
     match (terminal, mindmap) {
-        (None, None) => command_pane("editor", editor_path, &editor.args, project_dir, None, 2),
+        (None, None) => command_pane(
+            "editor",
+            editor_path,
+            &editor.args,
+            project_dir,
+            None,
+            true,
+            2,
+        ),
         (Some(terminal), None) => {
             let mut body = format!(
                 "        pane split_direction={direction:?} {{\n",
@@ -75,6 +91,7 @@ fn code_tab_panes(
                 &editor.args,
                 project_dir,
                 None,
+                true,
                 3,
             ));
             body.push_str(&shell_pane(
@@ -97,6 +114,7 @@ fn code_tab_panes(
                 &editor.args,
                 project_dir,
                 None,
+                true,
                 3,
             ));
             body.push_str(&command_pane(
@@ -105,6 +123,7 @@ fn code_tab_panes(
                 &tool.args,
                 project_dir,
                 Some(config.dock_percent),
+                false,
                 3,
             ));
             body.push_str("        }\n");
@@ -125,6 +144,7 @@ fn code_tab_panes(
                 &editor.args,
                 project_dir,
                 None,
+                true,
                 4,
             ));
             body.push_str(&command_pane(
@@ -133,6 +153,7 @@ fn code_tab_panes(
                 &tool.args,
                 project_dir,
                 Some(config.dock_percent),
+                false,
                 4,
             ));
             body.push_str("            }\n");
@@ -175,14 +196,18 @@ fn command_pane(
     args: &[String],
     cwd: &Path,
     size_percent: Option<u8>,
+    focus: bool,
     indent: usize,
 ) -> String {
     let indentation = " ".repeat(indent * 4);
     let size = size_percent
         .map(|percent| format!(" size=\"{percent}%\""))
         .unwrap_or_default();
+    // Without an explicit focus pane, Zellij falls back to focusing the
+    // first selectable pane in a tab, which can land on the status bar.
+    let focus = if focus { " focus=true" } else { "" };
     let mut pane = format!(
-        "{indentation}pane name={name:?}{size} command={command:?} cwd={cwd:?}",
+        "{indentation}pane name={name:?}{size}{focus} command={command:?} cwd={cwd:?}",
         command = command.display().to_string(),
         cwd = cwd.display().to_string(),
     );
@@ -276,6 +301,38 @@ mod tests {
 
         assert!(layout.contains("tab name=\"ai\""));
         assert!(layout.contains("args \"--resume\""));
+    }
+
+    /// Focus must be explicit so Zellij never falls back to its
+    /// first-selectable-pane heuristic, which can pick the status bar.
+    #[test]
+    fn focus_is_explicit_on_editor_and_ai_panes_only() {
+        let editor = CommandConfig::new("hx");
+        let ai = CommandConfig::new("agent");
+        let terminal = terminal_config(15, DockPosition::Down);
+        let mindmap = mindmap_config(30, DockPosition::Right);
+        let tool = CommandConfig::new("shiki");
+        let layout = session_layout(
+            &editor,
+            Path::new("/usr/bin/hx"),
+            Some((&ai, Path::new("/usr/bin/agent"))),
+            Some(&terminal),
+            Some((&mindmap, &tool, Path::new("/usr/bin/shiki"))),
+            Path::new("/work"),
+            false,
+            test_launch(),
+        );
+
+        let pane_line = |name: &str| {
+            layout
+                .lines()
+                .find(|line| line.contains("pane") && line.contains(&format!("name={name:?}")))
+                .unwrap_or_else(|| panic!("pane {name} missing from layout"))
+        };
+        assert!(pane_line("editor").contains("focus=true"));
+        assert!(pane_line("ai").contains("focus=true"));
+        assert!(!pane_line("mindmapping").contains("focus=true"));
+        assert!(!pane_line("sat-status-bar").contains("focus=true"));
     }
 
     /// The terminal has no `command`, so Zellij starts its default shell.
