@@ -1,7 +1,15 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://vlevasseur073.github.io/sat-helix-ide/)
 
-# sat-helix-ide
-A workspace orchestrator for a full IDE.
+<div align="center">
+<h1>
+<picture>
+<img src="book/src/assets/logo2.svg">
+</picture>
+</h1>
+</div>
+
+<!-- # sat-helix-ide --> 
+## A workspace orchestrator for a full IDE.
 
 `sat-hx-ide` is a small [Zellij](https://zellij.dev/) session composer for a [Helix](https://helix-editor.com/)-centered workflow.
 enhanced with multiple additional tools among which:

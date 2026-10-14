@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2A1D52"/>
+      <stop offset="1" stop-color="#16102B"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="256" cy="262" r="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C6FF0" stop-opacity="0.28"/>
+      <stop offset="0.75" stop-color="#7C6FF0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="atmo">
+      <stop offset="0.72" stop-color="#62D9FF" stop-opacity="0"/>
+      <stop offset="0.9" stop-color="#62D9FF" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#62D9FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ocean" cx="0.32" cy="0.28" r="1.05">
+      <stop offset="0" stop-color="#6FB6F2"/>
+      <stop offset="0.5" stop-color="#2E6FB2"/>
+      <stop offset="1" stop-color="#163A6E"/>
+    </radialGradient>
+    <linearGradient id="strandBack" x1="256" y1="380" x2="256" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5C50B8"/>
+      <stop offset="1" stop-color="#3E8FD8"/>
+    </linearGradient>
+    <linearGradient id="strandFront" x1="256" y1="380" x2="256" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8F7FF0"/>
+      <stop offset="1" stop-color="#62D9FF"/>
+    </linearGradient>
+    <linearGradient id="orbitFront" x1="60" y1="300" x2="450" y2="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8F7FF0"/>
+      <stop offset="1" stop-color="#62D9FF"/>
+    </linearGradient>
+    <radialGradient id="satGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#62D9FF" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#62D9FF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="earthClip">
+      <circle cx="256" cy="262" r="86"/>
+    </clipPath>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="108" fill="url(#bg)"/>
+
+  <g fill="#FFFFFF">
+    <circle cx="86" cy="96" r="2" opacity="0.5"/>
+    <circle cx="140" cy="56" r="1.5" opacity="0.35"/>
+    <circle cx="302" cy="64" r="1.5" opacity="0.3"/>
+    <circle cx="424" cy="84" r="2" opacity="0.45"/>
+    <circle cx="472" cy="150" r="1.5" opacity="0.3"/>
+    <circle cx="58" cy="300" r="1.5" opacity="0.3"/>
+    <circle cx="452" cy="396" r="2" opacity="0.35"/>
+    <circle cx="382" cy="456" r="1.5" opacity="0.3"/>
+    <circle cx="96" cy="440" r="2" opacity="0.4"/>
+    <circle cx="206" cy="470" r="1.5" opacity="0.25"/>
+  </g>
+
+  <circle cx="256" cy="262" r="200" fill="url(#coreGlow)"/>
+
+  <g transform="translate(256 266) rotate(18)">
+    <ellipse cx="0" cy="0" rx="200" ry="90" fill="none" stroke="#8F7FF0" stroke-opacity="0.42" stroke-width="9"/>
+  </g>
+
+  <circle cx="256" cy="262" r="65" fill="url(#atmo)"/>
+
+  <g transform="translate(256 262) scale(0.628) translate(-256 -262)">
+    <circle cx="256" cy="262" r="86" fill="url(#ocean)"/>
+    <g clip-path="url(#earthClip)">
+      <path d="M 234 196 Q 254 184 278 194 Q 296 202 288 216 Q 276 228 252 226 Q 236 222 234 210 Z" fill="#4DA06E"/>
+      <path d="M 226 300 Q 246 292 268 300 Q 286 306 278 318 Q 264 328 240 324 Q 226 318 226 306 Z" fill="#48996B"/>
+      <circle cx="196" cy="262" r="5" fill="#4DA06E"/>
+      <circle cx="318" cy="262" r="4" fill="#48996B"/>
+      <ellipse cx="256" cy="262" rx="32" ry="86" fill="none" stroke="#BFE0FF" stroke-opacity="0.2" stroke-width="2"/>
+      <ellipse cx="256" cy="262" rx="62" ry="86" fill="none" stroke="#BFE0FF" stroke-opacity="0.2" stroke-width="2"/>
+      <path d="M 170 232 H 342 M 170 292 H 342" stroke="#BFE0FF" stroke-opacity="0.16" stroke-width="2" fill="none"/>
+      <circle cx="310" cy="290" r="80" fill="#0A1633" opacity="0.32"/>
+      <ellipse cx="248" cy="206" rx="18" ry="9" transform="rotate(-24 248 206)" fill="#FFFFFF" opacity="0.3"/>
+    </g>
+  </g>
+
+  <g fill="none" stroke-linecap="round">
+    <path d="M 174 380 C 286 346 226 162 338 128" stroke="url(#strandBack)" stroke-width="36"/>
+    <path d="M 338 380 C 226 346 286 162 174 128" stroke="url(#strandFront)" stroke-width="36"/>
+  </g>
+
+  <g transform="translate(256 266) rotate(18)">
+    <path d="M -200 0 A 200 90 0 0 0 200 0" fill="none" stroke="url(#orbitFront)" stroke-opacity="0.9" stroke-width="9" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(256 266) rotate(18)">
+    <g transform="translate(153.2 -57.9) rotate(28)">
+      <circle cx="0" cy="0" r="26" fill="url(#satGlow)"/>
+      <rect x="-5" y="-44" width="10" height="26" rx="3" fill="#8F7FF0"/>
+      <rect x="-5" y="18" width="10" height="26" rx="3" fill="#8F7FF0"/>
+      <circle cx="0" cy="0" r="13" fill="#E8F6FF" stroke="#62D9FF" stroke-width="4"/>
+    </g>
+  </g>
+
+  <path d="M 150 68 L 154 78 L 162 82 L 154 86 L 150 96 L 146 86 L 138 82 L 146 78 Z" fill="#CFEBFF" opacity="0.85"/>
+</svg>
