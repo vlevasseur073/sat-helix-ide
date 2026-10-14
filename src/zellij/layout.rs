@@ -258,6 +258,10 @@ mod tests {
         let ai = CommandConfig {
             command: "agent".to_string(),
             args: vec!["--resume".to_string()],
+            float_width: "100%".to_string(),
+            float_height: "100%".to_string(),
+            x_pos: "100%".to_string(),
+            y_pos: "100%".to_string(),
         };
         let layout = session_layout(
             &editor,

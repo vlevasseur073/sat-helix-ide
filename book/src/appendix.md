@@ -148,6 +148,10 @@ dock_percent = 28
 [tools.git]
 command = "lazygit"
 args = []
+float_width = "80%"
+float_height = "90%"
+x_pos = "10%"
+y_pos = "5%"
 
 [tools.review]
 command = "revdiff"

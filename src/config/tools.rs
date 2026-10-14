@@ -8,6 +8,18 @@ pub struct CommandConfig {
 
     #[serde(default)]
     pub args: Vec<String>,
+
+    #[serde(default)]
+    pub float_width: String,
+
+    #[serde(default)]
+    pub float_height: String,
+
+    #[serde(default)]
+    pub x_pos: String,
+
+    #[serde(default)]
+    pub y_pos: String,
 }
 
 impl CommandConfig {
@@ -15,6 +27,10 @@ impl CommandConfig {
         Self {
             command: command.into(),
             args: Vec::new(),
+            float_width: default_float_width(),
+            float_height: default_float_height(),
+            x_pos: default_x_pos(),
+            y_pos: default_y_pos(),
         }
     }
 }
@@ -139,6 +155,14 @@ fn default_float_width() -> String {
 }
 
 fn default_float_height() -> String {
+    "100%".to_string()
+}
+
+fn default_x_pos() -> String {
+    "100%".to_string()
+}
+
+fn default_y_pos() -> String {
     "100%".to_string()
 }
 
