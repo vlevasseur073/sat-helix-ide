@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d2652b38.js";
+            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -340,6 +340,19 @@ file_manager = "Ctrl f"  # Try a different key
 </code></pre>
 </li>
 </ol>
+<h4 id="helix-keys-dont-reach-the-editor-without-locking-zellij"><a class="header" href="#helix-keys-dont-reach-the-editor-without-locking-zellij">Helix keys don’t reach the editor without locking Zellij</a></h4>
+<p><strong>Problem</strong>: Keys like <code>Ctrl-b</code> (page up) or <code>Ctrl-o</code> are intercepted by
+Zellij, so you must toggle locked mode with <code>Ctrl-g</code> for Helix to receive
+them — which also disables all <code>sat-hx-ide</code> keybindings.</p>
+<p><strong>Solution</strong>: Add the keys to the passthrough list. Each entry is unbound
+from Zellij in the generated runtime config and forwarded to the focused
+pane, so locked mode is not needed for them:</p>
+<pre><code class="language-toml">[keybindings]
+passthrough = ["Ctrl b", "Ctrl o"]
+</code></pre>
+<p>The list is empty by default; your Zellij <code>config.kdl</code> is never modified. See
+<a href="./configuration.html#passthrough-keys">Configuration</a> for the rules (notation,
+collisions with <code>sat-hx-ide</code> keys are rejected at <code>init</code>).</p>
 <h3 id="terminal-issues"><a class="header" href="#terminal-issues">Terminal Issues</a></h3>
 <h4 id="terminal-doesnt-appear"><a class="header" href="#terminal-doesnt-appear">Terminal doesn’t appear</a></h4>
 <p><strong>Problem</strong>: The terminal pane is missing from the layout.</p>

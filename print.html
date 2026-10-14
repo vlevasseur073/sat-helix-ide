@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d2652b38.js";
+            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -481,6 +481,19 @@ r = ":sh sat-hx-ide __review open"
 w = ":sh sat-hx-ide __workflow open"
 </code></pre>
 <p>This will work from your Helix editor in <code>sat-helix-ide</code>. It will also work if you run <code>hx</code> standalone inside any Zellij session.</p>
+<h4 id="passthrough-keys"><a class="header" href="#passthrough-keys">Passthrough Keys</a></h4>
+<p>Keys Helix uses but Zellij also claims (for example <code>Ctrl-b</code> and <code>Ctrl-o</code>) do
+not reach the editor unless Zellij is in locked mode. Instead of toggling
+locked mode with <code>Ctrl-g</code> — which disables every <code>sat-hx-ide</code> keybinding —
+you can release individual keys to the focused pane:</p>
+<pre><code class="language-toml">[keybindings]
+passthrough = ["Ctrl b", "Ctrl o"]
+</code></pre>
+<p>Each key is unbound from Zellij in the generated runtime config (in every
+mode, via a top-level <code>unbind</code> Zellij applies after all other sections), so
+Zellij forwards it to Helix directly while all <code>sat-hx-ide</code> keybindings stay
+active. The list is empty by default; see
+<a href="#passthrough-keys-1">Configuration</a> for details.</p>
 <h3 id="primary-keybindings"><a class="header" href="#primary-keybindings">Primary Keybindings</a></h3>
 <div class="table-wrapper">
 <table>
@@ -1520,6 +1533,7 @@ args = []
 <tr><td><code>keybindings.mindmap_zoom</code></td><td><code>"Alt Shift m"</code></td><td>Zoom mind map</td></tr>
 <tr><td><code>keybindings.venv</code></td><td><code>"Alt v"</code></td><td>Toggle venv activation in terminal</td></tr>
 <tr><td><code>keybindings.venv_select</code></td><td><code>"Alt Shift v"</code></td><td>Open venv selector TUI</td></tr>
+<tr><td><code>keybindings.passthrough</code></td><td><code>[]</code></td><td>Zellij keys forwarded to the focused pane instead of being handled by Zellij</td></tr>
 </tbody>
 </table>
 </div>
@@ -1537,6 +1551,36 @@ mindmap_zoom = "Alt Shift n"
 venv = "Alt v"
 venv_select = "Alt Shift v"
 </code></pre>
+<h3 id="passthrough-keys-1"><a class="header" href="#passthrough-keys-1">Passthrough Keys</a></h3>
+<p>Some keys Helix uses daily (for example <code>Ctrl b</code> for page-up and <code>Ctrl o</code>)
+are also claimed by Zellij in unlocked mode. Normally you would toggle
+Zellij’s locked mode with <code>Ctrl g</code> so Helix receives them — but locked mode
+also disables every <code>sat-hx-ide</code> keybinding.</p>
+<p>The <code>passthrough</code> list releases those keys instead: each entry is emitted as
+a top-level <code>unbind</code> in the generated runtime Zellij config - a node Zellij
+applies only after every mode and shared keybinding section is merged, so
+bindings from its default config or your own config cannot re-claim the key.
+Zellij then forwards the key to the focused pane (Helix) without needing
+locked mode. <code>Ctrl g</code> itself is never touched; locked mode stays available.</p>
+<pre><code class="language-toml">[keybindings]
+passthrough = ["Ctrl b", "Ctrl o"]
+</code></pre>
+<ul>
+<li><strong>Type</strong>: Array of strings (Zellij key notation, same as other keybindings)</li>
+<li><strong>Default</strong>: <code>[]</code> (opt-in)</li>
+<li>The keys are released in <strong>every Zellij mode</strong>, not just normal mode: with
+<code>Ctrl b</code> in the list, <code>Ctrl b</code> no longer pages up in Zellij’s scroll mode
+and no longer leaves Tmux mode - it always goes to the focused pane</li>
+<li>Empty entries and duplicates are ignored</li>
+<li>A passthrough key may not collide with a <code>sat-hx-ide</code> action keybinding;
+<code>init</code> fails with an error naming the key</li>
+<li>If your own Zellij config binds a passthrough key, the binding is released
+for the <code>sat-hx-ide</code> session only (your <code>config.kdl</code> is never modified);
+a warning is logged</li>
+</ul>
+<p>Zellij defaults that conflict with Helix (and can be added here) include
+<code>Ctrl p</code> (pane mode), <code>Ctrl n</code> (resize mode), <code>Ctrl h</code>/<code>Ctrl j</code>/<code>Ctrl k</code>/
+<code>Ctrl l</code> (move focus), and <code>Ctrl z</code> (suspend).</p>
 <h2 id="virtual-environment-settings"><a class="header" href="#virtual-environment-settings">Virtual Environment Settings</a></h2>
 <p>Configuration for Python (and related) environment detection and activation.</p>
 <h3 id="venv-section"><a class="header" href="#venv-section"><code>[venv]</code> section</a></h3>
@@ -2751,6 +2795,19 @@ file_manager = "Ctrl f"  # Try a different key
 </code></pre>
 </li>
 </ol>
+<h4 id="helix-keys-dont-reach-the-editor-without-locking-zellij"><a class="header" href="#helix-keys-dont-reach-the-editor-without-locking-zellij">Helix keys don’t reach the editor without locking Zellij</a></h4>
+<p><strong>Problem</strong>: Keys like <code>Ctrl-b</code> (page up) or <code>Ctrl-o</code> are intercepted by
+Zellij, so you must toggle locked mode with <code>Ctrl-g</code> for Helix to receive
+them — which also disables all <code>sat-hx-ide</code> keybindings.</p>
+<p><strong>Solution</strong>: Add the keys to the passthrough list. Each entry is unbound
+from Zellij in the generated runtime config and forwarded to the focused
+pane, so locked mode is not needed for them:</p>
+<pre><code class="language-toml">[keybindings]
+passthrough = ["Ctrl b", "Ctrl o"]
+</code></pre>
+<p>The list is empty by default; your Zellij <code>config.kdl</code> is never modified. See
+<a href="#passthrough-keys-1">Configuration</a> for the rules (notation,
+collisions with <code>sat-hx-ide</code> keys are rejected at <code>init</code>).</p>
 <h3 id="terminal-issues"><a class="header" href="#terminal-issues">Terminal Issues</a></h3>
 <h4 id="terminal-doesnt-appear"><a class="header" href="#terminal-doesnt-appear">Terminal doesn’t appear</a></h4>
 <p><strong>Problem</strong>: The terminal pane is missing from the layout.</p>
