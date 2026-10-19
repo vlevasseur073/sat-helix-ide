@@ -239,10 +239,10 @@ pre-commit run --all-files
 Enable debug logging to see detailed information about `sat-helix-ide` operations:
 
 ```bash
-RUST_LOG=debug sat-hx-ide init .
+RUST_LOG=debug sat-hx-ide .
 
 # For even more detail
-RUST_LOG=trace sat-hx-ide init .
+RUST_LOG=trace sat-hx-ide .
 ```
 
 ### Common Debug Scenarios
@@ -250,7 +250,7 @@ RUST_LOG=trace sat-hx-ide init .
 #### Debugging Session Initialization
 
 ```bash
-RUST_LOG=debug sat-hx-ide init . --session test-session
+RUST_LOG=debug sat-hx-ide . --session test-session
 ```
 
 This will show:
@@ -263,7 +263,7 @@ This will show:
 
 ```bash
 # Start a session first
-sat-hx-ide init .
+sat-hx-ide .
 
 # Then in another terminal, trace helper commands
 RUST_LOG=trace sat-hx-ide __file-manager open

@@ -8,7 +8,10 @@ CLI actions and exits. There is no background daemon.
 
 ```mermaid
 flowchart LR
-    user[User: sat-hx-ide init] --> wm[WorkspaceManager]
+    user[User: sat-hx-ide PATH] --> path{PATH?}
+    path -->|omit| picker[Yazi or fzf picker]
+    path -->|given| wm[WorkspaceManager]
+    picker --> wm
     wm --> layout[Write layout.kdl]
     wm --> kdl[Merge runtime config.kdl]
     wm --> zellij[Zellij create or attach]
@@ -16,7 +19,9 @@ flowchart LR
     kdl --> bindings[Helper keybindings]
 ```
 
-1. Resolve the project directory and session name.
+`init` / `start` are optional aliases for the same flow (`sat-hx-ide init [PATH]`).
+
+1. Resolve the project directory (argument, or interactive picker when omitted) and session name.
 2. Write `layout.kdl` (`default_tab_template` with sat status bar, code tab, optional AI tab).
 3. Merge keybindings into a private copy of the user's Zellij config.
 4. Create or attach the Zellij session.

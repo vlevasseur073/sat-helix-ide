@@ -119,3 +119,14 @@ auto_detection = true
 # Additional directories to search for virtual environments
 # Default searches the project directory. Add "~" to search home directory.
 # search_paths = ["~", "/opt/venvs"]
+
+[launcher]
+# Project picker when `sat-hx-ide` is run without a path:
+# "auto" (Yazi, then fzf), "yazi", or "fzf".
+# Yazi runs in chooser mode (Enter on a folder confirms; your usual open rules are not used).
+picker = "auto"
+# Where the picker opens (tilde expanded).
+start_dir = "~"
+# fzf executable when picker is "fzf" or the auto fallback.
+# fzf_command = "fzf"
+# max_depth = 8

@@ -22,6 +22,7 @@ At its core, `sat-helix-ide` is a small command-line tool that creates and manag
 ### Core Features
 
 - **Automatic Workspace Setup**: Create a Zellij session with Helix editor and optional AI assistant tab
+- **Interactive Launcher**: Run `sat-hx-ide` with no path to pick a project via Yazi or `fzf`; Linux installs can add a desktop menu entry (`install-desktop`)
 - **Docked Terminal**: Integrated shell pane that can be toggled or zoomed
 - **File Manager Integration**: Open Yazi in floating or docked mode with smart focus management
 - **Git Integration**: Launch Git TUI clients in floating panes

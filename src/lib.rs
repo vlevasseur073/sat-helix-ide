@@ -5,6 +5,7 @@
 pub mod actions;
 pub mod backend;
 pub mod config;
+pub mod desktop;
 pub mod error;
 pub mod resolve;
 pub mod setup;

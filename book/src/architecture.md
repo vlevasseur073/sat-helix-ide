@@ -44,7 +44,10 @@ The session initialization process sets up the complete Zellij workspace with al
 
 ```mermaid
 flowchart LR
-    user[User: sat-hx-ide init] --> wm[WorkspaceManager]
+    user[User: sat-hx-ide PATH] --> path{PATH?}
+    path -->|omit| picker[Yazi or fzf picker]
+    path -->|given| wm[WorkspaceManager]
+    picker --> wm
     wm --> layout[Write layout.kdl]
     wm --> kdl[Merge runtime config.kdl]
     wm --> zellij[Zellij create or attach]
@@ -52,10 +55,12 @@ flowchart LR
     kdl --> bindings[Helper keybindings]
 ```
 
+The `init` and `start` subcommands are optional aliases (`sat-hx-ide init [PATH]`).
+
 ### Step-by-Step Initialization
 
 1. **Resolve Project Directory and Session Name**
-   - Determine the project root from the provided path
+   - Use the `PATH` argument when provided, or run the interactive project picker (Yazi in chooser mode, or `fzf`) when omitted
    - Generate a session name based on the directory name
    - Allow override via `--session` flag
 
@@ -402,7 +407,7 @@ src/
 
 1. **CLI (main.rs)**
    - Uses `clap` for command-line argument parsing
-   - Defines main commands: `init`, `doctor`, `config`, `version`
+   - Default workspace invocation: `sat-hx-ide [PATH]` (optional `init`/`start` alias); subcommands include `doctor`, `setup`, `config`, `version`, `install-desktop`
    - Routes to appropriate handlers
 
 2. **Actions (actions.rs)**

@@ -26,6 +26,9 @@ pub struct Config {
 
     #[serde(default)]
     pub venv: VenvConfig,
+
+    #[serde(default)]
+    pub launcher: LauncherConfig,
 }
 
 impl Default for Config {
@@ -74,6 +77,57 @@ impl Default for SessionConfig {
             status_bar: false,
         }
     }
+}
+
+/// How to choose a project directory when the CLI is run without a path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum LauncherPicker {
+    #[default]
+    Auto,
+    Yazi,
+    Fzf,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LauncherConfig {
+    #[serde(default)]
+    pub picker: LauncherPicker,
+
+    /// Directory where Yazi or fzf starts (tilde expanded).
+    #[serde(default = "default_launcher_start_dir")]
+    pub start_dir: PathBuf,
+
+    /// Executable used when `picker = "fzf"` or as the auto fallback.
+    #[serde(default = "default_fzf_command")]
+    pub fzf_command: String,
+
+    /// Maximum directory depth when listing folders for fzf.
+    #[serde(default = "default_launcher_max_depth")]
+    pub max_depth: u32,
+}
+
+impl Default for LauncherConfig {
+    fn default() -> Self {
+        Self {
+            picker: LauncherPicker::default(),
+            start_dir: default_launcher_start_dir(),
+            fzf_command: default_fzf_command(),
+            max_depth: default_launcher_max_depth(),
+        }
+    }
+}
+
+fn default_launcher_start_dir() -> PathBuf {
+    PathBuf::from("~")
+}
+
+fn default_fzf_command() -> String {
+    "fzf".to_string()
+}
+
+fn default_launcher_max_depth() -> u32 {
+    8
 }
 
 /// The workspace shell hosting the session.
@@ -401,6 +455,9 @@ impl Config {
 
 pub fn expand_tilde(path: &Path) -> PathBuf {
     let text = path.to_string_lossy();
+    if text == "~" {
+        return home::home_dir().unwrap_or_else(|| path.to_path_buf());
+    }
     if let Some(rest) = text.strip_prefix("~/") {
         home::home_dir()
             .map(|home| home.join(rest))
@@ -413,6 +470,13 @@ pub fn expand_tilde(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn expand_tilde_handles_home_alone() {
+        let home = home::home_dir().expect("home directory");
+        assert_eq!(expand_tilde(Path::new("~")), home);
+        assert_eq!(expand_tilde(Path::new("~/src")), home.join("src"));
+    }
 
     #[test]
     fn missing_config_is_not_created() {
@@ -499,6 +563,15 @@ backend = "kitty"
         assert_eq!(default_config.tools.git.command, "lazygit");
         assert_eq!(default_config.tools.review.command, "revdiff");
         assert_eq!(default_config.tools.workflow.command, "glab-tui");
+    }
+
+    #[test]
+    fn launcher_defaults_to_auto_home_yazi() {
+        let config = Config::default();
+        assert_eq!(config.launcher.picker, LauncherPicker::Auto);
+        assert_eq!(config.launcher.start_dir, PathBuf::from("~"));
+        assert_eq!(config.launcher.fzf_command, "fzf");
+        assert_eq!(config.launcher.max_depth, 8);
     }
 
     #[test]

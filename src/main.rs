@@ -25,33 +25,36 @@ struct Cli {
     )]
     config: PathBuf,
 
+    /// Project directory (omit to pick interactively)
+    #[arg(value_name = "PATH")]
+    path: Option<PathBuf>,
+
+    /// Add the AI tab even when session.ai_by_default is off
+    #[arg(long, global = true, overrides_with = "no_ai")]
+    ai: bool,
+
+    /// Skip the AI tab for this session
+    #[arg(long, global = true, overrides_with = "ai")]
+    no_ai: bool,
+
+    #[arg(long, global = true)]
+    status_bar: Option<bool>,
+
+    /// Override the project-derived Zellij session name
+    #[arg(short, long, global = true)]
+    session: Option<String>,
+
     #[command(subcommand)]
     command: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Start or attach to a project workspace
+    /// Start or attach to a project workspace (optional; same as `sat-hx-ide [PATH]`)
     #[command(alias = "start")]
     Init {
-        /// Project directory
-        #[arg(default_value = ".")]
-        path: PathBuf,
-
-        /// Add the AI tab even when session.ai_by_default is off
-        #[arg(long, overrides_with = "no_ai")]
-        ai: bool,
-
-        /// Skip the AI tab for this session
-        #[arg(long, overrides_with = "ai")]
-        no_ai: bool,
-
-        #[arg(long)]
-        status_bar: Option<bool>,
-
-        /// Override the project-derived Zellij session name
-        #[arg(short, long)]
-        session: Option<String>,
+        /// Project directory when using the `init` subcommand
+        path: Option<PathBuf>,
     },
 
     /// Show the effective sat-hx-ide configuration
@@ -71,6 +74,9 @@ enum Commands {
 
     /// Show version information
     Version,
+
+    /// Install a Freedesktop launcher and icon (Linux)
+    InstallDesktop,
 
     #[command(name = "__file-manager", hide = true)]
     FileManager {
@@ -181,16 +187,23 @@ enum VenvCommands {
     },
 }
 
-impl Default for Commands {
-    fn default() -> Self {
-        Commands::Init {
-            path: PathBuf::from("."),
-            ai: Default::default(),    // false
-            no_ai: Default::default(), // false
-            status_bar: Default::default(),
-            session: Default::default(),
-        }
-    }
+fn run_workspace(cli: &Cli, path: Option<PathBuf>) -> Result<()> {
+    let config = Config::load(&cli.config)?;
+    let path = match path {
+        Some(path) => path,
+        None => match sat_helix_ide::workspace::pick_project_dir(&config)? {
+            Some(path) => path,
+            None => return Ok(()),
+        },
+    };
+    let ai_override = match (cli.ai, cli.no_ai) {
+        (true, _) => Some(true),
+        (_, true) => Some(false),
+        _ => None,
+    };
+    WorkspaceManager::new(&config, &cli.config)
+        .init_workspace(&path, cli.session.as_deref(), ai_override, cli.status_bar)
+        .context("Failed to initialize workspace")
 }
 
 fn main() -> Result<()> {
@@ -200,38 +213,31 @@ fn main() -> Result<()> {
     }
     env_logger::init();
 
-    match cli.command.unwrap_or_default() {
-        Commands::Init {
-            path,
-            ai,
-            no_ai,
-            status_bar,
-            session,
-        } => {
-            let config = Config::load(&cli.config)?;
-            let ai_override = match (ai, no_ai) {
-                (true, _) => Some(true),
-                (_, true) => Some(false),
-                _ => None,
-            };
-            WorkspaceManager::new(&config, &cli.config)
-                .init_workspace(&path, session.as_deref(), ai_override, status_bar)
-                .context("Failed to initialize workspace")?;
-        }
-        Commands::Config => {
+    let workspace_path = match &cli.command {
+        None => cli.path.clone(),
+        Some(Commands::Init { path }) => path.clone().or(cli.path.clone()),
+        Some(_) => None,
+    };
+
+    match cli.command {
+        None | Some(Commands::Init { .. }) => run_workspace(&cli, workspace_path)?,
+        Some(Commands::Config) => {
             println!("{:#?}", Config::load(&cli.config)?);
         }
-        Commands::Doctor => {
+        Some(Commands::Doctor) => {
             let config = Config::load(&cli.config)?;
             WorkspaceManager::new(&config, &cli.config).check_tools()?;
         }
-        Commands::Setup { dry_run } => {
+        Some(Commands::Setup { dry_run }) => {
             sat_helix_ide::setup::run(&cli.config, dry_run)?;
         }
-        Commands::Version => {
+        Some(Commands::Version) => {
             println!("sat-hx-ide {}", env!("CARGO_PKG_VERSION"));
         }
-        Commands::FileManager { action } => {
+        Some(Commands::InstallDesktop) => {
+            sat_helix_ide::desktop::install_desktop_entry(None)?;
+        }
+        Some(Commands::FileManager { action }) => {
             let config = Config::load(&cli.config)?;
             let action = match action {
                 FileManagerCommands::Open => FileManagerAction::Open,
@@ -240,7 +246,7 @@ fn main() -> Result<()> {
             };
             file_manager_action(&config, &cli.config, action)?;
         }
-        Commands::Terminal { action } => {
+        Some(Commands::Terminal { action }) => {
             let config = Config::load(&cli.config)?;
             let action = match action {
                 TerminalCommands::Toggle => TerminalAction::Toggle,
@@ -248,7 +254,7 @@ fn main() -> Result<()> {
             };
             terminal_action(&config, action)?;
         }
-        Commands::MindMap { action } => {
+        Some(Commands::MindMap { action }) => {
             let config = Config::load(&cli.config)?;
             let action = match action {
                 MindMapCommands::Toggle => MindMapAction::Toggle,
@@ -256,28 +262,28 @@ fn main() -> Result<()> {
             };
             mind_map_action(&config, action)?;
         }
-        Commands::Git { action } => {
+        Some(Commands::Git { action }) => {
             let config = Config::load(&cli.config)?;
             let action = match action {
                 GitCommands::Open => GitAction::Open,
             };
             git_action(&config, action)?;
         }
-        Commands::Review { action } => {
+        Some(Commands::Review { action }) => {
             let config = Config::load(&cli.config)?;
             let action = match action {
                 ReviewCommands::Open => ReviewAction::Open,
             };
             review_action(&config, action)?;
         }
-        Commands::Workflow { action } => {
+        Some(Commands::Workflow { action }) => {
             let config = Config::load(&cli.config)?;
             let action = match action {
                 WorkflowCommands::Open => WorkflowAction::Open,
             };
             workflow_action(&config, action)?;
         }
-        Commands::Venv { action } => match action {
+        Some(Commands::Venv { action }) => match action {
             VenvCommands::ValidatePath { path } => {
                 if let Err(err) = sat_helix_ide::venv::validate_custom_venv_path(&path) {
                     eprintln!("{err:#}");
@@ -307,7 +313,7 @@ fn main() -> Result<()> {
                 venv_action(&config, action)?;
             }
         },
-        Commands::StatusBar { action } => {
+        Some(Commands::StatusBar { action }) => {
             let config = Config::load(&cli.config)?;
             match action {
                 StatusBarCommands::Run {

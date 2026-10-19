@@ -119,7 +119,6 @@ command = "{}"
             .args([
                 "--config",
                 self.app_config.to_str().unwrap(),
-                "init",
                 self.project.to_str().unwrap(),
                 "--session",
                 "integration",

@@ -88,7 +88,7 @@ The screenshots in `screenshots.md` are currently placeholders. To add actual sc
 
 ### Recommended Screenshots
 
-- `initial-workspace.png` - Default layout after init
+- `initial-workspace.png` - Default layout after starting a session
 - `yazi-fullscreen.png` - Yazi in full-screen mode
 - `yazi-docked.png` - Yazi docked to the left
 - `terminal-visible.png` - Terminal visible

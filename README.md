@@ -29,6 +29,11 @@ The features/tools currently implemented in `sat-helix-ide` are:
 - a *session status bar* (git branch/state, active venv, session name) on every tab
 - *virtual environment* auto-detection, selector TUI, and terminal activation
 
+Run `sat-hx-ide` with no arguments to pick a project directory interactively (Yazi or
+`fzf`, configurable via `[launcher]` in `config.toml`), or pass a path directly. On Linux,
+the install script and `sat-hx-ide install-desktop` register an application-menu entry
+that uses the same picker flow.
+
 `sat-hx-ide` starts a project session with:
 
 - a `code` tab with Helix and a docked shell below it;
@@ -97,7 +102,7 @@ curl -fsSL https://raw.githubusercontent.com/vlevasseur073/sat-helix-ide/main/in
 sat-hx-ide doctor
 ```
 
-Installs the latest GitHub release into `~/.local/bin` (override with `INSTALL_DIR`). Pin a version with `curl ... | VERSION=0.1.0 bash`.
+Installs the latest GitHub release into `~/.local/bin` (override with `INSTALL_DIR`) and, on Linux, registers a desktop launcher (`sat-hx-ide install-desktop`). Pin a version with `curl ... | VERSION=0.1.0 bash`. Set `INSTALL_DESKTOP=0` to install only the binary.
 
 Windows: download the `.zip` from [Releases](https://github.com/vlevasseur073/sat-helix-ide/releases).
 
@@ -135,19 +140,25 @@ command = "/snap/bin/hx"
 ## Usage
 
 ```bash
-# Create or attach to a session named after the project directory
-sat-hx-ide init .
+# Pick a project interactively (Yazi or fzf), or launch from the desktop entry
+sat-hx-ide
+
+# Create or attach to a session for a known directory
+sat-hx-ide .
 
 # Skip the AI tab for this session
-sat-hx-ide init . --no-ai
+sat-hx-ide . --no-ai
 
 # Override the session name
-sat-hx-ide init ~/src/project --session project-api
+sat-hx-ide ~/src/project --session project-api
+
+# `init` / `start` remain aliases: sat-hx-ide init .
 
 sat-hx-ide doctor
 sat-hx-ide setup
 sat-hx-ide config
 sat-hx-ide version
+sat-hx-ide install-desktop   # Linux: application menu entry + icon
 ```
 
 An existing project-named session is attached by default. Set
@@ -381,6 +392,11 @@ auto_detection = true
 # Additional directories to search for virtual environments
 # Default searches the project directory. Add "~" to search home directory.
 # search_paths = ["~", "/opt/venvs"]
+
+[launcher]
+# Project picker when `sat-hx-ide` is run without a path (see `configs/config.toml`).
+picker = "auto"
+start_dir = "~"
 ```
 
 The Zellij merge source is selected in this order:

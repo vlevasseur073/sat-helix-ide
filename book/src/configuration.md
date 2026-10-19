@@ -128,6 +128,13 @@ args = []
 # AI agent command (optional, skipped if not found)
 command = "cursor-agent"  # or any other AI agent
 args = []
+
+[launcher]
+# When `sat-hx-ide` is run without PATH: "auto" (Yazi, then fzf), "yazi", or "fzf"
+picker = "auto"
+start_dir = "~"
+# fzf_command = "fzf"
+# max_depth = 8
 ```
 
 ## Session Settings
@@ -179,13 +186,40 @@ status_bar = false   # sat-hx-ide line only
 status_bar = true    # sat-hx-ide line + Zellij input-mode bar
 ```
 
-You can override for one session at init time: `sat-hx-ide init . --status-bar` (see `sat-hx-ide init --help`).
+You can override for one session at start time: `sat-hx-ide . --status-bar` (see `sat-hx-ide --help`).
 
 **Auto-detection order:**
 1. `session.zellij_config` if specified
 2. `ZELLIJ_CONFIG_FILE` environment variable
 3. `$XDG_CONFIG_HOME/zellij/config.kdl`
 4. `~/.config/zellij/config.kdl`
+
+## Launcher Settings
+
+When you run `sat-hx-ide` with no `PATH` argument (including the Linux desktop
+entry), sat-hx-ide asks you to choose a project directory before creating the
+Zellij session.
+
+### `[launcher]` section
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `picker` | `"auto"` | `"auto"` (Yazi, then `fzf`), `"yazi"`, or `"fzf"` |
+| `start_dir` | `"~"` | Directory where the picker opens (tilde expanded) |
+| `fzf_command` | `"fzf"` | Executable used when `picker` is `"fzf"` or as the auto fallback |
+| `max_depth` | `8` | Maximum directory depth scanned by the `fzf` picker |
+
+Yazi runs in chooser mode (confirm a folder with Enter; normal open-to-Helix rules do not apply). Canceling the picker exits without starting a session.
+
+If neither Yazi nor `fzf` is available and `picker = "auto"`, startup fails with a message pointing to `sat-hx-ide doctor`.
+
+```toml
+[launcher]
+picker = "auto"
+start_dir = "~/src"
+# fzf_command = "fzf"
+# max_depth = 8
+```
 
 ## Terminal Settings
 
@@ -454,7 +488,7 @@ passthrough = ["Ctrl b", "Ctrl o"]
   and no longer leaves Tmux mode - it always goes to the focused pane
 - Empty entries and duplicates are ignored
 - A passthrough key may not collide with a `sat-hx-ide` action keybinding;
-  `init` fails with an error naming the key
+  session startup fails with an error naming the key
 - If your own Zellij config binds a passthrough key, the binding is released
   for the `sat-hx-ide` session only (your `config.kdl` is never modified);
   a warning is logged
@@ -514,7 +548,7 @@ This ensures that your existing Zellij workflow is never accidentally broken.
 
 ```bash
 # This will fail if Ctrl-f is already used in your Zellij config
-sat-hx-ide init . --config ~/.config/sat-helix-ide/config.toml
+sat-hx-ide . --config ~/.config/sat-helix-ide/config.toml
 
 # Error: Keybinding conflict: 'Ctrl f' is already bound in your Zellij config
 ```
@@ -605,7 +639,7 @@ While most configuration is done via the TOML file, a few aspects can be influen
 ```bash
 # Override runtime directory
 export XDG_RUNTIME_DIR=/tmp/my-runtime
-sat-hx-ide init .
+sat-hx-ide .
 ```
 
 ### `ZELLIJ_CONFIG_FILE`
@@ -616,7 +650,7 @@ sat-hx-ide init .
 ```bash
 # Use a specific Zellij config
 export ZELLIJ_CONFIG_FILE=/path/to/zellij/config.kdl
-sat-hx-ide init .
+sat-hx-ide .
 ```
 
 ### `RUST_LOG`
@@ -626,10 +660,10 @@ sat-hx-ide init .
 
 ```bash
 # Enable debug logging
-RUST_LOG=debug sat-hx-ide init .
+RUST_LOG=debug sat-hx-ide .
 
 # Enable trace logging for maximum detail
-RUST_LOG=trace sat-hx-ide init .
+RUST_LOG=trace sat-hx-ide .
 ```
 
 ## Configuration Validation

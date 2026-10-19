@@ -55,16 +55,29 @@ which yazi
 
 ### Session Issues
 
+#### Interactive picker does not start a session
+
+**Problem**: Running `sat-hx-ide` with no path exits immediately or errors before Zellij opens.
+
+**Solutions**:
+
+1. **Install a picker backend** — with `picker = "auto"` (default), Yazi or `fzf` must be on `PATH`:
+   ```bash
+   sat-hx-ide doctor
+   ```
+2. **Check `launcher.start_dir`** — it must exist and be a directory.
+3. **Canceled selection** — exiting Yazi/`fzf` without choosing a folder is intentional; run `sat-hx-ide` again or pass a path: `sat-hx-ide /path/to/project`.
+
 #### Session fails to start
 
-**Problem**: `sat-hx-ide init .` fails with an error.
+**Problem**: `sat-hx-ide .` fails with an error.
 
 **Common causes and solutions**:
 
 1. **Keybinding conflicts**:
    ```bash
    # Check for conflicts
-   RUST_LOG=debug sat-hx-ide init .
+   RUST_LOG=debug sat-hx-ide .
 
    # Solution: Change conflicting keybindings in your config
    hx ~/.config/sat-helix-ide/config.toml
@@ -111,7 +124,7 @@ which yazi
    ```bash
    # Quit and restart
    zellij kill-session <session>
-   sat-hx-ide init .
+   sat-hx-ide .
    ```
 
 ### Keybinding Issues
@@ -158,7 +171,7 @@ which yazi
 2. **Check for conflicts**:
    ```bash
    # Test with debug logging
-   RUST_LOG=debug sat-hx-ide init .
+   RUST_LOG=debug sat-hx-ide .
 
    # Look for conflict messages
    ```
@@ -186,7 +199,7 @@ passthrough = ["Ctrl b", "Ctrl o"]
 
 The list is empty by default; your Zellij `config.kdl` is never modified. See
 [Configuration](./configuration.md#passthrough-keys) for the rules (notation,
-collisions with `sat-hx-ide` keys are rejected at `init`).
+collisions with `sat-hx-ide` keys are rejected at session startup).
 
 ### Terminal Issues
 
@@ -230,7 +243,7 @@ collisions with `sat-hx-ide` keys are rejected at `init`).
    - Try with `bash` or `zsh`:
      ```bash
      # Test with bash
-     ZELLIJ_SHELL=/bin/bash sat-hx-ide init .
+     ZELLIJ_SHELL=/bin/bash sat-hx-ide .
      ```
 
 2. **Check for errors in shell startup files**:
@@ -335,7 +348,7 @@ collisions with `sat-hx-ide` keys are rejected at `init`).
 3. **Restart session in correct directory**:
    ```bash
    cd /path/to/your/git/repo
-   sat-hx-ide init .
+   sat-hx-ide .
    ```
 
 ### Session status bar
@@ -347,7 +360,7 @@ collisions with `sat-hx-ide` keys are rejected at `init`).
 **Solutions**:
 
 1. **Start a new session** after upgrading — the line is injected via `default_tab_template` in `layout.kdl`.
-2. **New tabs** should include the bar automatically; if an old session was created before this layout, re-run `sat-hx-ide init` for that project.
+2. **New tabs** should include the bar automatically; if an old session was created before this layout, re-run `sat-hx-ide .` for that project.
 3. **Git field shows errors** — ensure `git` is on `PATH` (`sat-hx-ide doctor`).
 
 #### Only Zellij's mode bar, or two bars
@@ -390,7 +403,7 @@ collisions with `sat-hx-ide` keys are rejected at `init`).
 
 2. **Specify configuration file**:
    ```bash
-   sat-hx-ide init . --config /path/to/config.toml
+   sat-hx-ide . --config /path/to/config.toml
    ```
 
 3. **Create default configuration**:
@@ -420,7 +433,7 @@ collisions with `sat-hx-ide` keys are rejected at `init`).
    ```bash
    # Temporarily use bundled defaults
    mv ~/.config/sat-helix-ide/config.toml ~/.config/sat-helix-ide/config.toml.bak
-   sat-hx-ide init .
+   sat-hx-ide .
    ```
 
 ## Debug Mode
@@ -431,13 +444,13 @@ Use the `RUST_LOG` environment variable to enable debug logging:
 
 ```bash
 # Basic debug logging
-RUST_LOG=debug sat-hx-ide init .
+RUST_LOG=debug sat-hx-ide .
 
 # Detailed trace logging
-RUST_LOG=trace sat-hx-ide init .
+RUST_LOG=trace sat-hx-ide .
 
 # Only show info from specific modules
-RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide init .
+RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide .
 ```
 
 ### Debug Log Levels
@@ -455,7 +468,7 @@ RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide init .
 #### Debug Session Initialization
 
 ```bash
-RUST_LOG=debug sat-hx-ide init . --session debug-session
+RUST_LOG=debug sat-hx-ide . --session debug-session
 ```
 
 This shows:
@@ -468,7 +481,7 @@ This shows:
 
 ```bash
 # Start a session
-sat-hx-ide init .
+sat-hx-ide .
 
 # In another terminal, debug a specific action
 RUST_LOG=trace sat-hx-ide __file-manager open
@@ -508,7 +521,7 @@ chmod 700 ~/.local/share/sat-helix-ide
 ```bash
 # Set XDG_RUNTIME_DIR for macOS
 export XDG_RUNTIME_DIR=/tmp
-sat-hx-ide init .
+sat-hx-ide .
 ```
 
 #### Windows (WSL)
@@ -636,7 +649,7 @@ To help diagnose issues, create a minimal reproduction:
 ## Troubleshooting Checklist
 
 - [ ] Run `sat-hx-ide doctor` for system check
-- [ ] Check `RUST_LOG=debug sat-hx-ide init .` for debug output
+- [ ] Check `RUST_LOG=debug sat-hx-ide .` for debug output
 - [ ] Verify all required tools are installed and in PATH
 - [ ] Test each tool individually (zellij, hx, yazi, lazygit)
 - [ ] Check configuration file syntax and values
