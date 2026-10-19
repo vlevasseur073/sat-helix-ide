@@ -1,14 +1,16 @@
+use crate::backend::{
+    self, Axis, Direction, FloatGeometry, Key, PaneId, PaneInfo, Placement, SessionBackend,
+    SpawnSpec,
+};
 use crate::config::{expand_tilde, CommandConfig, Config, DockPosition};
 use crate::resolve::resolve_executable;
 use anyhow::{bail, Context, Result};
-use serde::Deserialize;
+use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 use std::sync::{OnceLock, RwLock};
 use std::time::{Duration, Instant};
-
-use home;
 
 const FILE_MANAGER_PANE: &str = "file-manager";
 const EDITOR_PANE: &str = "editor";
@@ -80,10 +82,10 @@ const PANE_CACHE_TTL_MS: u64 = 500;
 struct CachedPanes {
     timestamp: Instant,
     panes: Vec<PaneInfo>,
-    zellij_path: PathBuf,
+    backend: String,
 }
 
-/// Cache for Zellij pane information to avoid repeated list-panes calls
+/// Cache for pane information to avoid repeated backend queries
 /// This cache is per-process and helps when list_panes is called multiple
 /// times within a single action execution.
 struct PaneCache {
@@ -98,13 +100,13 @@ impl PaneCache {
     }
 
     /// Get panes from cache if fresh, otherwise fetch and cache
-    fn get(&self, zellij: &Path) -> Result<Vec<PaneInfo>> {
+    fn get(&self, backend: &dyn SessionBackend) -> Result<Vec<PaneInfo>> {
         // Read cache
         {
             let guard = self.data.read().unwrap();
             if let Some(ref cached) = *guard {
-                // If the Zellij path matches and cache is fresh, return cached data
-                if cached.zellij_path == zellij
+                // If the backend matches and cache is fresh, return cached data
+                if cached.backend == backend.name()
                     && cached.timestamp.elapsed() < Duration::from_millis(PANE_CACHE_TTL_MS)
                 {
                     return Ok(cached.panes.clone());
@@ -113,7 +115,7 @@ impl PaneCache {
         }
 
         // Fetch fresh data
-        let panes = fetch_panes(zellij)?;
+        let panes = backend.panes()?;
 
         // Update cache
         {
@@ -121,7 +123,7 @@ impl PaneCache {
             *guard = Some(CachedPanes {
                 timestamp: Instant::now(),
                 panes: panes.clone(),
-                zellij_path: zellij.to_path_buf(),
+                backend: backend.name().to_string(),
             });
         }
 
@@ -139,21 +141,6 @@ static PANE_CACHE: OnceLock<PaneCache> = OnceLock::new();
 /// Get the global pane cache, initializing if necessary
 fn pane_cache() -> &'static PaneCache {
     PANE_CACHE.get_or_init(PaneCache::new)
-}
-
-/// Fetch panes directly from Zellij (uncached)
-fn fetch_panes(zellij: &Path) -> Result<Vec<PaneInfo>> {
-    let output = Command::new(zellij)
-        .args(["action", "list-panes", "--json", "--all"])
-        .output()
-        .context("Failed to query Zellij panes")?;
-    if !output.status.success() {
-        bail!(
-            "Failed to query Zellij panes: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    serde_json::from_slice(&output.stdout).context("Invalid pane JSON returned by Zellij")
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -202,34 +189,21 @@ pub enum VenvAction {
     Select,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-struct PaneInfo {
-    id: u64,
-    is_plugin: bool,
-    is_floating: bool,
-    is_fullscreen: bool,
-    title: String,
-    tab_id: u64,
-    pane_columns: usize,
-    pane_rows: usize,
-}
-
-impl PaneInfo {
-    fn cli_id(&self) -> String {
-        format!("terminal_{}", self.id)
-    }
-}
-
 pub fn file_manager_action(
     config: &Config,
     config_path: &Path,
     action: FileManagerAction,
 ) -> Result<()> {
-    let zellij = resolve(&config.tools.zellij.command)?;
-    let panes = list_panes(&zellij)?;
+    let backend = backend::from_config(config)?;
+    let panes = list_panes(backend.as_ref())?;
+    // The helper may itself be the file-manager pane (kitty map-launched
+    // overlays are born with the file-manager role), so it never counts as
+    // an existing pane to focus: the action runs the manager in place
+    // instead.
+    let current_id = backend.current_pane_id()?;
     let existing = panes
         .iter()
-        .find(|pane| !pane.is_plugin && pane.title == FILE_MANAGER_PANE);
+        .find(|pane| !pane.is_plugin && pane.title == FILE_MANAGER_PANE && pane.id != current_id);
 
     match action {
         FileManagerAction::ToggleDock => {
@@ -238,24 +212,19 @@ pub fn file_manager_action(
                     .iter()
                     .find(|candidate| !candidate.is_plugin && candidate.title == EDITOR_PANE)
                     .context("Cannot find the sat-hx-ide editor pane")?;
-                toggle_dock(config, config_path, &zellij, pane, editor)?;
+                toggle_dock(config, config_path, backend.as_ref(), pane, editor)?;
                 return Ok(());
             }
         }
         FileManagerAction::Open => {
             if let Some(pane) = existing {
-                zellij_status(
-                    Command::new(&zellij)
-                        .args(["action", "focus-pane-id"])
-                        .arg(pane.cli_id()),
-                )?;
+                backend.focus(pane.id)?;
                 return Ok(());
             }
         }
         FileManagerAction::Run => {}
     }
 
-    let current_id = current_pane_id()?;
     let current = panes
         .iter()
         .find(|pane| !pane.is_plugin && pane.id == current_id);
@@ -265,22 +234,17 @@ pub fn file_manager_action(
         .context("Cannot find the sat-hx-ide editor pane")?;
 
     if matches!(action, FileManagerAction::ToggleDock) {
-        return become_floating_manager(config, &zellij, current_id);
+        return become_floating_manager(config, backend.as_ref(), current_id);
     }
 
     if action_is_request(action) && current.is_some_and(|pane| pane.tab_id != editor.tab_id) {
-        spawn_on_code_tab(config, config_path, &zellij, editor.tab_id)?;
+        spawn_on_code_tab(config, config_path, backend.as_ref(), editor.tab_id)?;
         return Ok(());
     }
 
-    zellij_status(
-        Command::new(&zellij)
-            .args(["action", "rename-pane", "--pane-id"])
-            .arg(format!("terminal_{current_id}"))
-            .arg(FILE_MANAGER_PANE),
-    )?;
+    backend.rename(current_id, FILE_MANAGER_PANE)?;
 
-    run_file_manager(config, &zellij, current_id)
+    run_file_manager(config, backend.as_ref(), current_id)
 }
 
 fn action_is_request(action: FileManagerAction) -> bool {
@@ -293,65 +257,69 @@ fn action_is_request(action: FileManagerAction) -> bool {
 fn spawn_on_code_tab(
     config: &Config,
     config_path: &Path,
-    zellij: &Path,
+    backend: &dyn SessionBackend,
     tab_id: u64,
 ) -> Result<()> {
-    let pane_id = spawn_manager(config, config_path, zellij, tab_id, true)?;
-    wait_for_pane_close(zellij, &pane_id)
+    let pane_id = spawn_manager(config, config_path, backend, tab_id, true)?;
+    if backend.helper_waits_for_spawned_pane() {
+        wait_for_pane_close(backend, pane_id)
+    } else {
+        Ok(())
+    }
 }
 
+/// Spawn the in-pane file-manager helper and wait for its pane to appear.
 fn spawn_manager(
     config: &Config,
     config_path: &Path,
-    zellij: &Path,
+    backend: &dyn SessionBackend,
     tab_id: u64,
     floating: bool,
-) -> Result<String> {
+) -> Result<PaneId> {
     let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
-    let mut command = Command::new(zellij);
-    command
-        .args(["action", "new-pane", "--close-on-exit"])
-        .args(["--name", FILE_MANAGER_PANE, "--tab-id"])
-        .arg(tab_id.to_string());
-    if floating {
-        command
-            .arg("--floating")
-            .args(["--x", "0%", "--y", "0%"])
-            .arg("--width")
-            .arg(&config.tools.file_manager.float_width)
-            .arg("--height")
-            .arg(&config.tools.file_manager.float_height);
-    }
-    let output = command
-        .arg("--")
-        .arg(executable)
-        .arg("--config")
-        .arg(expand_tilde(config_path))
-        .args(["__file-manager", "run"])
-        .output()
-        .context("Failed to create file-manager pane")?;
-    if !output.status.success() {
-        bail!(
-            "Failed to create file-manager pane: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    let pane_id = String::from_utf8(output.stdout)
-        .map(|id| id.trim().to_string())
-        .context("Zellij returned a non-UTF-8 pane ID")?;
-    wait_for_pane(zellij, &pane_id)?;
+    let args = vec![
+        OsString::from("--config"),
+        expand_tilde(config_path).into_os_string(),
+        OsString::from("__file-manager"),
+        OsString::from("run"),
+    ];
+    let spec = SpawnSpec {
+        title: FILE_MANAGER_PANE,
+        tab_id,
+        placement: if floating {
+            Placement::Floating(file_manager_geometry(config))
+        } else {
+            Placement::Tiled
+        },
+        close_on_exit: true,
+        cwd: None,
+        program: Some(&executable),
+        args: &args,
+    };
+    let pane_id = backend.spawn(&spec)?;
+    wait_for_pane(backend, pane_id)?;
     Ok(pane_id)
 }
 
-fn run_file_manager(config: &Config, zellij: &Path, pane_id: u64) -> Result<()> {
+/// Floating geometry for the file manager, shared by open and re-float.
+fn file_manager_geometry(config: &Config) -> FloatGeometry<'_> {
+    FloatGeometry {
+        x: "0%",
+        y: "0%",
+        width: config.tools.file_manager.float_width.as_str(),
+        height: config.tools.file_manager.float_height.as_str(),
+    }
+}
+
+fn run_file_manager(config: &Config, backend: &dyn SessionBackend, pane_id: PaneId) -> Result<()> {
     if config.tools.file_manager.adapter != "yazi" {
         bail!(
             "Unsupported file-manager adapter '{}'; currently supported: yazi",
             config.tools.file_manager.adapter
         );
     }
-    let manager = resolve(&config.tools.file_manager.command)?;
-    let session = std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+    let manager = resolve_executable(&config.tools.file_manager.command)?;
+    let session = backend.session_name()?;
     let runtime_dir = config.runtime_dir(&session);
     let state_file = yazi_docked_state_file(&runtime_dir);
     let chooser = runtime_dir.join(format!("chooser-{pane_id}-{}.txt", std::process::id()));
@@ -389,9 +357,9 @@ fn run_file_manager(config: &Config, zellij: &Path, pane_id: u64) -> Result<()> 
         if selections.is_empty() {
             return Ok(());
         }
-        open_in_editor(zellij, &selections[0])?;
+        open_in_editor(backend, &selections[0])?;
 
-        let pane = list_panes(zellij)?
+        let pane = list_panes(backend)?
             .into_iter()
             .find(|pane| !pane.is_plugin && pane.id == pane_id);
         if pane.is_none_or(|pane| pane.is_floating) {
@@ -400,29 +368,14 @@ fn run_file_manager(config: &Config, zellij: &Path, pane_id: u64) -> Result<()> 
     }
 }
 
-fn become_floating_manager(config: &Config, zellij: &Path, pane_id: u64) -> Result<()> {
-    let pane_id = format!("terminal_{pane_id}");
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "change-floating-pane-coordinates", "--pane-id"])
-            .arg(&pane_id)
-            .args(["--x", "0%", "--y", "0%"])
-            .arg("--width")
-            .arg(&config.tools.file_manager.float_width)
-            .arg("--height")
-            .arg(&config.tools.file_manager.float_height),
-    )?;
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "rename-pane", "--pane-id"])
-            .arg(&pane_id)
-            .arg(FILE_MANAGER_PANE),
-    )?;
-    run_file_manager(
-        config,
-        zellij,
-        pane_id.trim_start_matches("terminal_").parse()?,
-    )
+fn become_floating_manager(
+    config: &Config,
+    backend: &dyn SessionBackend,
+    pane_id: PaneId,
+) -> Result<()> {
+    backend.set_floating_geometry(pane_id, &file_manager_geometry(config))?;
+    backend.rename(pane_id, FILE_MANAGER_PANE)?;
+    run_file_manager(config, backend, pane_id)
 }
 
 fn read_selections(path: &Path) -> Result<Vec<PathBuf>> {
@@ -437,32 +390,16 @@ fn read_selections(path: &Path) -> Result<Vec<PathBuf>> {
         .collect())
 }
 
-fn open_in_editor(zellij: &Path, selected: &Path) -> Result<()> {
-    let editor = list_panes(zellij)?
+fn open_in_editor(backend: &dyn SessionBackend, selected: &Path) -> Result<()> {
+    let editor = list_panes(backend)?
         .into_iter()
         .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
         .context("Cannot find the sat-hx-ide editor pane")?;
     let path = helix_quote(selected)?;
-    let pane_id = editor.cli_id();
 
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "send-keys", "--pane-id"])
-            .arg(&pane_id)
-            .arg("Esc"),
-    )?;
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "write-chars", "--pane-id"])
-            .arg(&pane_id)
-            .arg(format!(":open {path}")),
-    )?;
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "send-keys", "--pane-id"])
-            .arg(pane_id)
-            .arg("Enter"),
-    )
+    backend.send_key(editor.id, Key::Escape)?;
+    backend.send_text(editor.id, &format!(":open {path}"))?;
+    backend.send_key(editor.id, Key::Enter)
 }
 
 fn helix_quote(path: &Path) -> Result<String> {
@@ -476,11 +413,11 @@ fn helix_quote(path: &Path) -> Result<String> {
     ))
 }
 
-/// Both terminal actions are built on Zellij fullscreen, which hides the other
+/// Both terminal actions are built on backend fullscreen, which hides the other
 /// panes without touching the processes inside them.
 pub fn terminal_action(config: &Config, action: TerminalAction) -> Result<()> {
-    let zellij = resolve(&config.tools.zellij.command)?;
-    let panes = list_panes(&zellij)?;
+    let backend = backend::from_config(config)?;
+    let panes = list_panes(backend.as_ref())?;
     let editor = panes
         .iter()
         .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
@@ -489,7 +426,7 @@ pub fn terminal_action(config: &Config, action: TerminalAction) -> Result<()> {
         .iter()
         .find(|pane| !pane.is_plugin && pane.title == TERMINAL_PANE)
     else {
-        return respawn_terminal(config, &zellij, editor);
+        return respawn_terminal(config, backend.as_ref(), editor);
     };
 
     let hidden = editor.is_fullscreen;
@@ -497,30 +434,30 @@ pub fn terminal_action(config: &Config, action: TerminalAction) -> Result<()> {
 
     match action {
         TerminalAction::Toggle if hidden => {
-            toggle_fullscreen(&zellij, editor)?;
-            focus_pane(&zellij, terminal)
+            backend.toggle_fullscreen(editor.id)?;
+            backend.focus(terminal.id)
         }
         TerminalAction::Toggle => {
             if zoomed {
-                toggle_fullscreen(&zellij, terminal)?;
+                backend.toggle_fullscreen(terminal.id)?;
             }
-            toggle_fullscreen(&zellij, editor)
+            backend.toggle_fullscreen(editor.id)
         }
-        TerminalAction::Zoom if zoomed => toggle_fullscreen(&zellij, terminal),
+        TerminalAction::Zoom if zoomed => backend.toggle_fullscreen(terminal.id),
         TerminalAction::Zoom => {
             if hidden {
-                toggle_fullscreen(&zellij, editor)?;
+                backend.toggle_fullscreen(editor.id)?;
             }
-            toggle_fullscreen(&zellij, terminal)
+            backend.toggle_fullscreen(terminal.id)
         }
     }
 }
 
-/// Mind-map toggle/zoom mirrors the terminal: Zellij fullscreen hides sibling
+/// Mind-map toggle/zoom mirrors the terminal: fullscreen hides sibling
 /// panes without stopping the tool process inside them.
 pub fn mind_map_action(config: &Config, action: MindMapAction) -> Result<()> {
-    let zellij = resolve(&config.tools.zellij.command)?;
-    let panes = list_panes(&zellij)?;
+    let backend = backend::from_config(config)?;
+    let panes = list_panes(backend.as_ref())?;
     let editor = panes
         .iter()
         .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
@@ -529,7 +466,7 @@ pub fn mind_map_action(config: &Config, action: MindMapAction) -> Result<()> {
         .iter()
         .find(|pane| !pane.is_plugin && pane.title == MIND_MAP_PANE)
     else {
-        return respawn_mindmap(config, &zellij, editor);
+        return respawn_mindmap(config, backend.as_ref(), editor);
     };
 
     let hidden = editor.is_fullscreen;
@@ -537,21 +474,21 @@ pub fn mind_map_action(config: &Config, action: MindMapAction) -> Result<()> {
 
     match action {
         MindMapAction::Toggle if hidden => {
-            toggle_fullscreen(&zellij, editor)?;
-            focus_pane(&zellij, mindmap)
+            backend.toggle_fullscreen(editor.id)?;
+            backend.focus(mindmap.id)
         }
         MindMapAction::Toggle => {
             if zoomed {
-                toggle_fullscreen(&zellij, mindmap)?;
+                backend.toggle_fullscreen(mindmap.id)?;
             }
-            toggle_fullscreen(&zellij, editor)
+            backend.toggle_fullscreen(editor.id)
         }
-        MindMapAction::Zoom if zoomed => toggle_fullscreen(&zellij, mindmap),
+        MindMapAction::Zoom if zoomed => backend.toggle_fullscreen(mindmap.id),
         MindMapAction::Zoom => {
             if hidden {
-                toggle_fullscreen(&zellij, editor)?;
+                backend.toggle_fullscreen(editor.id)?;
             }
-            toggle_fullscreen(&zellij, mindmap)
+            backend.toggle_fullscreen(mindmap.id)
         }
     }
 }
@@ -560,71 +497,42 @@ pub fn mind_map_action(config: &Config, action: MindMapAction) -> Result<()> {
 ///
 /// Unlike the terminal, `mindmap.enabled` only controls whether the pane is
 /// present at session start. Alt-m can always spawn it on demand.
-fn respawn_mindmap(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result<()> {
+fn respawn_mindmap(config: &Config, backend: &dyn SessionBackend, editor: &PaneInfo) -> Result<()> {
     let mindmap = &config.mindmap;
     let tool = &config.tools.mindmap;
     let command = resolve_executable(&tool.command)
         .with_context(|| format!("Cannot find '{}'", tool.command))?;
+    let args: Vec<OsString> = tool.args.iter().map(OsString::from).collect();
 
-    // Focus the editor and open beside it via --tab-id. Do not use
-    // --near-current-pane: this action runs from a floating 1×1 helper whose
+    // Focus the editor and open beside it. Do not dock relative to the
+    // current helper pane: this action runs from a floating helper whose
     // pane is destroyed on exit, and docking next to that helper takes the
     // mind-map pane down with it.
-    focus_pane(zellij, editor)?;
+    backend.focus(editor.id)?;
+    let cwd = std::env::current_dir().ok();
 
-    let mut new_pane = Command::new(zellij);
-    new_pane
-        .args([
-            "action",
-            "new-pane",
-            "--close-on-exit",
-            "--direction",
-            mindmap.dock_position.zellij_new_pane_direction(),
-            "--name",
-            MIND_MAP_PANE,
-            "--tab-id",
-        ])
-        .arg(editor.tab_id.to_string());
-    if let Ok(cwd) = std::env::current_dir() {
-        new_pane.arg("--cwd").arg(cwd);
-    }
-
-    let output = new_pane
-        .arg("--")
-        .arg(&command)
-        .args(&tool.args)
-        .output()
-        .context("Failed to create the mind-map pane")?;
-    if !output.status.success() {
-        bail!(
-            "Failed to create the mind-map pane: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    let pane_id = String::from_utf8(output.stdout)
-        .map(|id| id.trim().to_string())
-        .context("Zellij returned a non-UTF-8 pane ID")?;
-    wait_for_pane(zellij, &pane_id)?;
-
-    // `--name` on `new-pane` does not always stick; match layout naming explicitly.
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "rename-pane", "--pane-id"])
-            .arg(&pane_id)
-            .arg(MIND_MAP_PANE),
-    )?;
-
-    let (axis, grow_border) = match mindmap.dock_position {
-        DockPosition::Down => (Axis::Rows, "up"),
-        DockPosition::Right => (Axis::Columns, "left"),
+    let (direction, grow_border) = dock_layout(mindmap.dock_position);
+    let spec = SpawnSpec {
+        title: MIND_MAP_PANE,
+        tab_id: editor.tab_id,
+        placement: Placement::TiledBeside(direction),
+        close_on_exit: true,
+        cwd: cwd.as_deref(),
+        program: Some(command.as_path()),
+        args: &args,
     };
-    resize_against_editor(
-        zellij,
-        &pane_id,
-        MIND_MAP_PANE,
-        axis,
+    let pane_id = backend.spawn(&spec)?;
+    wait_for_pane(backend, pane_id)?;
+
+    // Spawn naming does not always stick; match layout naming explicitly.
+    backend.rename(pane_id, MIND_MAP_PANE)?;
+
+    backend.resize_to_share(
+        pane_id,
+        editor.id,
+        dock_axis(mindmap.dock_position),
         grow_border,
-        usize::from(mindmap.dock_percent),
+        mindmap.dock_percent,
     )?;
 
     pane_cache().invalidate();
@@ -632,111 +540,79 @@ fn respawn_mindmap(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result<
 }
 
 /// Dock a fresh shell when the previous one was exited by the user.
-fn respawn_terminal(config: &Config, zellij: &Path, editor: &PaneInfo) -> Result<()> {
+fn respawn_terminal(config: &Config, backend: &dyn SessionBackend, editor: &PaneInfo) -> Result<()> {
     let terminal = &config.terminal;
     if !terminal.enabled {
         bail!("Terminal is disabled in configuration");
     }
 
     // Same docking rule as respawn_mindmap: follow the focused editor, not the
-    // floating helper pane that invoked this action.
-    focus_pane(zellij, editor)?;
+    // helper pane that invoked this action.
+    backend.focus(editor.id)?;
+    let cwd = std::env::current_dir().ok();
 
-    let mut command = Command::new(zellij);
-    command
-        .args([
-            "action",
-            "new-pane",
-            "--direction",
-            terminal.dock_position.zellij_new_pane_direction(),
-            "--name",
-            TERMINAL_PANE,
-            "--tab-id",
-        ])
-        .arg(editor.tab_id.to_string());
-    if let Ok(cwd) = std::env::current_dir() {
-        command.arg("--cwd").arg(cwd);
-    }
-
-    let output = command
-        .output()
-        .context("Failed to create the terminal pane")?;
-    if !output.status.success() {
-        bail!(
-            "Failed to create the terminal pane: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-    let pane_id = String::from_utf8(output.stdout)
-        .map(|id| id.trim().to_string())
-        .context("Zellij returned a non-UTF-8 pane ID")?;
-    wait_for_pane(zellij, &pane_id)?;
-
-    // `--name` on `new-pane` does not always stick; match layout.kdl naming explicitly.
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "rename-pane", "--pane-id"])
-            .arg(&pane_id)
-            .arg(TERMINAL_PANE),
-    )?;
-
-    // Once Zellij ships `--size` on tiled `new-pane` (zellij-org/zellij#4735), prefer
-    // that over post-create resize.
-    let (axis, grow_border) = match terminal.dock_position {
-        DockPosition::Down => (Axis::Rows, "up"),
-        DockPosition::Right => (Axis::Columns, "left"),
+    let (direction, grow_border) = dock_layout(terminal.dock_position);
+    let spec = SpawnSpec {
+        title: TERMINAL_PANE,
+        tab_id: editor.tab_id,
+        placement: Placement::TiledBeside(direction),
+        close_on_exit: false,
+        cwd: cwd.as_deref(),
+        program: None,
+        args: &[],
     };
-    resize_against_editor(
-        zellij,
-        &pane_id,
-        TERMINAL_PANE,
-        axis,
+    let pane_id = backend.spawn(&spec)?;
+    wait_for_pane(backend, pane_id)?;
+
+    // Spawn naming does not always stick; match layout naming explicitly.
+    backend.rename(pane_id, TERMINAL_PANE)?;
+
+    backend.resize_to_share(
+        pane_id,
+        editor.id,
+        dock_axis(terminal.dock_position),
         grow_border,
-        usize::from(terminal.dock_percent),
+        terminal.dock_percent,
     )?;
 
     pane_cache().invalidate();
     Ok(())
 }
 
-fn toggle_fullscreen(zellij: &Path, pane: &PaneInfo) -> Result<()> {
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "toggle-fullscreen", "--pane-id"])
-            .arg(pane.cli_id()),
-    )
+/// Split direction for docking below/right of the editor, plus the border the
+/// docked pane grows along when resized.
+fn dock_layout(position: DockPosition) -> (Direction, &'static str) {
+    match position {
+        DockPosition::Down => (Direction::Down, "up"),
+        DockPosition::Right => (Direction::Right, "left"),
+    }
 }
 
-fn focus_pane(zellij: &Path, pane: &PaneInfo) -> Result<()> {
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "focus-pane-id"])
-            .arg(pane.cli_id()),
-    )
+fn dock_axis(position: DockPosition) -> Axis {
+    match position {
+        DockPosition::Down => Axis::Rows,
+        DockPosition::Right => Axis::Columns,
+    }
 }
 
 fn toggle_dock(
     config: &Config,
     config_path: &Path,
-    zellij: &Path,
+    backend: &dyn SessionBackend,
     pane: &PaneInfo,
     editor: &PaneInfo,
 ) -> Result<()> {
     let was_floating = pane.is_floating;
-    let session = std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+    let session = backend.session_name()?;
     let runtime_dir = config.runtime_dir(&session);
     let state_file = yazi_docked_state_file(&runtime_dir);
 
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "close-pane", "--pane-id"])
-            .arg(pane.cli_id()),
-    )?;
+    backend.close(pane.id)?;
 
     if !was_floating {
         // Undocking: remove state file for floating mode
         let _ = std::fs::remove_file(&state_file);
-        return become_floating_manager(config, zellij, current_pane_id()?);
+        return become_floating_manager(config, backend, backend.current_pane_id()?);
     }
 
     // Docking: create state file for docked mode
@@ -745,227 +621,60 @@ fn toggle_dock(
     }
     std::fs::write(&state_file, "docked")?;
 
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "focus-pane-id"])
-            .arg(editor.cli_id()),
-    )?;
-    let pane_id = spawn_manager(config, config_path, zellij, editor.tab_id, !was_floating)?;
+    backend.focus(editor.id)?;
+    let pane_id = spawn_manager(config, config_path, backend, editor.tab_id, !was_floating)?;
 
     if was_floating {
-        zellij_status(
-            Command::new(zellij)
-                .args(["action", "move-pane", "--pane-id"])
-                .arg(&pane_id)
-                .arg("left"),
-        )?;
-        resize_against_editor(
-            zellij,
-            &pane_id,
-            FILE_MANAGER_PANE,
+        backend.move_pane(pane_id, Direction::Left)?;
+        backend.resize_to_share(
+            pane_id,
+            editor.id,
             Axis::Columns,
             "right",
-            usize::from(config.tools.file_manager.dock_percent),
+            config.tools.file_manager.dock_percent,
         )?;
     }
 
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "focus-pane-id"])
-            .arg(&pane_id),
-    )?;
-    wait_for_pane_close(zellij, &pane_id)
+    backend.focus(pane_id)?;
+    if backend.helper_waits_for_spawned_pane() {
+        wait_for_pane_close(backend, pane_id)
+    } else {
+        Ok(())
+    }
 }
 
-/// `new-pane` prints the new pane ID before Zellij registers it, so any action
-/// targeting that ID has to wait for it to show up first.
-fn wait_for_pane(zellij: &Path, pane_id: &str) -> Result<u64> {
-    let id = parse_pane_id(pane_id)?;
+/// `spawn` returns before the pane shows up in the pane list, so actions
+/// targeting the new pane have to wait for it to appear first.
+fn wait_for_pane(backend: &dyn SessionBackend, pane_id: PaneId) -> Result<PaneId> {
     for _ in 0..40 {
-        if pane_exists(zellij, id)? {
-            return Ok(id);
+        if pane_exists(backend, pane_id)? {
+            return Ok(pane_id);
         }
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
     bail!("Pane {pane_id} did not appear")
 }
 
-fn wait_for_pane_close(zellij: &Path, pane_id: &str) -> Result<()> {
-    let id = parse_pane_id(pane_id)?;
-    while pane_exists(zellij, id)? {
+fn wait_for_pane_close(backend: &dyn SessionBackend, pane_id: PaneId) -> Result<()> {
+    while pane_exists(backend, pane_id)? {
         std::thread::sleep(std::time::Duration::from_millis(250));
     }
     Ok(())
 }
 
-fn parse_pane_id(pane_id: &str) -> Result<u64> {
-    pane_id
-        .trim_start_matches("terminal_")
-        .parse()
-        .with_context(|| format!("Invalid pane ID returned by Zellij: '{pane_id}'"))
-}
-
-fn pane_exists(zellij: &Path, id: u64) -> Result<bool> {
-    Ok(list_panes(zellij)?
+fn pane_exists(backend: &dyn SessionBackend, id: PaneId) -> Result<bool> {
+    Ok(list_panes(backend)?
         .iter()
         .any(|pane| !pane.is_plugin && pane.id == id))
 }
 
-#[derive(Debug, Clone, Copy)]
-enum Axis {
-    Columns,
-    Rows,
-}
-
-impl Axis {
-    fn measure(self, pane: &PaneInfo) -> usize {
-        match self {
-            Axis::Columns => pane.pane_columns,
-            Axis::Rows => pane.pane_rows,
-        }
-    }
-}
-
-/// Share of the split (terminal + editor) taken by `pane`, as an integer percent.
-fn pane_area_share(pane: &PaneInfo, editor: &PaneInfo, axis: Axis) -> Option<usize> {
-    let total = axis.measure(pane) + axis.measure(editor);
-    (total > 0).then_some(axis.measure(pane) * 100 / total)
-}
-
-fn resize_pane(zellij: &Path, pane_id: &str, resize: &str, direction: Option<&str>) -> Result<()> {
-    let mut command = Command::new(zellij);
-    command.args(["action", "resize", "--pane-id", pane_id, resize]);
-    if let Some(direction) = direction {
-        command.arg(direction);
-    }
-    zellij_status(&mut command)
-}
-
-/// Zellij resizes in fixed steps, so nudge the pane until it is close enough
-/// to the requested share of the space it splits with the editor.
+/// Get the list of panes from the backend, using cache if available
 ///
-/// Uses coarse `+`/`-` (≈5% steps) when far from the target, then fine-grained
-/// border resizes. Always reads fresh pane geometry — the pane cache must not
-/// be used here or measurements go stale mid-loop.
-fn resize_against_editor(
-    zellij: &Path,
-    pane_id: &str,
-    subject: &str,
-    axis: Axis,
-    grow_border: &'static str,
-    target: usize,
-) -> Result<()> {
-    const MAX_STEPS: usize = 100;
-    const TOLERANCE_PERCENT: usize = 1;
-    /// Switch to Zellij's coarse resize when more than this many points away.
-    const COARSE_THRESHOLD: usize = 8;
-
-    for _ in 0..MAX_STEPS {
-        let panes = fetch_panes(zellij)?;
-        let Some(pane) = panes
-            .iter()
-            .find(|pane| !pane.is_plugin && pane.title == subject)
-        else {
-            return Ok(());
-        };
-        let Some(editor) = panes
-            .iter()
-            .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
-        else {
-            return Ok(());
-        };
-
-        let Some(current) = pane_area_share(pane, editor, axis) else {
-            return Ok(());
-        };
-        let diff = current.abs_diff(target);
-        if diff <= TOLERANCE_PERCENT {
-            return Ok(());
-        }
-
-        let coarse = diff > COARSE_THRESHOLD;
-        if coarse {
-            let step = if current > target { "-" } else { "+" };
-            resize_pane(zellij, pane_id, step, None)?;
-        } else {
-            let step = if current > target {
-                "decrease"
-            } else {
-                "increase"
-            };
-            resize_pane(zellij, pane_id, step, Some(grow_border))?;
-        }
-
-        // Stop if a step overshoots the target (common with coarse `-`/`+`).
-        let panes = fetch_panes(zellij)?;
-        let Some(pane) = panes
-            .iter()
-            .find(|pane| !pane.is_plugin && pane.title == subject)
-        else {
-            return Ok(());
-        };
-        let Some(editor) = panes
-            .iter()
-            .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
-        else {
-            return Ok(());
-        };
-        let Some(after) = pane_area_share(pane, editor, axis) else {
-            return Ok(());
-        };
-        if after.abs_diff(target) <= TOLERANCE_PERCENT {
-            return Ok(());
-        }
-        if after.abs_diff(target) >= diff && !coarse {
-            let undo = if current > target {
-                "increase"
-            } else {
-                "decrease"
-            };
-            let _ = resize_pane(zellij, pane_id, undo, Some(grow_border));
-            return Ok(());
-        }
-    }
-
-    Ok(())
-}
-
-/// Get the list of panes from Zellij, using cache if available
-///
-/// This function uses a per-process cache to avoid calling `zellij action list-panes`
-/// multiple times within a single action execution. The cache has a TTL of 500ms
-/// to ensure data freshness.
-fn list_panes(zellij: &Path) -> Result<Vec<PaneInfo>> {
-    pane_cache().get(zellij)
-}
-
-fn current_pane_id() -> Result<u64> {
-    let value = std::env::var("ZELLIJ_PANE_ID").context("ZELLIJ_PANE_ID is not set")?;
-    parse_zellij_pane_id(&value)
-}
-
-/// Parse Zellij's `ZELLIJ_PANE_ID` value (`terminal_N` or bare `N`).
-pub fn parse_zellij_pane_id(value: &str) -> Result<u64> {
-    value
-        .trim_start_matches("terminal_")
-        .parse()
-        .with_context(|| format!("Invalid ZELLIJ_PANE_ID '{value}'"))
-}
-
-fn resolve(command: &str) -> Result<PathBuf> {
-    resolve_executable(command)
-}
-
-fn zellij_status(command: &mut Command) -> Result<()> {
-    let display = format!("{command:?}");
-    let status: ExitStatus = command
-        .status()
-        .with_context(|| format!("Failed to run {display}"))?;
-    if status.success() {
-        Ok(())
-    } else {
-        bail!("{display} exited with status {status}")
-    }
+/// This function uses a per-process cache to avoid querying the backend
+/// multiple times within a single action execution. The cache has a TTL of
+/// 500ms to ensure data freshness.
+fn list_panes(backend: &dyn SessionBackend) -> Result<Vec<PaneInfo>> {
+    pane_cache().get(backend)
 }
 
 pub fn git_action(config: &Config, _action: GitAction) -> Result<()> {
@@ -985,14 +694,14 @@ pub fn workflow_action(config: &Config, _action: WorkflowAction) -> Result<()> {
 pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
     use crate::venv::determine_venv_commands;
 
-    let zellij = resolve(&config.tools.zellij.command)?;
+    let backend = backend::from_config(config)?;
     let venv_config = &config.venv;
 
     if !venv_config.enabled {
         bail!("Virtual environment management is disabled in configuration. Enable it in [venv] section.");
     }
 
-    let panes = list_panes(&zellij).context("Not running in a sat-hx-ide Zellij session")?;
+    let panes = list_panes(backend.as_ref()).context("Not running in a sat-hx-ide session")?;
 
     let terminal = panes
         .iter()
@@ -1001,8 +710,7 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 
     match action {
         VenvAction::Toggle => {
-            let session_name =
-                std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+            let session_name = backend.session_name()?;
             let runtime_dir = config.runtime_dir(&session_name);
             let venv_state_file = runtime_dir.join("venv_active");
 
@@ -1018,11 +726,11 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 
                 if is_active {
                     // Deactivate
-                    send_command_to_pane(&zellij, terminal, &deactivate_cmd)?;
+                    send_command_to_pane(backend.as_ref(), terminal, &deactivate_cmd)?;
                     let _ = std::fs::remove_file(venv_state_file);
                 } else {
                     // Activate the saved selection
-                    send_command_to_pane(&zellij, terminal, &activate_cmd)?;
+                    send_command_to_pane(backend.as_ref(), terminal, &activate_cmd)?;
                     std::fs::create_dir_all(&runtime_dir)?;
                     std::fs::write(venv_state_file, "active")?;
                 }
@@ -1032,18 +740,18 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 
                 if is_active {
                     // Deactivate
-                    send_command_to_pane(&zellij, terminal, &deactivate_cmd)?;
+                    send_command_to_pane(backend.as_ref(), terminal, &deactivate_cmd)?;
                     let _ = std::fs::remove_file(venv_state_file);
                 } else {
                     // Activate
-                    send_command_to_pane(&zellij, terminal, &activate_cmd)?;
+                    send_command_to_pane(backend.as_ref(), terminal, &activate_cmd)?;
                     std::fs::create_dir_all(&runtime_dir)?;
                     std::fs::write(venv_state_file, "active")?;
                 }
             }
         }
         VenvAction::Select => {
-            select_venv_interactive(config, &zellij, terminal)?;
+            select_venv_interactive(config, backend.as_ref(), terminal)?;
         }
     }
 
@@ -1051,7 +759,11 @@ pub fn venv_action(config: &Config, action: VenvAction) -> Result<()> {
 }
 
 /// Spawn an interactive selector to choose a virtual environment
-fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) -> Result<()> {
+fn select_venv_interactive(
+    config: &Config,
+    backend: &dyn SessionBackend,
+    terminal: &PaneInfo,
+) -> Result<()> {
     use crate::venv::{
         clear_selector_handoff, filter_activatable_environments, generate_commands,
         get_all_available_venvs, normalize_selectable_venv, read_selector_handoff, same_venv_path,
@@ -1061,8 +773,7 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
     use std::fs;
 
     let venv_config = &config.venv;
-    let session_name =
-        std::env::var("ZELLIJ_SESSION_NAME").unwrap_or_else(|_| "session".to_string());
+    let session_name = backend.session_name()?;
 
     // Get all available environments (detected + previously saved custom paths)
     let environments = get_all_available_venvs(venv_config, &session_name)?;
@@ -1075,41 +786,38 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
 
     let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
 
-    let output = Command::new(zellij)
-        .args([
-            "action",
-            "new-pane",
-            "--close-on-exit",
-            "--block-until-exit",
-        ])
-        .args([
-            "--floating",
-            "--x",
-            "10%",
-            "--y",
-            "20%",
-            "--width",
-            "80%",
-            "--height",
-            "60%",
-        ])
-        .arg("--name")
-        .arg("sat-venv-selector")
-        .arg("--")
-        .arg(&executable)
-        .args(["__venv", "run-selector", "--session"])
-        .arg(&session_name)
-        .output()
+    let args = vec![
+        OsString::from("__venv"),
+        OsString::from("run-selector"),
+        OsString::from("--session"),
+        OsString::from(session_name.clone()),
+    ];
+    let spec = SpawnSpec {
+        title: "sat-venv-selector",
+        tab_id: terminal.tab_id,
+        placement: Placement::Floating(FloatGeometry {
+            x: "10%",
+            y: "20%",
+            width: "80%",
+            height: "60%",
+        }),
+        close_on_exit: true,
+        cwd: None,
+        program: Some(&executable),
+        args: &args,
+    };
+    let outcome = backend
+        .spawn_blocking(&spec)
         .context("Failed to spawn venv selector pane")?;
 
-    if !output.status.success() && !selector_output_file.exists() {
+    if !outcome.success && !selector_output_file.exists() {
         return Ok(());
     }
 
-    if !output.status.success() {
+    if !outcome.success {
         bail!(
             "Virtual environment selector failed: {}",
-            String::from_utf8_lossy(&output.stderr)
+            outcome.stderr
         );
     }
 
@@ -1133,7 +841,7 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
     let selection = normalize_selectable_venv(selection)?;
 
     let (activate_cmd, _) = generate_commands(&selection.venv_type, Some(&selection.path))?;
-    send_command_to_pane(zellij, terminal, &activate_cmd)?;
+    send_command_to_pane(backend, terminal, &activate_cmd)?;
 
     save_venv_selection(&session_name, &selection)?;
 
@@ -1156,26 +864,20 @@ fn select_venv_interactive(config: &Config, zellij: &Path, terminal: &PaneInfo) 
 }
 
 /// Send a command to a specific pane and execute it
-fn send_command_to_pane(zellij: &Path, pane: &PaneInfo, command: &str) -> Result<()> {
-    // Use write-chars for the command string (avoids keybinding parsing)
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "write-chars", "--pane-id"])
-            .arg(pane.cli_id())
-            .arg(command),
-    )?;
+fn send_command_to_pane(
+    backend: &dyn SessionBackend,
+    pane: &PaneInfo,
+    command: &str,
+) -> Result<()> {
+    // Typed text avoids keybinding parsing
+    backend.send_text(pane.id, command)?;
     // Send Enter to execute
-    zellij_status(
-        Command::new(zellij)
-            .args(["action", "send-keys", "--pane-id"])
-            .arg(pane.cli_id())
-            .arg("Enter"),
-    )
+    backend.send_key(pane.id, Key::Enter)
 }
 
 fn spawn_floating_tool(config: &Config, pane_name: &str, tool: &CommandConfig) -> Result<()> {
-    let zellij = resolve(&config.tools.zellij.command)?;
-    let panes = list_panes(&zellij)?;
+    let backend = backend::from_config(config)?;
+    let panes = list_panes(backend.as_ref())?;
     let editor = panes
         .iter()
         .find(|pane| !pane.is_plugin && pane.title == EDITOR_PANE)
@@ -1183,29 +885,23 @@ fn spawn_floating_tool(config: &Config, pane_name: &str, tool: &CommandConfig) -
 
     let command = resolve_executable(&tool.command)
         .with_context(|| format!("Cannot find '{}'", tool.command))?;
+    let args: Vec<OsString> = tool.args.iter().map(OsString::from).collect();
 
-    let output = Command::new(zellij)
-        .args(["action", "new-pane", "--close-on-exit"])
-        .args(["--name", pane_name, "--tab-id"])
-        .arg(editor.tab_id.to_string())
-        .arg("--floating")
-        .args(["--x", &tool.x_pos, "--y", &tool.y_pos])
-        .arg("--width")
-        .arg(&tool.float_width)
-        .arg("--height")
-        .arg(&tool.float_height)
-        .arg("--")
-        .arg(&command)
-        .args(&tool.args)
-        .output()
-        .with_context(|| format!("Failed to create {pane_name} pane"))?;
-
-    if !output.status.success() {
-        bail!(
-            "Failed to create {pane_name} pane: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
+    let spec = SpawnSpec {
+        title: pane_name,
+        tab_id: editor.tab_id,
+        placement: Placement::Floating(FloatGeometry {
+            x: tool.x_pos.as_str(),
+            y: tool.y_pos.as_str(),
+            width: tool.float_width.as_str(),
+            height: tool.float_height.as_str(),
+        }),
+        close_on_exit: true,
+        cwd: None,
+        program: Some(command.as_path()),
+        args: &args,
+    };
+    backend.spawn(&spec)?;
 
     Ok(())
 }
@@ -1220,37 +916,6 @@ mod tests {
             helix_quote(Path::new("/tmp/a \"quoted\" file")).unwrap(),
             "\"/tmp/a \\\"quoted\\\" file\""
         );
-    }
-
-    #[test]
-    fn parses_pane_json() {
-        let panes: Vec<PaneInfo> = serde_json::from_str(
-            r#"[{
-                "id": 4,
-                "is_plugin": false,
-                "is_floating": true,
-                "is_fullscreen": false,
-                "title": "file-manager",
-                "tab_id": 0,
-                "pane_columns": 80,
-                "pane_rows": 24
-            }]"#,
-        )
-        .unwrap();
-        assert_eq!(panes[0].cli_id(), "terminal_4");
-        assert!(panes[0].is_floating);
-    }
-
-    #[test]
-    fn parse_zellij_pane_id_accepts_cli_form() {
-        assert_eq!(parse_zellij_pane_id("terminal_4").unwrap(), 4);
-        assert_eq!(parse_zellij_pane_id("42").unwrap(), 42);
-    }
-
-    #[test]
-    fn parse_zellij_pane_id_rejects_invalid_values() {
-        assert!(parse_zellij_pane_id("terminal_").is_err());
-        assert!(parse_zellij_pane_id("not-a-number").is_err());
     }
 
     #[test]
@@ -1279,38 +944,12 @@ mod tests {
                     pane_columns: 80,
                     pane_rows: 24,
                 }],
-                zellij_path: PathBuf::from("/usr/bin/zellij"),
+                backend: "zellij".to_string(),
             });
         }
 
-        // Verify it's there
+        // Verify it is there
         assert!(cache.data.read().unwrap().is_some());
-    }
-
-    #[test]
-    fn pane_area_share_percent() {
-        let terminal = PaneInfo {
-            id: 2,
-            is_plugin: false,
-            is_floating: false,
-            is_fullscreen: false,
-            title: TERMINAL_PANE.to_string(),
-            tab_id: 0,
-            pane_columns: 80,
-            pane_rows: 15,
-        };
-        let editor = PaneInfo {
-            id: 1,
-            is_plugin: false,
-            is_floating: false,
-            is_fullscreen: false,
-            title: EDITOR_PANE.to_string(),
-            tab_id: 0,
-            pane_columns: 80,
-            pane_rows: 85,
-        };
-        assert_eq!(pane_area_share(&terminal, &editor, Axis::Rows), Some(15));
-        assert_eq!(pane_area_share(&terminal, &editor, Axis::Columns), Some(50));
     }
 
     #[test]
@@ -1321,10 +960,21 @@ mod tests {
             *guard = Some(CachedPanes {
                 timestamp: Instant::now(),
                 panes: vec![],
-                zellij_path: PathBuf::from("/usr/bin/zellij"),
+                backend: "zellij".to_string(),
             });
         }
         cache.invalidate();
         assert!(cache.data.read().unwrap().is_none());
+    }
+
+    #[test]
+    fn dock_layout_maps_positions() {
+        assert_eq!(dock_layout(DockPosition::Down), (Direction::Down, "up"));
+        assert_eq!(
+            dock_layout(DockPosition::Right),
+            (Direction::Right, "left")
+        );
+        assert_eq!(dock_axis(DockPosition::Down), Axis::Rows);
+        assert_eq!(dock_axis(DockPosition::Right), Axis::Columns);
     }
 }

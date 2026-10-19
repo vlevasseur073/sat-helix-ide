@@ -43,6 +43,17 @@ Zellij bindings invoke hidden subcommands on the `sat-hx-ide` binary:
 Helpers run in tiny floating panes (`close_on_exit true`) so Zellij keeps the
 keybinding helper's TTY for actions that need it (file-manager spawn).
 
+## Session backend
+
+All multiplexer interaction goes through the `SessionBackend` trait
+(`src/backend/mod.rs`): listing, spawning, focusing, resizing, renaming and
+closing panes, sending keys, and session bootstrap (`init_session`, which also
+generates the backend's runtime files). Zellij is the first implementation
+(`src/backend/zellij.rs`); the Zellij-only `layout.kdl` / `config.kdl`
+generators stay in `src/zellij/`. Helpers build the backend from configuration
+via `backend::from_config` and act on backend-neutral `PaneInfo` records, so
+the action layer in `src/actions.rs` contains no multiplexer CLI calls.
+
 ## Action routing
 
 All logic lives in [`src/actions.rs`](../src/actions.rs):
@@ -57,9 +68,9 @@ All logic lives in [`src/actions.rs`](../src/actions.rs):
 ## Pane cache
 
 Within one helper invocation, `list-panes` results are cached for 500 ms to avoid
- repeated Zellij queries during multi-step actions. Resize loops bypass the cache
- (`fetch_panes`) so geometry stays fresh. The cache is invalidated after terminal
- respawn.
+ repeated Zellij queries during multi-step actions. Resize operations live in
+the backends (`resize_to_share`) and always read fresh geometry; the cache is
+invalidated after terminal respawn.
 
 ## Terminal layout
 

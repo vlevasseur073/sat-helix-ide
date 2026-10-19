@@ -37,6 +37,10 @@ impl Default for Config {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionConfig {
+    /// Workspace shell that hosts the session: Zellij (default) or kitty.
+    #[serde(default)]
+    pub backend: BackendKind,
+
     /// Attach to an existing project-named session when one exists.
     #[serde(default = "default_true")]
     pub attach_existing: bool,
@@ -50,6 +54,10 @@ pub struct SessionConfig {
     #[serde(default)]
     pub zellij_config: Option<PathBuf>,
 
+    /// Optional explicit path to the kitty config used as merge input.
+    #[serde(default)]
+    pub kitty_config: Option<PathBuf>,
+
     /// Show Zellij's built-in input-mode status bar under the sat-hx-ide summary line
     #[serde(default)]
     pub status_bar: bool,
@@ -58,12 +66,25 @@ pub struct SessionConfig {
 impl Default for SessionConfig {
     fn default() -> Self {
         Self {
+            backend: BackendKind::default(),
             attach_existing: true,
             ai_by_default: true,
             zellij_config: None,
+            kitty_config: None,
             status_bar: false,
         }
     }
+}
+
+/// The workspace shell hosting the session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum BackendKind {
+    #[default]
+    Zellij,
+    Kitty,
+    /// Pick kitty when running inside a kitty window, Zellij otherwise.
+    Auto,
 }
 
 /// The shell pane docked under Helix in the code tab. It runs Zellij's default
@@ -349,11 +370,32 @@ impl Config {
             .filter(|path| path.exists())
     }
 
-    pub fn runtime_dir(&self, session_name: &str) -> PathBuf {
+    /// Locate the user's kitty config. This path is read-only.
+    pub fn kitty_config_path(&self) -> Option<PathBuf> {
+        self.session
+            .kitty_config
+            .as_deref()
+            .map(expand_tilde)
+            .or_else(|| {
+                let base = std::env::var_os("XDG_CONFIG_HOME")
+                    .map(PathBuf::from)
+                    .or_else(|| home::home_dir().map(|home| home.join(".config")))?;
+                Some(base.join("kitty").join("kitty.conf"))
+            })
+            .filter(|path| path.exists())
+    }
+
+    /// Root of the per-session runtime state
+    /// (`$XDG_RUNTIME_DIR/sat-helix-ide`, or the temp dir as fallback).
+    pub fn runtime_root(&self) -> PathBuf {
         let base = std::env::var_os("XDG_RUNTIME_DIR")
             .map(PathBuf::from)
             .unwrap_or_else(std::env::temp_dir);
-        base.join("sat-helix-ide").join(session_name)
+        base.join("sat-helix-ide")
+    }
+
+    pub fn runtime_dir(&self, session_name: &str) -> PathBuf {
+        self.runtime_root().join(session_name)
     }
 }
 
@@ -422,6 +464,23 @@ mod tests {
 
         let default_config = Config::default();
         assert_eq!(default_config.terminal.dock_position, DockPosition::Down);
+    }
+
+    #[test]
+    fn backend_kind_deserializes_all_variants() {
+        let config: Config = toml::from_str(r#"[session]
+backend = "auto"
+"#)
+        .unwrap();
+        assert_eq!(config.session.backend, BackendKind::Auto);
+
+        let config: Config = toml::from_str(r#"[session]
+backend = "kitty"
+"#)
+        .unwrap();
+        assert_eq!(config.session.backend, BackendKind::Kitty);
+
+        assert_eq!(Config::default().session.backend, BackendKind::Zellij);
     }
 
     #[test]

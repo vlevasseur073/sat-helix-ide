@@ -1,6 +1,11 @@
-# sat-hx-ide composes a Zellij session without modifying any tool config.
+# sat-hx-ide composes a session without modifying any tool config.
 
 [session]
+# Workspace shell hosting the session: "zellij" (default), "kitty", or "auto".
+# "auto" picks kitty when sat-hx-ide runs inside a kitty window
+# (KITTY_WINDOW_ID is set), and falls back to Zellij otherwise.
+# The kitty backend drives kitty's remote control (allow_remote_control).
+# backend = "zellij"
 # Attach when a session with the project-derived name already exists.
 attach_existing = true
 # Add the AI tab whenever the [tools.ai] agent below is on PATH. When it is
@@ -9,6 +14,9 @@ ai_by_default = true
 # Optional explicit merge source. By default, ZELLIJ_CONFIG_FILE or the normal
 # XDG path (~/.config/zellij/config.kdl) is used read-only.
 # zellij_config = "/home/user/.config/zellij/config.kdl"
+# Optional explicit kitty config merge source (kitty backend only). By
+# default, the normal XDG path (~/.config/kitty/kitty.conf) is used read-only.
+# kitty_config = "/home/user/.config/kitty/kitty.conf"
 # Show Zellij's input-mode bar under the git/venv summary (summary is always on)
 status_bar = true
 
@@ -51,6 +59,11 @@ venv_select = "Alt Shift v"
 
 [tools.zellij]
 command = "zellij"
+args = []
+
+# kitty backend only; kitten is resolved next to kitty or via "kitty +kitten".
+[tools.kitty]
+command = "kitty"
 args = []
 
 [tools.editor]

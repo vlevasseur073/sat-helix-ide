@@ -1,10 +1,6 @@
-use crate::config::{expand_tilde, CommandConfig, Config, MindMapConfig};
-use crate::error::HxIdeError;
+use crate::backend::{self, SessionInit};
+use crate::config::{expand_tilde, BackendKind, CommandConfig, Config, MindMapConfig};
 use crate::resolve::resolve_executable;
-use crate::zellij::{
-    build_runtime_config, session_layout, RuntimeConfigInput, SessionStatus, StatusBarLaunch,
-    ZellijClient,
-};
 use anyhow::{bail, Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -37,9 +33,6 @@ impl<'a> WorkspaceManager<'a> {
             bail!("Session name cannot be empty");
         }
 
-        let zellij_path = resolve_command(&self.config.tools.zellij)?;
-        let editor_path = resolve_command(&self.config.tools.editor)?;
-        let git_path = resolve_command(&self.config.tools.git)?;
         let _file_manager_path = resolve_executable(&self.config.tools.file_manager.command)
             .with_context(|| {
                 format!(
@@ -52,79 +45,46 @@ impl<'a> WorkspaceManager<'a> {
         let ai = if ai_enabled { self.resolve_ai() } else { None };
         let mindmap = self.resolve_mindmap();
 
-        let status_bar = status_bar.unwrap_or(self.config.session.status_bar);
-
-        let runtime_dir = self.config.runtime_dir(&session_name);
-        fs::create_dir_all(&runtime_dir)?;
-        let layout_path = runtime_dir.join("layout.kdl");
-        let config_path = runtime_dir.join("config.kdl");
+        let backend = backend::from_config(self.config)?;
         let executable = std::env::current_exe().context("Cannot locate sat-hx-ide executable")?;
-        let status_launch = StatusBarLaunch {
-            executable: &executable,
-            config_path: &self.app_config_path,
-            session_name: &session_name,
+        let editor_path = resolve_command(&self.config.tools.editor)?;
+        let git_path = resolve_command(&self.config.tools.git)?;
+        let user_config = match backend::resolve_kind(self.config) {
+            BackendKind::Zellij => self.config.zellij_config_path(),
+            BackendKind::Kitty => self.config.kitty_config_path(),
+            BackendKind::Auto => unreachable!("resolve_kind never returns Auto"),
         };
-        let layout = session_layout(
-            &self.config.tools.editor,
-            &editor_path,
-            ai.as_ref()
+        let init = SessionInit {
+            session_name: &session_name,
+            project_dir: &project_dir,
+            runtime_dir: &self.config.runtime_dir(&session_name),
+            user_config: user_config.as_deref(),
+            attach_existing: self.config.session.attach_existing,
+            native_status_bar: status_bar.unwrap_or(self.config.session.status_bar),
+            editor: &self.config.tools.editor,
+            editor_path: &editor_path,
+            ai: ai
+                .as_ref()
                 .map(|(command, path)| (*command, path.as_path())),
-            self.config
+            terminal: self
+                .config
                 .terminal
                 .enabled
                 .then_some(&self.config.terminal),
-            mindmap
+            mindmap: mindmap
                 .as_ref()
                 .map(|(config, command, path)| (*config, *command, path.as_path())),
-            &project_dir,
-            status_bar,
-            status_launch,
-        );
-        fs::write(&layout_path, layout)?;
-        build_runtime_config(&RuntimeConfigInput {
-            source: self.config.zellij_config_path().as_deref(),
-            destination: &config_path,
-            session_name: &session_name,
-            keys: &self.config.keybindings,
+            keybindings: &self.config.keybindings,
             executable: &executable,
             app_config: &self.app_config_path,
-            git_command: &git_path,
+            git_path: &git_path,
             git_args: &self.config.tools.git.args,
-            project_dir: &project_dir,
             float_width: &self.config.tools.file_manager.float_width,
             float_height: &self.config.tools.file_manager.float_height,
-        })?;
-
-        let zellij = ZellijClient::new(zellij_path);
-        match zellij.session_status(&session_name)? {
-            SessionStatus::Active => {
-                if self.config.session.attach_existing {
-                    zellij
-                        .attach(&session_name, &config_path)
-                        .context("Failed to attach to existing Zellij session")
-                } else {
-                    Err(HxIdeError::WorkspaceError(format!(
-                        "Session '{session_name}' already exists; enable session.attach_existing \
-                         or choose another --session name"
-                    ))
-                    .into())
-                }
-            }
-            SessionStatus::Exited => {
-                // Zellij resurrection replays serialized pane commands, which can
-                // drift from the configured layout (for example after Helix spawns
-                // an LSP child). Always recreate exited sessions from layout.kdl.
-                zellij
-                    .delete_session(&session_name)
-                    .context("Failed to delete exited Zellij session")?;
-                zellij
-                    .create(&session_name, &layout_path, &config_path, &project_dir)
-                    .context("Failed to create Zellij session")
-            }
-            SessionStatus::NotFound => zellij
-                .create(&session_name, &layout_path, &config_path, &project_dir)
-                .context("Failed to create Zellij session"),
-        }
+        };
+        backend
+            .init_session(&init)
+            .context("Failed to initialize workspace")
     }
 
     /// The AI tab is a convenience, not a requirement: an agent that is
@@ -165,7 +125,26 @@ impl<'a> WorkspaceManager<'a> {
         println!("Checking configured commands...");
         let mut failures = Vec::new();
 
-        check_required(&mut failures, "Zellij", &self.config.tools.zellij);
+        match backend::resolve_kind(self.config) {
+            BackendKind::Zellij => {
+                check_required(&mut failures, "Zellij", &self.config.tools.zellij);
+            }
+            BackendKind::Kitty => {
+                check_required(&mut failures, "Kitty", &self.config.tools.kitty);
+                // Remote control needs the kitten CLI next to kitty.
+                let kitten = resolve_executable(&self.config.tools.kitty.command)
+                    .ok()
+                    .and_then(|kitty| backend::resolve_kitten(&kitty));
+                match kitten {
+                    Some(path) => println!("  ✓ Kitten: {}", path.display()),
+                    None => {
+                        println!("  ✗ Kitten: not found next to kitty or on PATH");
+                        failures.push("Kitten".to_string());
+                    }
+                }
+            }
+            BackendKind::Auto => unreachable!("resolve_kind never returns Auto"),
+        }
         check_required(&mut failures, "Editor", &self.config.tools.editor);
         check_required_file_manager(&mut failures, &self.config.tools.file_manager.command);
         check_required(&mut failures, "Git client", &self.config.tools.git);

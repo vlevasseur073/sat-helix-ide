@@ -77,6 +77,9 @@ pub struct ToolConfig {
     #[serde(default = "default_zellij")]
     pub zellij: CommandConfig,
 
+    #[serde(default = "default_kitty")]
+    pub kitty: CommandConfig,
+
     #[serde(default = "default_editor", alias = "helix")]
     pub editor: CommandConfig,
 
@@ -103,6 +106,7 @@ impl Default for ToolConfig {
     fn default() -> Self {
         Self {
             zellij: default_zellij(),
+            kitty: default_kitty(),
             editor: default_editor(),
             file_manager: FileManagerConfig::default(),
             git: default_git(),
@@ -116,6 +120,10 @@ impl Default for ToolConfig {
 
 fn default_zellij() -> CommandConfig {
     CommandConfig::new("zellij")
+}
+
+fn default_kitty() -> CommandConfig {
+    CommandConfig::new("kitty")
 }
 
 fn default_editor() -> CommandConfig {
