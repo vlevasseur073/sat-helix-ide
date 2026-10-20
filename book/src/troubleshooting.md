@@ -57,7 +57,7 @@ which yazi
 
 #### Interactive picker does not start a session
 
-**Problem**: Running `sat-hx-ide` with no path exits immediately or errors before Zellij opens.
+**Problem**: Running `sat-hx-ide` with no path exits immediately or errors before the workspace opens.
 
 **Solutions**:
 
@@ -68,13 +68,29 @@ which yazi
 2. **Check `launcher.start_dir`** — it must exist and be a directory.
 3. **Canceled selection** — exiting Yazi/`fzf` without choosing a folder is intentional; run `sat-hx-ide` again or pass a path: `sat-hx-ide /path/to/project`.
 
+#### Kitty backend issues
+
+**Problem**: `backend = "kitty"` or `auto` inside kitty fails to start or helpers do nothing.
+
+**Solutions**:
+
+1. **Doctor checks** — `sat-hx-ide doctor` must report kitty and kitten:
+   ```bash
+   sat-hx-ide doctor
+   ```
+2. **Remote control** — sat-hx-ide spawns kitty with `allow_remote_control=socket-only`. Do not rely on a pre-existing kitty window unless you launched via sat-hx-ide for that session.
+3. **Config warnings** — unsupported lines in your `kitty.conf` may be ignored; sat-hx-ide prints a summary after init (see `kitty.log` under the session runtime directory).
+4. **Use Zellij from any terminal** — set `backend = "zellij"` if you prefer the default multiplexer without kitty remote control.
+
 #### Session fails to start
 
 **Problem**: `sat-hx-ide .` fails with an error.
 
 **Common causes and solutions**:
 
-1. **Keybinding conflicts**:
+1. **Wrong backend** — confirm `[session] backend` and that the matching binary is on `PATH` (`zellij` vs `kitty`/`kitten`).
+
+2. **Keybinding conflicts**:
    ```bash
    # Check for conflicts
    RUST_LOG=debug sat-hx-ide .

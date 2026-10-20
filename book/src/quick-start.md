@@ -10,7 +10,8 @@ Before installing `sat-helix-ide`, ensure you have the following tools installed
 
 | Tool | Purpose | Installation |
 |------|---------|--------------|
-| **Zellij** | Terminal workspace multiplexer | [Installation Guide](https://zellij.dev/documentation/installation.html) |
+| **Zellij** | Default session backend (works from any terminal) | [Installation Guide](https://zellij.dev/documentation/installation.html) |
+| **Kitty** | Optional session backend (`backend = "kitty"` or `"auto"` inside kitty) | [Installation Guide](https://sw.kovidgoyal.net/kitty/) |
 | **Helix** | Modal text editor | [Installation Guide](https://helix-editor.com/) |
 | **Yazi** | Terminal file manager | [Installation Guide](https://yazi-rs.github.io/docs/installation) |
 
@@ -33,8 +34,12 @@ Before installing `sat-helix-ide`, ensure you have the following tools installed
 Verify your setup:
 
 ```bash
-# Check Zellij
+# Check Zellij (default backend)
 zellij --version
+
+# If using kitty backend: kitty and kitten for remote control
+kitty --version
+kitten --version
 
 # Check Helix
 hx --version

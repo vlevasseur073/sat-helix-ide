@@ -39,6 +39,9 @@ Here's a complete sample configuration with all available options:
 
 ```toml
 [session]
+# Session backend: "zellij" (default), "kitty", or "auto"
+# backend = "zellij"
+
 # Whether to attach to existing sessions by default
 attach_existing = true
 
@@ -46,11 +49,13 @@ attach_existing = true
 ai_by_default = true
 
 # Show Zellij's input-mode status bar under the sat-hx-ide git/venv line.
-# The sat-hx-ide summary line is always on; this only toggles Zellij's plugin.
+# Zellij backend only. The sat-hx-ide summary line is always on.
 status_bar = true
 
-# Custom Zellij config path (optional)
+# Custom Zellij config path (optional, Zellij backend)
 # zellij_config = "/home/user/.config/zellij/config.kdl"
+# Custom kitty config merge source (kitty backend)
+# kitty_config = "/home/user/.config/kitty/kitty.conf"
 
 [terminal]
 # Whether to include a terminal pane in the layout
@@ -87,6 +92,11 @@ terminal_zoom = "Alt Shift t"
 [tools.zellij]
 # Path to Zellij executable
 command = "zellij"
+args = []
+
+[tools.kitty]
+# kitty backend only; kitten is resolved next to kitty or via "kitty +kitten"
+command = "kitty"
 args = []
 
 [tools.editor]
@@ -139,7 +149,22 @@ start_dir = "~"
 
 ## Session Settings
 
-Settings related to Zellij session management.
+Settings related to workspace session management (Zellij or kitty).
+
+### `session.backend`
+
+- **Type**: String (`zellij`, `kitty`, `auto`)
+- **Default**: `zellij`
+- **Description**: Terminal multiplexer that hosts the IDE layout. Zellij is the historical default and works from any terminal emulator. Kitty spawns a dedicated window with socket-only remote control. `auto` selects kitty when `KITTY_WINDOW_ID` is set, otherwise Zellij.
+
+```toml
+[session]
+backend = "zellij"   # default
+# backend = "kitty"
+# backend = "auto"
+```
+
+Configure `[tools.kitty]` when using the kitty backend (`sat-hx-ide doctor` checks `kitty` and `kitten`).
 
 ### `session.attach_existing`
 
@@ -167,18 +192,29 @@ ai_by_default = false  # Don't create AI tab
 
 - **Type**: String (path)
 - **Default**: Auto-detected from Zellij's configuration locations
-- **Description**: Custom path to Zellij configuration file
+- **Description**: Read-only merge source for the **Zellij** backend (`config.kdl`)
 
 ```toml
 [session]
 zellij_config = "/path/to/custom/zellij/config.kdl"
 ```
 
+### `session.kitty_config`
+
+- **Type**: String (path)
+- **Default**: `~/.config/kitty/kitty.conf` (via XDG)
+- **Description**: Read-only merge source for the **kitty** backend. The runtime `kitty.conf` uses `include` to pull this file in, then appends sat-hx-ide `map` lines.
+
+```toml
+[session]
+kitty_config = "/path/to/custom/kitty.conf"
+```
+
 ### `session.status_bar`
 
 - **Type**: Boolean
 - **Default**: `false` in bundled defaults; sample config sets `true`
-- **Description**: When `true`, append Zellij’s `zellij:status-bar` plugin below the sat-hx-ide git/venv summary on every tab. The sat-hx-ide summary itself is **always** enabled and is not controlled by this flag.
+- **Description**: **Zellij backend only.** When `true`, append Zellij’s `zellij:status-bar` plugin below the sat-hx-ide git/venv summary on every tab. The sat-hx-ide summary itself is **always** enabled and is not controlled by this flag.
 
 ```toml
 [session]
@@ -326,12 +362,22 @@ Each tool has its own configuration section with `command` and `args` fields.
 
 ### `tools.zellij`
 
-Configuration for the Zellij executable.
+Configuration for the **Zellij** session backend.
 
 ```toml
 [tools.zellij]
 command = "zellij"
 args = ["--log-level", "warn"]  # Optional arguments
+```
+
+### `tools.kitty`
+
+Configuration for the **kitty** session backend. Remote control needs `kitten` next to `kitty` or on `PATH`.
+
+```toml
+[tools.kitty]
+command = "kitty"
+args = []
 ```
 
 ### `tools.editor`
@@ -537,12 +583,12 @@ Keybindings use Zellij's keybinding syntax:
 
 `sat-helix-ide` performs the following safety checks:
 
-1. **Parses your existing Zellij config** to detect all configured keybindings
-2. **Checks for conflicts** with all `sat-helix-ide` keybindings
+1. **Reads your multiplexer config** (Zellij `config.kdl` or kitty `map` lines) for existing bindings
+2. **Checks for conflicts** with all `sat-hx-ide` keybindings
 3. **Refuses to start** if any conflicts are found
 4. **Never silently replaces** your existing keybindings
 
-This ensures that your existing Zellij workflow is never accidentally broken.
+This ensures that your existing Zellij or kitty workflow is never accidentally broken.
 
 ### Example: Safe Keybinding Changes
 
@@ -550,14 +596,14 @@ This ensures that your existing Zellij workflow is never accidentally broken.
 # This will fail if Ctrl-f is already used in your Zellij config
 sat-hx-ide . --config ~/.config/sat-helix-ide/config.toml
 
-# Error: Keybinding conflict: 'Ctrl f' is already bound in your Zellij config
+# Error: Keybinding conflict (Zellij or kitty, depending on backend)
 ```
 
 To resolve conflicts:
 
-1. Change the `sat-helix-ide` keybinding
-2. Or remove the conflicting binding from your Zellij config
-3. Or choose a different Zellij config via `session.zellij_config`
+1. Change the `sat-hx-ide` keybinding
+2. Or remove the conflicting binding from your Zellij or kitty config
+3. Or point `session.zellij_config` / `session.kitty_config` at another merge source
 
 ## Complete Configuration Example
 

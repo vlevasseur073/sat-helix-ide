@@ -98,6 +98,12 @@ sat-hx-ide config --config /path/to/config.toml
 | `ZELLIJ_CONFIG_FILE` | Path to Zellij configuration | Overrides `session.zellij_config` |
 | `ZELLIJ_LOG` | Zellij logging level | Controls Zellij's own logging |
 
+### Kitty Variables
+
+| Variable | Description | Effect |
+|----------|-------------|--------|
+| `KITTY_WINDOW_ID` | Set inside a kitty window | `session.backend = "auto"` selects the kitty backend |
+
 ### Tool Variables
 
 | Variable | Tool | Description |
@@ -114,8 +120,10 @@ sat-hx-ide config --config /path/to/config.toml
 |---------|----------|-------------|
 | User Config | `~/.config/sat-helix-ide/config.toml` | Main configuration file |
 | Sample Config | `<repo>/configs/config.toml` | Sample configuration for reference |
-| Runtime Config | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/config.kdl` | Merged Zellij config |
-| Runtime Layout | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/layout.kdl` | Session layout |
+| Runtime (Zellij) | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/config.kdl` | Merged Zellij config |
+| Runtime (Zellij) | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/layout.kdl` | Zellij session layout |
+| Runtime (kitty) | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/kitty.conf` | Merged kitty config |
+| Runtime (kitty) | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/session.conf` | kitty session tabs/windows |
 
 ### Default Configuration
 
@@ -235,12 +243,26 @@ args = []
 | `terminal` | String | `"Alt t"` | Terminal toggle key |
 | `terminal_zoom` | String | `"Alt Shift t"` | Terminal zoom key |
 
+#### `[session]` (backend)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `backend` | String | `"zellij"` | `zellij`, `kitty`, or `auto` |
+| `kitty_config` | String | auto (XDG) | kitty merge source (kitty backend) |
+
 #### `[tools.zellij]`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `command` | String | `"zellij"` | Zellij executable |
 | `args` | Array | `[]` | Zellij arguments |
+
+#### `[tools.kitty]`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `command` | String | `"kitty"` | kitty executable |
+| `args` | Array | `[]` | kitty arguments |
 
 #### `[tools.editor]`
 
@@ -294,8 +316,9 @@ args = []
 
 | Project | Description | Website |
 |---------|-------------|---------|
-| **Zellij** | Terminal workspace multiplexer (used by sat-hx-ide) | [zellij.dev](https://zellij.dev) |
-| tmux | Terminal multiplexer | [tmux.github.io](https://tmux.github.io) |
+| **Zellij** | Default sat-hx-ide session backend | [zellij.dev](https://zellij.dev) |
+| **Kitty** | Optional session backend (remote control) | [sw.kovidgoyal.net/kitty](https://sw.kovidgoyal.net/kitty/) |
+| tmux | Terminal multiplexer (not a backend yet) | [tmux.github.io](https://tmux.github.io) |
 | screen | Terminal multiplexer | [GNU Screen](https://www.gnu.org/software/screen/) |
 
 ### Editors

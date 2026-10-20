@@ -4,7 +4,7 @@ This chapter provides a comprehensive guide to using `sat-helix-ide` effectively
 
 ## Workspace Layout
 
-`sat-helix-ide` creates a Zellij workspace with a carefully designed layout optimized for development workflows.
+`sat-helix-ide` creates a multiplexer-hosted workspace (Zellij by default, or kitty) with a layout optimized for development workflows. The rest of this chapter describes behavior common to both backends; Zellij-specific details (lock mode, `default_tab_template`, optional native status bar) are called out where they apply.
 
 ### Default Layout
 

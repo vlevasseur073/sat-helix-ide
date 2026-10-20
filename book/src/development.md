@@ -155,10 +155,11 @@ sat-helix-ide/
 │   └── architecture.md       # Architecture document (now integrated into book)
 ├── src/                      # Source code
 │   ├── main.rs               # CLI entry point
-│   ├── actions.rs            # Action handlers
-│   ├── config.rs             # Configuration handling
-│   ├── layout.rs             # Layout generation
-│   └── error.rs              # Error types
+│   ├── actions.rs            # Backend-neutral action handlers
+│   ├── backend/              # SessionBackend (zellij, kitty)
+│   ├── zellij/               # Zellij layout + config generation
+│   ├── kitty/                # kitty session + runtime config generation
+│   └── config/               # TOML configuration
 └── tests/                    # Test files
     └── test_*.rs              # Integration tests
 ```

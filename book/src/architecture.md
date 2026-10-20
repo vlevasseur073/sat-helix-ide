@@ -9,7 +9,7 @@ This chapter provides a detailed look at the architecture and design decisions b
 ### No Background Daemon
 
 - Each keybinding spawns a short-lived `sat-hx-ide` helper process
-- The helper process drives Zellij CLI actions and exits immediately
+- The helper drives the active **session backend** (Zellij CLI or kitty `kitten @`) and exits immediately
 - There is no persistent background process
 - This design simplifies error handling and resource management
 
@@ -18,13 +18,13 @@ This chapter provides a detailed look at the architecture and design decisions b
 ```mermaid
 flowchart TB
     User[User presses key]
-    Zellij[Zellij keybinding]
+    Mux[Multiplexer binding]
     Helper[sat-hx-ide helper process]
-    Action[Perform action via Zellij CLI]
+    Action[Backend-neutral action]
     Exit[Helper exits]
 
-    User --> Zellij
-    Zellij --> Helper
+    User --> Mux
+    Mux --> Helper
     Helper --> Action
     Action --> Exit
 ```
@@ -36,9 +36,24 @@ This approach has several advantages:
 3. **Debuggability**: Easy to trace and debug individual actions
 4. **Resource Efficiency**: No persistent memory usage when idle
 
+## Session backends
+
+Historically, sat-hx-ide only supported Zellij. The codebase now routes all pane and session
+operations through [`SessionBackend`](https://github.com/vlevasseur073/sat-helix-ide/blob/main/src/backend/mod.rs):
+
+| `session.backend` | When to use | Requirements |
+|-------------------|-------------|--------------|
+| `zellij` (default) | Any terminal emulator; classic sat-hx-ide experience | `zellij` on `PATH` |
+| `kitty` | Dedicated kitty window with remote control | `kitty`, `kitten`, socket-only RC |
+| `auto` | Prefer kitty when `KITTY_WINDOW_ID` is set, else Zellij | Whichever backend is selected |
+
+Zellij generators live under `src/zellij/` (`layout.kdl`, merged `config.kdl`). Kitty uses
+`src/kitty/` (`session.conf`, runtime `kitty.conf` with `include` of your user config plus
+`map` lines). The action layer in `src/actions.rs` stays backend-neutral.
+
 ## Session Initialization
 
-The session initialization process sets up the complete Zellij workspace with all configured tools and layouts.
+Initialization sets up the workspace for the selected backend.
 
 ### Init Flow
 
@@ -48,11 +63,12 @@ flowchart LR
     path -->|omit| picker[Yazi or fzf picker]
     path -->|given| wm[WorkspaceManager]
     picker --> wm
-    wm --> layout[Write layout.kdl]
-    wm --> kdl[Merge runtime config.kdl]
-    wm --> zellij[Zellij create or attach]
-    layout --> codeTab[code tab: editor + terminal]
-    kdl --> bindings[Helper keybindings]
+    wm --> backend{backend}
+    backend -->|zellij| zfiles[layout.kdl + config.kdl]
+    backend -->|kitty| kfiles[session.conf + kitty.conf]
+    zfiles --> mux[Create or attach]
+    kfiles --> mux
+    mux --> codeTab[code tab: editor + terminal]
 ```
 
 The `init` and `start` subcommands are optional aliases (`sat-hx-ide init [PATH]`).
@@ -64,46 +80,51 @@ The `init` and `start` subcommands are optional aliases (`sat-hx-ide init [PATH]
    - Generate a session name based on the directory name
    - Allow override via `--session` flag
 
-2. **Write `layout.kdl`**
-   - Create the Zellij layout definition
-   - Define a `default_tab_template` with the sat-hx-ide status bar pane (and optional Zellij status-bar plugin)
-   - Define the `code` tab with Helix and terminal inside that template
-   - Optionally create the `ai` tab with the configured agent (same template)
-   - Set up pane names and initial commands
+2. **Generate backend runtime files** (under `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/`)
+   - **Zellij:** `layout.kdl` (tabs, `default_tab_template`, status bar pane, code/ai tabs) and merged `config.kdl`
+   - **Kitty:** `session.conf` (tabs/windows) and `kitty.conf` (includes user config + helper `map` lines)
 
-3. **Merge Keybindings**
-   - Read your existing Zellij config (read-only)
-   - Check for key collisions with `sat-hx-ide` bindings
-   - Inject `sat-hx-ide` bindings into a private runtime copy
-   - Write the merged config to runtime directory
+3. **Merge keybindings (read-only source)**
+   - Zellij: parse `config.kdl`, refuse collisions, inject `bind` entries
+   - Kitty: scan user `map` lines, refuse collisions, append `map … launch … sat-hx-ide __…`
 
-4. **Create or Attach Zellij Session**
-   - Launch Zellij with `--config <runtime-copy>`
-   - Either create a new session or attach to existing one
-   - Pass all necessary environment and configuration
+4. **Create or attach**
+   - Zellij: `zellij --config <runtime>` create/attach
+   - Kitty: spawn kitty with per-session socket (`allow_remote_control=socket-only`)
 
 ### Runtime Files
 
-All runtime files are stored under:
+Common path: `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/`
+
+**Zellij backend:**
 
 ```text
-$XDG_RUNTIME_DIR/sat-helix-ide/<session>/
-├── config.kdl              # Merged Zellij configuration
-├── layout.kdl              # Session layout definition
-├── venv_selection.json     # Last selected virtual environment (optional)
-├── venv_collection.json    # Known environments for selector (optional)
-└── venv_active             # Present when terminal venv is active (optional)
+├── config.kdl
+├── layout.kdl
+├── venv_selection.json     # optional
+├── venv_collection.json    # optional
+└── venv_active             # optional
+```
+
+**Kitty backend** (among others):
+
+```text
+├── kitty.conf
+├── session.conf
+├── kitty.sock
+├── zoom.state              # optional (stack layout)
+└── venv_*                  # same venv handoff files as Zellij
 ```
 
 **Fallback**: If `XDG_RUNTIME_DIR` is unavailable, the system temporary directory (`/tmp` on most systems) is used.
 
 ## Helper Commands
 
-The core functionality of `sat-helix-ide` is implemented through **helper commands** that are invoked by Zellij keybindings.
+Helpers are hidden `sat-hx-ide` subcommands invoked by **Zellij binds** or **kitty `map` launch** lines.
 
 ### Command Structure
 
-Zellij bindings invoke hidden subcommands on the `sat-hx-ide` binary:
+Default bindings:
 
 | Key (default) | Command | Action |
 |---------------|---------|--------|
@@ -122,7 +143,7 @@ Zellij bindings invoke hidden subcommands on the `sat-hx-ide` binary:
 
 ### Helper Process Design
 
-Helpers run in tiny floating panes with `close_on_exit true`, which means:
+On **Zellij**, helpers often run in tiny floating panes with `close_on_exit true`, which means:
 
 - Zellij keeps the keybinding helper's TTY for actions that need it
 - The pane automatically closes when the helper exits
@@ -148,7 +169,7 @@ The main action categories are:
    - Handle file selection and opening in Helix
 
 2. **Terminal Actions**
-   - Toggle: Hide/show terminal via Zellij fullscreen
+   - Toggle: Hide/show terminal (Zellij fullscreen or kitty `stack` layout)
    - Zoom: Maximize terminal or restore docked size
    - Respawn: Create fresh terminal when previous one exits
 
