@@ -8,9 +8,7 @@
 pub mod kitty;
 pub mod zellij;
 
-use crate::config::{
-    BackendKind, CommandConfig, KeybindingConfig, MindMapConfig, TerminalConfig,
-};
+use crate::config::{BackendKind, CommandConfig, KeybindingConfig, MindMapConfig, TerminalConfig};
 use crate::resolve::resolve_executable;
 use anyhow::{Context, Result};
 use serde::Deserialize;
@@ -293,8 +291,8 @@ pub fn from_config(config: &crate::config::Config) -> Result<Box<dyn SessionBack
             let kitty = resolve_executable(&config.tools.kitty.command)?;
             // Remote control needs the kitten CLI; `kitty +kitten` is not a
             // valid substitute for it.
-            let kitten = resolve_kitten(&kitty)
-                .context("The kitty backend requires the 'kitten' binary")?;
+            let kitten =
+                resolve_kitten(&kitty).context("The kitty backend requires the 'kitten' binary")?;
             Ok(Box::new(KittyBackend::new(
                 kitty,
                 kitten,

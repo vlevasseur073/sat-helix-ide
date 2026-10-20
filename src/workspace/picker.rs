@@ -113,13 +113,9 @@ fn prepare_picker_yazi_config() -> Result<PathBuf> {
             .unwrap_or_default()
             .as_nanos()
     ));
-    fs::create_dir_all(&dir)
-        .with_context(|| format!("Failed to create {}", dir.display()))?;
-    fs::write(
-        dir.join("yazi.toml"),
-        "[mgr]\nshow_hidden = true\n",
-    )
-    .with_context(|| format!("Failed to write {}", dir.join("yazi.toml").display()))?;
+    fs::create_dir_all(&dir).with_context(|| format!("Failed to create {}", dir.display()))?;
+    fs::write(dir.join("yazi.toml"), "[mgr]\nshow_hidden = true\n")
+        .with_context(|| format!("Failed to write {}", dir.join("yazi.toml").display()))?;
     Ok(dir)
 }
 
@@ -189,7 +185,8 @@ fn read_chooser_project_dir(path: &Path) -> Result<Option<PathBuf>> {
     if !path.exists() {
         return Ok(None);
     }
-    let file = fs::File::open(path).with_context(|| format!("Failed to read {}", path.display()))?;
+    let file =
+        fs::File::open(path).with_context(|| format!("Failed to read {}", path.display()))?;
     let reader = BufReader::new(file);
     for line in reader.lines() {
         let line = line.context("Failed to read picker output")?;

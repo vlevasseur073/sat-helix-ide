@@ -40,7 +40,10 @@ pub fn session_file(input: &KittySessionInput<'_>) -> String {
         input.session_name
     ));
     out.push_str("layout splits\n");
-    out.push_str(&format!("cd {}\n", shell_quote(&input.project_dir.to_string_lossy())));
+    out.push_str(&format!(
+        "cd {}\n",
+        shell_quote(&input.project_dir.to_string_lossy())
+    ));
 
     // Code tab: editor, docked terminal, status bar. kitty session files
     // split the ACTIVE window, so the order defines the tree: the status
@@ -71,7 +74,10 @@ pub fn session_file(input: &KittySessionInput<'_>) -> String {
             "launch --env SAT_HX_ROLE=ai --title ai {}\n",
             program_argv(ai_path, &ai.args)
         ));
-        out.push_str(&format!("launch --location=hsplit {}\n", statusbar_command(input)));
+        out.push_str(&format!(
+            "launch --location=hsplit {}\n",
+            statusbar_command(input)
+        ));
     }
     out
 }
@@ -108,10 +114,9 @@ fn statusbar_command(input: &KittySessionInput<'_>) -> String {
 
 /// kitty session files tokenize launch arguments like a shell.
 fn shell_quote(text: &str) -> String {
-    if text
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '.' | '-' | '_' | '@' | '%' | ':' | '+'))
-    {
+    if text.chars().all(|c| {
+        c.is_ascii_alphanumeric() || matches!(c, '/' | '.' | '-' | '_' | '@' | '%' | ':' | '+')
+    }) {
         text.to_string()
     } else {
         format!("'{}'", text.replace('\'', "'\\''"))
@@ -149,9 +154,9 @@ mod tests {
         assert!(out.contains("layout splits\n"));
         assert!(out.contains("cd '/proj/my demo'\n"));
         assert!(out.contains("--env SAT_HX_ROLE=editor --title editor /usr/bin/hx\n"));
-        assert!(out.contains(
-            "launch --location=hsplit --env SAT_HX_ROLE=terminal --title terminal\n"
-        ));
+        assert!(
+            out.contains("launch --location=hsplit --env SAT_HX_ROLE=terminal --title terminal\n")
+        );
         // The status bar is the last window of the code tab.
         let code_tab = &out[..out.find("new_tab").unwrap_or(out.len())];
         assert_eq!(

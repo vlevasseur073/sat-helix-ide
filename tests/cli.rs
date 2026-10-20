@@ -426,10 +426,7 @@ fn kitty_init_generates_runtime_files_and_launches_kitty() {
     assert!(session.contains("SAT_HX_ROLE=statusbar"));
 
     let conf = fs::read_to_string(dir.join("kitty.conf")).unwrap();
-    assert!(conf.contains(&format!(
-        "include {}",
-        fixture.user_kitty.display()
-    )));
+    assert!(conf.contains(&format!("include {}", fixture.user_kitty.display())));
     assert!(conf.contains("env SAT_SESSION_NAME=kitty-session"));
     assert!(conf.contains("map ctrl+y launch --type=overlay --env SAT_HX_ROLE=file-manager"));
     // Every helper map must pass the config path with --config, or the
@@ -560,7 +557,11 @@ command = "{yazi}"
         ])
         .output()
         .unwrap();
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(fixture
         .session_dir("auto-kitty")
         .join("session.conf")
@@ -581,10 +582,17 @@ command = "{yazi}"
         ])
         .output()
         .unwrap();
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(fixture
         .session_dir("auto-zellij")
         .join("layout.kdl")
         .exists());
-    assert!(!fixture.session_dir("auto-zellij").join("session.conf").exists());
+    assert!(!fixture
+        .session_dir("auto-zellij")
+        .join("session.conf")
+        .exists());
 }

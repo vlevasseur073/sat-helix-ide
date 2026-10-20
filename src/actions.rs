@@ -540,7 +540,11 @@ fn respawn_mindmap(config: &Config, backend: &dyn SessionBackend, editor: &PaneI
 }
 
 /// Dock a fresh shell when the previous one was exited by the user.
-fn respawn_terminal(config: &Config, backend: &dyn SessionBackend, editor: &PaneInfo) -> Result<()> {
+fn respawn_terminal(
+    config: &Config,
+    backend: &dyn SessionBackend,
+    editor: &PaneInfo,
+) -> Result<()> {
     let terminal = &config.terminal;
     if !terminal.enabled {
         bail!("Terminal is disabled in configuration");
@@ -815,10 +819,7 @@ fn select_venv_interactive(
     }
 
     if !outcome.success {
-        bail!(
-            "Virtual environment selector failed: {}",
-            outcome.stderr
-        );
+        bail!("Virtual environment selector failed: {}", outcome.stderr);
     }
 
     if !selector_output_file.exists() {
@@ -970,10 +971,7 @@ mod tests {
     #[test]
     fn dock_layout_maps_positions() {
         assert_eq!(dock_layout(DockPosition::Down), (Direction::Down, "up"));
-        assert_eq!(
-            dock_layout(DockPosition::Right),
-            (Direction::Right, "left")
-        );
+        assert_eq!(dock_layout(DockPosition::Right), (Direction::Right, "left"));
         assert_eq!(dock_axis(DockPosition::Down), Axis::Rows);
         assert_eq!(dock_axis(DockPosition::Right), Axis::Columns);
     }

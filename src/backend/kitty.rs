@@ -179,8 +179,7 @@ impl KittyBackend {
         // always splits the ACTIVE window, and by now the active window is
         // the status bar). Focusing the editor first docks it beside Helix
         // exactly like the Zellij layout.
-        if let Some((_config, command, path)) =
-            init.mindmap.filter(|(config, _, _)| config.enabled)
+        if let Some((_config, command, path)) = init.mindmap.filter(|(config, _, _)| config.enabled)
         {
             let _ = client.run_ok_args(&[
                 "focus-window".into(),
@@ -244,16 +243,9 @@ impl KittyBackend {
         tabs.sort_unstable();
         tabs.dedup();
         for tab_id in tabs {
-            let in_tab: Vec<&super::PaneInfo> = panes
-                .iter()
-                .filter(|pane| pane.tab_id == tab_id)
-                .collect();
-            let find = |title: &str| {
-                in_tab
-                    .iter()
-                    .copied()
-                    .find(|pane| pane.title == title)
-            };
+            let in_tab: Vec<&super::PaneInfo> =
+                panes.iter().filter(|pane| pane.tab_id == tab_id).collect();
+            let find = |title: &str| in_tab.iter().copied().find(|pane| pane.title == title);
             // Vertical chain: windows stacked full-width. Column-split
             // windows (mind map, right-docked terminal) are excluded —
             // their rows are shared with a sibling, not added.
@@ -339,8 +331,8 @@ impl KittyBackend {
                 let Some(config) = mindmap_config else {
                     continue;
                 };
-                let cols_chain = mindmap.pane_columns
-                    + find("editor").map(|e| e.pane_columns).unwrap_or(0);
+                let cols_chain =
+                    mindmap.pane_columns + find("editor").map(|e| e.pane_columns).unwrap_or(0);
                 if !step(
                     mindmap,
                     Axis::Columns,
@@ -551,7 +543,11 @@ impl SessionBackend for KittyBackend {
         ])
     }
 
-    fn set_floating_geometry(&self, _id: PaneId, _geometry: &super::FloatGeometry<'_>) -> Result<()> {
+    fn set_floating_geometry(
+        &self,
+        _id: PaneId,
+        _geometry: &super::FloatGeometry<'_>,
+    ) -> Result<()> {
         // Overlay windows cover the focused window; kitty has no free
         // geometry for floating panes, so re-floating is already done.
         Ok(())
@@ -670,8 +666,12 @@ impl SessionBackend for KittyBackend {
         // one's listen socket.
         let _ = fs::remove_file(&socket);
 
-        let log = fs::File::create(init.runtime_dir.join("kitty.log"))
-            .with_context(|| format!("Failed to create kitty log in {}", init.runtime_dir.display()))?;
+        let log = fs::File::create(init.runtime_dir.join("kitty.log")).with_context(|| {
+            format!(
+                "Failed to create kitty log in {}",
+                init.runtime_dir.display()
+            )
+        })?;
         // The child handle is dropped immediately: kitty keeps running,
         // detached, and the helper exits after the layout fixups below.
         spawn_kitty(
@@ -773,7 +773,9 @@ mod tests {
     }
 
     fn strings(args: &[OsString]) -> Vec<String> {
-        args.iter().map(|a| a.to_string_lossy().into_owned()).collect()
+        args.iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect()
     }
 
     #[test]

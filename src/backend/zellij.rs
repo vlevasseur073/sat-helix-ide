@@ -7,9 +7,7 @@ use super::{
     Axis, Direction, FloatGeometry, Key, PaneId, PaneInfo, Placement, SessionBackend, SessionInit,
     SessionStatus, SpawnOutcome, SpawnSpec,
 };
-use crate::zellij::{
-    build_runtime_config, session_layout, RuntimeConfigInput, StatusBarLaunch,
-};
+use crate::zellij::{build_runtime_config, session_layout, RuntimeConfigInput, StatusBarLaunch};
 use anyhow::{bail, Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -70,9 +68,7 @@ impl ZellijBackend {
             }
             Placement::Tiled => {}
             Placement::TiledBeside(direction) => {
-                command
-                    .arg("--direction")
-                    .arg(direction.name());
+                command.arg("--direction").arg(direction.name());
             }
         }
         command
@@ -134,13 +130,7 @@ impl ZellijBackend {
 
     /// One Zellij resize nudge: coarse `+`/`-` when far from the target,
     /// fine border `increase`/`decrease` when close.
-    fn resize_step(
-        &self,
-        pane_id: PaneId,
-        shrink: bool,
-        coarse: bool,
-        border: &str,
-    ) -> Result<()> {
+    fn resize_step(&self, pane_id: PaneId, shrink: bool, coarse: bool, border: &str) -> Result<()> {
         let mut command = self.action();
         command
             .args(["resize", "--pane-id"])
@@ -225,9 +215,7 @@ impl SessionBackend for ZellijBackend {
 
     fn spawn_blocking(&self, spec: &SpawnSpec<'_>) -> Result<SpawnOutcome> {
         let mut command = self.new_pane_command(spec, true);
-        let output = command
-            .output()
-            .context("Failed to spawn the '{}' pane")?;
+        let output = command.output().context("Failed to spawn the '{}' pane")?;
         Ok(SpawnOutcome {
             success: output.status.success(),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
@@ -251,7 +239,9 @@ impl SessionBackend for ZellijBackend {
 
     fn close(&self, id: PaneId) -> Result<()> {
         let mut command = self.action();
-        command.args(["close-pane", "--pane-id"]).arg(Self::cli_id(id));
+        command
+            .args(["close-pane", "--pane-id"])
+            .arg(Self::cli_id(id));
         Self::run_status(&mut command)
     }
 

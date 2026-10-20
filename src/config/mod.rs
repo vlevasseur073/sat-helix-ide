@@ -532,15 +532,19 @@ mod tests {
 
     #[test]
     fn backend_kind_deserializes_all_variants() {
-        let config: Config = toml::from_str(r#"[session]
+        let config: Config = toml::from_str(
+            r#"[session]
 backend = "auto"
-"#)
+"#,
+        )
         .unwrap();
         assert_eq!(config.session.backend, BackendKind::Auto);
 
-        let config: Config = toml::from_str(r#"[session]
+        let config: Config = toml::from_str(
+            r#"[session]
 backend = "kitty"
-"#)
+"#,
+        )
         .unwrap();
         assert_eq!(config.session.backend, BackendKind::Kitty);
 

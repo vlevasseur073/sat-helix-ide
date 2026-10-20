@@ -7,12 +7,12 @@ pub mod backend;
 pub mod config;
 pub mod desktop;
 pub mod error;
+pub mod kitty;
 pub mod resolve;
 pub mod setup;
 pub mod statusbar;
 pub mod venv;
 pub mod workspace;
-pub mod kitty;
 pub mod zellij;
 
 pub use config::Config;
