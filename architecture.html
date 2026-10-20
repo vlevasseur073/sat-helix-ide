@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
+            window.path_to_searchindex_js = "searchindex-0db075b6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -185,20 +185,20 @@
 <h3 id="no-background-daemon"><a class="header" href="#no-background-daemon">No Background Daemon</a></h3>
 <ul>
 <li>Each keybinding spawns a short-lived <code>sat-hx-ide</code> helper process</li>
-<li>The helper process drives Zellij CLI actions and exits immediately</li>
+<li>The helper drives the active <strong>session backend</strong> (Zellij CLI or kitty <code>kitten @</code>) and exits immediately</li>
 <li>There is no persistent background process</li>
 <li>This design simplifies error handling and resource management</li>
 </ul>
 <h3 id="process-flow"><a class="header" href="#process-flow">Process Flow</a></h3>
 <pre><code class="language-mermaid">flowchart TB
     User[User presses key]
-    Zellij[Zellij keybinding]
+    Mux[Multiplexer binding]
     Helper[sat-hx-ide helper process]
-    Action[Perform action via Zellij CLI]
+    Action[Backend-neutral action]
     Exit[Helper exits]
 
-    User --&gt; Zellij
-    Zellij --&gt; Helper
+    User --&gt; Mux
+    Mux --&gt; Helper
     Helper --&gt; Action
     Action --&gt; Exit
 </code></pre>
@@ -209,69 +209,93 @@
 <li><strong>Debuggability</strong>: Easy to trace and debug individual actions</li>
 <li><strong>Resource Efficiency</strong>: No persistent memory usage when idle</li>
 </ol>
+<h2 id="session-backends"><a class="header" href="#session-backends">Session backends</a></h2>
+<p>Historically, sat-hx-ide only supported Zellij. The codebase now routes all pane and session
+operations through <a href="https://github.com/vlevasseur073/sat-helix-ide/blob/main/src/backend/mod.rs"><code>SessionBackend</code></a>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>session.backend</code></th><th>When to use</th><th>Requirements</th></tr>
+</thead>
+<tbody>
+<tr><td><code>zellij</code> (default)</td><td>Any terminal emulator; classic sat-hx-ide experience</td><td><code>zellij</code> on <code>PATH</code></td></tr>
+<tr><td><code>kitty</code></td><td>Dedicated kitty window with remote control</td><td><code>kitty</code>, <code>kitten</code>, socket-only RC</td></tr>
+<tr><td><code>auto</code></td><td>Prefer kitty when <code>KITTY_WINDOW_ID</code> is set, else Zellij</td><td>Whichever backend is selected</td></tr>
+</tbody>
+</table>
+</div>
+<p>Zellij generators live under <code>src/zellij/</code> (<code>layout.kdl</code>, merged <code>config.kdl</code>). Kitty uses
+<code>src/kitty/</code> (<code>session.conf</code>, runtime <code>kitty.conf</code> with <code>include</code> of your user config plus
+<code>map</code> lines). The action layer in <code>src/actions.rs</code> stays backend-neutral.</p>
 <h2 id="session-initialization"><a class="header" href="#session-initialization">Session Initialization</a></h2>
-<p>The session initialization process sets up the complete Zellij workspace with all configured tools and layouts.</p>
+<p>Initialization sets up the workspace for the selected backend.</p>
 <h3 id="init-flow"><a class="header" href="#init-flow">Init Flow</a></h3>
 <pre><code class="language-mermaid">flowchart LR
-    user[User: sat-hx-ide init] --&gt; wm[WorkspaceManager]
-    wm --&gt; layout[Write layout.kdl]
-    wm --&gt; kdl[Merge runtime config.kdl]
-    wm --&gt; zellij[Zellij create or attach]
-    layout --&gt; codeTab[code tab: editor + terminal]
-    kdl --&gt; bindings[Helper keybindings]
+    user[User: sat-hx-ide PATH] --&gt; path{PATH?}
+    path --&gt;|omit| picker[Yazi or fzf picker]
+    path --&gt;|given| wm[WorkspaceManager]
+    picker --&gt; wm
+    wm --&gt; backend{backend}
+    backend --&gt;|zellij| zfiles[layout.kdl + config.kdl]
+    backend --&gt;|kitty| kfiles[session.conf + kitty.conf]
+    zfiles --&gt; mux[Create or attach]
+    kfiles --&gt; mux
+    mux --&gt; codeTab[code tab: editor + terminal]
 </code></pre>
+<p>The <code>init</code> and <code>start</code> subcommands are optional aliases (<code>sat-hx-ide init [PATH]</code>).</p>
 <h3 id="step-by-step-initialization"><a class="header" href="#step-by-step-initialization">Step-by-Step Initialization</a></h3>
 <ol>
 <li>
 <p><strong>Resolve Project Directory and Session Name</strong></p>
 <ul>
-<li>Determine the project root from the provided path</li>
+<li>Use the <code>PATH</code> argument when provided, or run the interactive project picker (Yazi in chooser mode, or <code>fzf</code>) when omitted</li>
 <li>Generate a session name based on the directory name</li>
 <li>Allow override via <code>--session</code> flag</li>
 </ul>
 </li>
 <li>
-<p><strong>Write <code>layout.kdl</code></strong></p>
+<p><strong>Generate backend runtime files</strong> (under <code>$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/</code>)</p>
 <ul>
-<li>Create the Zellij layout definition</li>
-<li>Define a <code>default_tab_template</code> with the sat-hx-ide status bar pane (and optional Zellij status-bar plugin)</li>
-<li>Define the <code>code</code> tab with Helix and terminal inside that template</li>
-<li>Optionally create the <code>ai</code> tab with the configured agent (same template)</li>
-<li>Set up pane names and initial commands</li>
+<li><strong>Zellij:</strong> <code>layout.kdl</code> (tabs, <code>default_tab_template</code>, status bar pane, code/ai tabs) and merged <code>config.kdl</code></li>
+<li><strong>Kitty:</strong> <code>session.conf</code> (tabs/windows) and <code>kitty.conf</code> (includes user config + helper <code>map</code> lines)</li>
 </ul>
 </li>
 <li>
-<p><strong>Merge Keybindings</strong></p>
+<p><strong>Merge keybindings (read-only source)</strong></p>
 <ul>
-<li>Read your existing Zellij config (read-only)</li>
-<li>Check for key collisions with <code>sat-hx-ide</code> bindings</li>
-<li>Inject <code>sat-hx-ide</code> bindings into a private runtime copy</li>
-<li>Write the merged config to runtime directory</li>
+<li>Zellij: parse <code>config.kdl</code>, refuse collisions, inject <code>bind</code> entries</li>
+<li>Kitty: scan user <code>map</code> lines, refuse collisions, append <code>map … launch … sat-hx-ide __…</code></li>
 </ul>
 </li>
 <li>
-<p><strong>Create or Attach Zellij Session</strong></p>
+<p><strong>Create or attach</strong></p>
 <ul>
-<li>Launch Zellij with <code>--config &lt;runtime-copy&gt;</code></li>
-<li>Either create a new session or attach to existing one</li>
-<li>Pass all necessary environment and configuration</li>
+<li>Zellij: <code>zellij --config &lt;runtime&gt;</code> create/attach</li>
+<li>Kitty: spawn kitty with per-session socket (<code>allow_remote_control=socket-only</code>)</li>
 </ul>
 </li>
 </ol>
 <h3 id="runtime-files"><a class="header" href="#runtime-files">Runtime Files</a></h3>
-<p>All runtime files are stored under:</p>
-<pre><code class="language-text">$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/
-├── config.kdl              # Merged Zellij configuration
-├── layout.kdl              # Session layout definition
-├── venv_selection.json     # Last selected virtual environment (optional)
-├── venv_collection.json    # Known environments for selector (optional)
-└── venv_active             # Present when terminal venv is active (optional)
+<p>Common path: <code>$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/</code></p>
+<p><strong>Zellij backend:</strong></p>
+<pre><code class="language-text">├── config.kdl
+├── layout.kdl
+├── venv_selection.json     # optional
+├── venv_collection.json    # optional
+└── venv_active             # optional
+</code></pre>
+<p><strong>Kitty backend</strong> (among others):</p>
+<pre><code class="language-text">├── kitty.conf
+├── session.conf
+├── kitty.sock
+├── zoom.state              # optional (stack layout)
+└── venv_*                  # same venv handoff files as Zellij
 </code></pre>
 <p><strong>Fallback</strong>: If <code>XDG_RUNTIME_DIR</code> is unavailable, the system temporary directory (<code>/tmp</code> on most systems) is used.</p>
 <h2 id="helper-commands"><a class="header" href="#helper-commands">Helper Commands</a></h2>
-<p>The core functionality of <code>sat-helix-ide</code> is implemented through <strong>helper commands</strong> that are invoked by Zellij keybindings.</p>
+<p>Helpers are hidden <code>sat-hx-ide</code> subcommands invoked by <strong>Zellij binds</strong> or <strong>kitty <code>map</code> launch</strong> lines.</p>
 <h3 id="command-structure"><a class="header" href="#command-structure">Command Structure</a></h3>
-<p>Zellij bindings invoke hidden subcommands on the <code>sat-hx-ide</code> binary:</p>
+<p>Default bindings:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -294,7 +318,7 @@
 </table>
 </div>
 <h3 id="helper-process-design"><a class="header" href="#helper-process-design">Helper Process Design</a></h3>
-<p>Helpers run in tiny floating panes with <code>close_on_exit true</code>, which means:</p>
+<p>On <strong>Zellij</strong>, helpers often run in tiny floating panes with <code>close_on_exit true</code>, which means:</p>
 <ul>
 <li>Zellij keeps the keybinding helper’s TTY for actions that need it</li>
 <li>The pane automatically closes when the helper exits</li>
@@ -323,7 +347,7 @@
 <li>
 <p><strong>Terminal Actions</strong></p>
 <ul>
-<li>Toggle: Hide/show terminal via Zellij fullscreen</li>
+<li>Toggle: Hide/show terminal (Zellij fullscreen or kitty <code>stack</code> layout)</li>
 <li>Zoom: Maximize terminal or restore docked size</li>
 <li>Respawn: Create fresh terminal when previous one exits</li>
 </ul>
@@ -561,7 +585,7 @@ shared_except "locked" {
 <p><strong>CLI (main.rs)</strong></p>
 <ul>
 <li>Uses <code>clap</code> for command-line argument parsing</li>
-<li>Defines main commands: <code>init</code>, <code>doctor</code>, <code>config</code>, <code>version</code></li>
+<li>Default workspace invocation: <code>sat-hx-ide [PATH]</code> (optional <code>init</code>/<code>start</code> alias); subcommands include <code>doctor</code>, <code>setup</code>, <code>config</code>, <code>version</code>, <code>install-desktop</code></li>
 <li>Routes to appropriate handlers</li>
 </ul>
 </li>

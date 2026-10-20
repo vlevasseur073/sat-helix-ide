@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
+            window.path_to_searchindex_js = "searchindex-0db075b6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -225,14 +225,40 @@ which hx
 which yazi
 </code></pre>
 <h3 id="session-issues"><a class="header" href="#session-issues">Session Issues</a></h3>
+<h4 id="interactive-picker-does-not-start-a-session"><a class="header" href="#interactive-picker-does-not-start-a-session">Interactive picker does not start a session</a></h4>
+<p><strong>Problem</strong>: Running <code>sat-hx-ide</code> with no path exits immediately or errors before the workspace opens.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li><strong>Install a picker backend</strong> — with <code>picker = "auto"</code> (default), Yazi or <code>fzf</code> must be on <code>PATH</code>:
+<pre><code class="language-bash">sat-hx-ide doctor
+</code></pre>
+</li>
+<li><strong>Check <code>launcher.start_dir</code></strong> — it must exist and be a directory.</li>
+<li><strong>Canceled selection</strong> — exiting Yazi/<code>fzf</code> without choosing a folder is intentional; run <code>sat-hx-ide</code> again or pass a path: <code>sat-hx-ide /path/to/project</code>.</li>
+</ol>
+<h4 id="kitty-backend-issues"><a class="header" href="#kitty-backend-issues">Kitty backend issues</a></h4>
+<p><strong>Problem</strong>: <code>backend = "kitty"</code> or <code>auto</code> inside kitty fails to start or helpers do nothing.</p>
+<p><strong>Solutions</strong>:</p>
+<ol>
+<li><strong>Doctor checks</strong> — <code>sat-hx-ide doctor</code> must report kitty and kitten:
+<pre><code class="language-bash">sat-hx-ide doctor
+</code></pre>
+</li>
+<li><strong>Remote control</strong> — sat-hx-ide spawns kitty with <code>allow_remote_control=socket-only</code>. Do not rely on a pre-existing kitty window unless you launched via sat-hx-ide for that session.</li>
+<li><strong>Config warnings</strong> — unsupported lines in your <code>kitty.conf</code> may be ignored; sat-hx-ide prints a summary after init (see <code>kitty.log</code> under the session runtime directory).</li>
+<li><strong>Use Zellij from any terminal</strong> — set <code>backend = "zellij"</code> if you prefer the default multiplexer without kitty remote control.</li>
+</ol>
 <h4 id="session-fails-to-start"><a class="header" href="#session-fails-to-start">Session fails to start</a></h4>
-<p><strong>Problem</strong>: <code>sat-hx-ide init .</code> fails with an error.</p>
+<p><strong>Problem</strong>: <code>sat-hx-ide .</code> fails with an error.</p>
 <p><strong>Common causes and solutions</strong>:</p>
 <ol>
 <li>
+<p><strong>Wrong backend</strong> — confirm <code>[session] backend</code> and that the matching binary is on <code>PATH</code> (<code>zellij</code> vs <code>kitty</code>/<code>kitten</code>).</p>
+</li>
+<li>
 <p><strong>Keybinding conflicts</strong>:</p>
 <pre><code class="language-bash"># Check for conflicts
-RUST_LOG=debug sat-hx-ide init .
+RUST_LOG=debug sat-hx-ide .
 
 # Solution: Change conflicting keybindings in your config
 hx ~/.config/sat-helix-ide/config.toml
@@ -281,7 +307,7 @@ cat $XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/config.kdl | grep "sat-hx-ide
 <p><strong>Restart session</strong>:</p>
 <pre><code class="language-bash"># Quit and restart
 zellij kill-session &lt;session&gt;
-sat-hx-ide init .
+sat-hx-ide .
 </code></pre>
 </li>
 </ol>
@@ -328,7 +354,7 @@ file_manager = " Ctrl y "
 <li>
 <p><strong>Check for conflicts</strong>:</p>
 <pre><code class="language-bash"># Test with debug logging
-RUST_LOG=debug sat-hx-ide init .
+RUST_LOG=debug sat-hx-ide .
 
 # Look for conflict messages
 </code></pre>
@@ -352,7 +378,7 @@ passthrough = ["Ctrl b", "Ctrl o"]
 </code></pre>
 <p>The list is empty by default; your Zellij <code>config.kdl</code> is never modified. See
 <a href="./configuration.html#passthrough-keys">Configuration</a> for the rules (notation,
-collisions with <code>sat-hx-ide</code> keys are rejected at <code>init</code>).</p>
+collisions with <code>sat-hx-ide</code> keys are rejected at session startup).</p>
 <h3 id="terminal-issues"><a class="header" href="#terminal-issues">Terminal Issues</a></h3>
 <h4 id="terminal-doesnt-appear"><a class="header" href="#terminal-doesnt-appear">Terminal doesn’t appear</a></h4>
 <p><strong>Problem</strong>: The terminal pane is missing from the layout.</p>
@@ -392,7 +418,7 @@ dock_position = "down"
 <li>Some shells (like <code>fish</code>) may exit if they detect they’re not interactive</li>
 <li>Try with <code>bash</code> or <code>zsh</code>:
 <pre><code class="language-bash"># Test with bash
-ZELLIJ_SHELL=/bin/bash sat-hx-ide init .
+ZELLIJ_SHELL=/bin/bash sat-hx-ide .
 </code></pre>
 </li>
 </ul>
@@ -499,7 +525,7 @@ args = []
 <li>
 <p><strong>Restart session in correct directory</strong>:</p>
 <pre><code class="language-bash">cd /path/to/your/git/repo
-sat-hx-ide init .
+sat-hx-ide .
 </code></pre>
 </li>
 </ol>
@@ -509,7 +535,7 @@ sat-hx-ide init .
 <p><strong>Solutions</strong>:</p>
 <ol>
 <li><strong>Start a new session</strong> after upgrading — the line is injected via <code>default_tab_template</code> in <code>layout.kdl</code>.</li>
-<li><strong>New tabs</strong> should include the bar automatically; if an old session was created before this layout, re-run <code>sat-hx-ide init</code> for that project.</li>
+<li><strong>New tabs</strong> should include the bar automatically; if an old session was created before this layout, re-run <code>sat-hx-ide .</code> for that project.</li>
 <li><strong>Git field shows errors</strong> — ensure <code>git</code> is on <code>PATH</code> (<code>sat-hx-ide doctor</code>).</li>
 </ol>
 <h4 id="only-zellijs-mode-bar-or-two-bars"><a class="header" href="#only-zellijs-mode-bar-or-two-bars">Only Zellij’s mode bar, or two bars</a></h4>
@@ -548,7 +574,7 @@ ls /path/to/your/config.toml
 </li>
 <li>
 <p><strong>Specify configuration file</strong>:</p>
-<pre><code class="language-bash">sat-hx-ide init . --config /path/to/config.toml
+<pre><code class="language-bash">sat-hx-ide . --config /path/to/config.toml
 </code></pre>
 </li>
 <li>
@@ -580,7 +606,7 @@ python3 -c "import tomllib; tomllib.loads(open('.config/sat-helix-ide/config.tom
 <p><strong>Use defaults</strong>:</p>
 <pre><code class="language-bash"># Temporarily use bundled defaults
 mv ~/.config/sat-helix-ide/config.toml ~/.config/sat-helix-ide/config.toml.bak
-sat-hx-ide init .
+sat-hx-ide .
 </code></pre>
 </li>
 </ol>
@@ -588,13 +614,13 @@ sat-hx-ide init .
 <h3 id="enabling-debug-logging"><a class="header" href="#enabling-debug-logging">Enabling Debug Logging</a></h3>
 <p>Use the <code>RUST_LOG</code> environment variable to enable debug logging:</p>
 <pre><code class="language-bash"># Basic debug logging
-RUST_LOG=debug sat-hx-ide init .
+RUST_LOG=debug sat-hx-ide .
 
 # Detailed trace logging
-RUST_LOG=trace sat-hx-ide init .
+RUST_LOG=trace sat-hx-ide .
 
 # Only show info from specific modules
-RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide init .
+RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide .
 </code></pre>
 <h3 id="debug-log-levels"><a class="header" href="#debug-log-levels">Debug Log Levels</a></h3>
 <div class="table-wrapper">
@@ -613,7 +639,7 @@ RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide init .
 </div>
 <h3 id="debugging-specific-operations"><a class="header" href="#debugging-specific-operations">Debugging Specific Operations</a></h3>
 <h4 id="debug-session-initialization"><a class="header" href="#debug-session-initialization">Debug Session Initialization</a></h4>
-<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide init . --session debug-session
+<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide . --session debug-session
 </code></pre>
 <p>This shows:</p>
 <ul>
@@ -624,7 +650,7 @@ RUST_LOG=debug,sat_hx_ide::actions=trace sat-hx-ide init .
 </ul>
 <h4 id="debug-action-execution"><a class="header" href="#debug-action-execution">Debug Action Execution</a></h4>
 <pre><code class="language-bash"># Start a session
-sat-hx-ide init .
+sat-hx-ide .
 
 # In another terminal, debug a specific action
 RUST_LOG=trace sat-hx-ide __file-manager open
@@ -651,7 +677,7 @@ chmod 700 ~/.local/share/sat-helix-ide
 <p><strong>Solution</strong>:</p>
 <pre><code class="language-bash"># Set XDG_RUNTIME_DIR for macOS
 export XDG_RUNTIME_DIR=/tmp
-sat-hx-ide init .
+sat-hx-ide .
 </code></pre>
 <h4 id="windows-wsl"><a class="header" href="#windows-wsl">Windows (WSL)</a></h4>
 <p><strong>Issue</strong>: Windows paths don’t work with Linux tools.</p>
@@ -769,7 +795,7 @@ env | grep -E "(XDG|TERM|PATH|ZELLIJ)" | head -10
 <h2 id="troubleshooting-checklist"><a class="header" href="#troubleshooting-checklist">Troubleshooting Checklist</a></h2>
 <ul>
 <li><input disabled="" type="checkbox"> Run <code>sat-hx-ide doctor</code> for system check</li>
-<li><input disabled="" type="checkbox"> Check <code>RUST_LOG=debug sat-hx-ide init .</code> for debug output</li>
+<li><input disabled="" type="checkbox"> Check <code>RUST_LOG=debug sat-hx-ide .</code> for debug output</li>
 <li><input disabled="" type="checkbox"> Verify all required tools are installed and in PATH</li>
 <li><input disabled="" type="checkbox"> Test each tool individually (zellij, hx, yazi, lazygit)</li>
 <li><input disabled="" type="checkbox"> Check configuration file syntax and values</li>

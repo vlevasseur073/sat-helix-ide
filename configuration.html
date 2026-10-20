@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
+            window.path_to_searchindex_js = "searchindex-0db075b6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -205,6 +205,9 @@ hx ~/.config/sat-helix-ide/config.toml
 <h3 id="sample-configuration"><a class="header" href="#sample-configuration">Sample Configuration</a></h3>
 <p>Here’s a complete sample configuration with all available options:</p>
 <pre><code class="language-toml">[session]
+# Session backend: "zellij" (default), "kitty", or "auto"
+# backend = "zellij"
+
 # Whether to attach to existing sessions by default
 attach_existing = true
 
@@ -212,11 +215,13 @@ attach_existing = true
 ai_by_default = true
 
 # Show Zellij's input-mode status bar under the sat-hx-ide git/venv line.
-# The sat-hx-ide summary line is always on; this only toggles Zellij's plugin.
+# Zellij backend only. The sat-hx-ide summary line is always on.
 status_bar = true
 
-# Custom Zellij config path (optional)
+# Custom Zellij config path (optional, Zellij backend)
 # zellij_config = "/home/user/.config/zellij/config.kdl"
+# Custom kitty config merge source (kitty backend)
+# kitty_config = "/home/user/.config/kitty/kitty.conf"
 
 [terminal]
 # Whether to include a terminal pane in the layout
@@ -253,6 +258,11 @@ terminal_zoom = "Alt Shift t"
 [tools.zellij]
 # Path to Zellij executable
 command = "zellij"
+args = []
+
+[tools.kitty]
+# kitty backend only; kitten is resolved next to kitty or via "kitty +kitten"
+command = "kitty"
 args = []
 
 [tools.editor]
@@ -294,9 +304,28 @@ args = []
 # AI agent command (optional, skipped if not found)
 command = "cursor-agent"  # or any other AI agent
 args = []
+
+[launcher]
+# When `sat-hx-ide` is run without PATH: "auto" (Yazi, then fzf), "yazi", or "fzf"
+picker = "auto"
+start_dir = "~"
+# fzf_command = "fzf"
+# max_depth = 8
 </code></pre>
 <h2 id="session-settings"><a class="header" href="#session-settings">Session Settings</a></h2>
-<p>Settings related to Zellij session management.</p>
+<p>Settings related to workspace session management (Zellij or kitty).</p>
+<h3 id="sessionbackend"><a class="header" href="#sessionbackend"><code>session.backend</code></a></h3>
+<ul>
+<li><strong>Type</strong>: String (<code>zellij</code>, <code>kitty</code>, <code>auto</code>)</li>
+<li><strong>Default</strong>: <code>zellij</code></li>
+<li><strong>Description</strong>: Terminal multiplexer that hosts the IDE layout. Zellij is the historical default and works from any terminal emulator. Kitty spawns a dedicated window with socket-only remote control. <code>auto</code> selects kitty when <code>KITTY_WINDOW_ID</code> is set, otherwise Zellij.</li>
+</ul>
+<pre><code class="language-toml">[session]
+backend = "zellij"   # default
+# backend = "kitty"
+# backend = "auto"
+</code></pre>
+<p>Configure <code>[tools.kitty]</code> when using the kitty backend (<code>sat-hx-ide doctor</code> checks <code>kitty</code> and <code>kitten</code>).</p>
 <h3 id="sessionattach_existing"><a class="header" href="#sessionattach_existing"><code>session.attach_existing</code></a></h3>
 <ul>
 <li><strong>Type</strong>: Boolean</li>
@@ -319,22 +348,31 @@ ai_by_default = false  # Don't create AI tab
 <ul>
 <li><strong>Type</strong>: String (path)</li>
 <li><strong>Default</strong>: Auto-detected from Zellij’s configuration locations</li>
-<li><strong>Description</strong>: Custom path to Zellij configuration file</li>
+<li><strong>Description</strong>: Read-only merge source for the <strong>Zellij</strong> backend (<code>config.kdl</code>)</li>
 </ul>
 <pre><code class="language-toml">[session]
 zellij_config = "/path/to/custom/zellij/config.kdl"
+</code></pre>
+<h3 id="sessionkitty_config"><a class="header" href="#sessionkitty_config"><code>session.kitty_config</code></a></h3>
+<ul>
+<li><strong>Type</strong>: String (path)</li>
+<li><strong>Default</strong>: <code>~/.config/kitty/kitty.conf</code> (via XDG)</li>
+<li><strong>Description</strong>: Read-only merge source for the <strong>kitty</strong> backend. The runtime <code>kitty.conf</code> uses <code>include</code> to pull this file in, then appends sat-hx-ide <code>map</code> lines.</li>
+</ul>
+<pre><code class="language-toml">[session]
+kitty_config = "/path/to/custom/kitty.conf"
 </code></pre>
 <h3 id="sessionstatus_bar"><a class="header" href="#sessionstatus_bar"><code>session.status_bar</code></a></h3>
 <ul>
 <li><strong>Type</strong>: Boolean</li>
 <li><strong>Default</strong>: <code>false</code> in bundled defaults; sample config sets <code>true</code></li>
-<li><strong>Description</strong>: When <code>true</code>, append Zellij’s <code>zellij:status-bar</code> plugin below the sat-hx-ide git/venv summary on every tab. The sat-hx-ide summary itself is <strong>always</strong> enabled and is not controlled by this flag.</li>
+<li><strong>Description</strong>: <strong>Zellij backend only.</strong> When <code>true</code>, append Zellij’s <code>zellij:status-bar</code> plugin below the sat-hx-ide git/venv summary on every tab. The sat-hx-ide summary itself is <strong>always</strong> enabled and is not controlled by this flag.</li>
 </ul>
 <pre><code class="language-toml">[session]
 status_bar = false   # sat-hx-ide line only
 status_bar = true    # sat-hx-ide line + Zellij input-mode bar
 </code></pre>
-<p>You can override for one session at init time: <code>sat-hx-ide init . --status-bar</code> (see <code>sat-hx-ide init --help</code>).</p>
+<p>You can override for one session at start time: <code>sat-hx-ide . --status-bar</code> (see <code>sat-hx-ide --help</code>).</p>
 <p><strong>Auto-detection order:</strong></p>
 <ol>
 <li><code>session.zellij_config</code> if specified</li>
@@ -342,6 +380,32 @@ status_bar = true    # sat-hx-ide line + Zellij input-mode bar
 <li><code>$XDG_CONFIG_HOME/zellij/config.kdl</code></li>
 <li><code>~/.config/zellij/config.kdl</code></li>
 </ol>
+<h2 id="launcher-settings"><a class="header" href="#launcher-settings">Launcher Settings</a></h2>
+<p>When you run <code>sat-hx-ide</code> with no <code>PATH</code> argument (including the Linux desktop
+entry), sat-hx-ide asks you to choose a project directory before creating the
+Zellij session.</p>
+<h3 id="launcher-section"><a class="header" href="#launcher-section"><code>[launcher]</code> section</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>picker</code></td><td><code>"auto"</code></td><td><code>"auto"</code> (Yazi, then <code>fzf</code>), <code>"yazi"</code>, or <code>"fzf"</code></td></tr>
+<tr><td><code>start_dir</code></td><td><code>"~"</code></td><td>Directory where the picker opens (tilde expanded)</td></tr>
+<tr><td><code>fzf_command</code></td><td><code>"fzf"</code></td><td>Executable used when <code>picker</code> is <code>"fzf"</code> or as the auto fallback</td></tr>
+<tr><td><code>max_depth</code></td><td><code>8</code></td><td>Maximum directory depth scanned by the <code>fzf</code> picker</td></tr>
+</tbody>
+</table>
+</div>
+<p>Yazi runs in chooser mode (confirm a folder with Enter; normal open-to-Helix rules do not apply). Canceling the picker exits without starting a session.</p>
+<p>If neither Yazi nor <code>fzf</code> is available and <code>picker = "auto"</code>, startup fails with a message pointing to <code>sat-hx-ide doctor</code>.</p>
+<pre><code class="language-toml">[launcher]
+picker = "auto"
+start_dir = "~/src"
+# fzf_command = "fzf"
+# max_depth = 8
+</code></pre>
 <h2 id="terminal-settings"><a class="header" href="#terminal-settings">Terminal Settings</a></h2>
 <p>Configuration for the integrated terminal pane.</p>
 <h3 id="terminalenabled"><a class="header" href="#terminalenabled"><code>terminal.enabled</code></a></h3>
@@ -424,10 +488,16 @@ dock_position = "right"
 <h2 id="tool-configuration"><a class="header" href="#tool-configuration">Tool Configuration</a></h2>
 <p>Each tool has its own configuration section with <code>command</code> and <code>args</code> fields.</p>
 <h3 id="toolszellij"><a class="header" href="#toolszellij"><code>tools.zellij</code></a></h3>
-<p>Configuration for the Zellij executable.</p>
+<p>Configuration for the <strong>Zellij</strong> session backend.</p>
 <pre><code class="language-toml">[tools.zellij]
 command = "zellij"
 args = ["--log-level", "warn"]  # Optional arguments
+</code></pre>
+<h3 id="toolskitty"><a class="header" href="#toolskitty"><code>tools.kitty</code></a></h3>
+<p>Configuration for the <strong>kitty</strong> session backend. Remote control needs <code>kitten</code> next to <code>kitty</code> or on <code>PATH</code>.</p>
+<pre><code class="language-toml">[tools.kitty]
+command = "kitty"
+args = []
 </code></pre>
 <h3 id="toolseditor"><a class="header" href="#toolseditor"><code>tools.editor</code></a></h3>
 <p>Configuration for the editor (Helix by default).</p>
@@ -554,7 +624,7 @@ passthrough = ["Ctrl b", "Ctrl o"]
 and no longer leaves Tmux mode - it always goes to the focused pane</li>
 <li>Empty entries and duplicates are ignored</li>
 <li>A passthrough key may not collide with a <code>sat-hx-ide</code> action keybinding;
-<code>init</code> fails with an error naming the key</li>
+session startup fails with an error naming the key</li>
 <li>If your own Zellij config binds a passthrough key, the binding is released
 for the <code>sat-hx-ide</code> session only (your <code>config.kdl</code> is never modified);
 a warning is logged</li>
@@ -599,23 +669,23 @@ auto_detection = true
 <h3 id="keybinding-safety"><a class="header" href="#keybinding-safety">Keybinding Safety</a></h3>
 <p><code>sat-helix-ide</code> performs the following safety checks:</p>
 <ol>
-<li><strong>Parses your existing Zellij config</strong> to detect all configured keybindings</li>
-<li><strong>Checks for conflicts</strong> with all <code>sat-helix-ide</code> keybindings</li>
+<li><strong>Reads your multiplexer config</strong> (Zellij <code>config.kdl</code> or kitty <code>map</code> lines) for existing bindings</li>
+<li><strong>Checks for conflicts</strong> with all <code>sat-hx-ide</code> keybindings</li>
 <li><strong>Refuses to start</strong> if any conflicts are found</li>
 <li><strong>Never silently replaces</strong> your existing keybindings</li>
 </ol>
-<p>This ensures that your existing Zellij workflow is never accidentally broken.</p>
+<p>This ensures that your existing Zellij or kitty workflow is never accidentally broken.</p>
 <h3 id="example-safe-keybinding-changes"><a class="header" href="#example-safe-keybinding-changes">Example: Safe Keybinding Changes</a></h3>
 <pre><code class="language-bash"># This will fail if Ctrl-f is already used in your Zellij config
-sat-hx-ide init . --config ~/.config/sat-helix-ide/config.toml
+sat-hx-ide . --config ~/.config/sat-helix-ide/config.toml
 
-# Error: Keybinding conflict: 'Ctrl f' is already bound in your Zellij config
+# Error: Keybinding conflict (Zellij or kitty, depending on backend)
 </code></pre>
 <p>To resolve conflicts:</p>
 <ol>
-<li>Change the <code>sat-helix-ide</code> keybinding</li>
-<li>Or remove the conflicting binding from your Zellij config</li>
-<li>Or choose a different Zellij config via <code>session.zellij_config</code></li>
+<li>Change the <code>sat-hx-ide</code> keybinding</li>
+<li>Or remove the conflicting binding from your Zellij or kitty config</li>
+<li>Or point <code>session.zellij_config</code> / <code>session.kitty_config</code> at another merge source</li>
 </ol>
 <h2 id="complete-configuration-example"><a class="header" href="#complete-configuration-example">Complete Configuration Example</a></h2>
 <p>Here’s a comprehensive example showing various customizations:</p>
@@ -690,7 +760,7 @@ args = []
 </ul>
 <pre><code class="language-bash"># Override runtime directory
 export XDG_RUNTIME_DIR=/tmp/my-runtime
-sat-hx-ide init .
+sat-hx-ide .
 </code></pre>
 <h3 id="zellij_config_file"><a class="header" href="#zellij_config_file"><code>ZELLIJ_CONFIG_FILE</code></a></h3>
 <ul>
@@ -699,7 +769,7 @@ sat-hx-ide init .
 </ul>
 <pre><code class="language-bash"># Use a specific Zellij config
 export ZELLIJ_CONFIG_FILE=/path/to/zellij/config.kdl
-sat-hx-ide init .
+sat-hx-ide .
 </code></pre>
 <h3 id="rust_log"><a class="header" href="#rust_log"><code>RUST_LOG</code></a></h3>
 <ul>
@@ -707,10 +777,10 @@ sat-hx-ide init .
 <li><strong>Valid values</strong>: <code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code>, <code>trace</code></li>
 </ul>
 <pre><code class="language-bash"># Enable debug logging
-RUST_LOG=debug sat-hx-ide init .
+RUST_LOG=debug sat-hx-ide .
 
 # Enable trace logging for maximum detail
-RUST_LOG=trace sat-hx-ide init .
+RUST_LOG=trace sat-hx-ide .
 </code></pre>
 <h2 id="configuration-validation"><a class="header" href="#configuration-validation">Configuration Validation</a></h2>
 <p><code>sat-helix-ide</code> validates your configuration on startup:</p>

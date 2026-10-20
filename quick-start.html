@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
+            window.path_to_searchindex_js = "searchindex-0db075b6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -189,7 +189,8 @@
 <tr><th>Tool</th><th>Purpose</th><th>Installation</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Zellij</strong></td><td>Terminal workspace multiplexer</td><td><a href="https://zellij.dev/documentation/installation.html">Installation Guide</a></td></tr>
+<tr><td><strong>Zellij</strong></td><td>Default session backend (works from any terminal)</td><td><a href="https://zellij.dev/documentation/installation.html">Installation Guide</a></td></tr>
+<tr><td><strong>Kitty</strong></td><td>Optional session backend (<code>backend = "kitty"</code> or <code>"auto"</code> inside kitty)</td><td><a href="https://sw.kovidgoyal.net/kitty/">Installation Guide</a></td></tr>
 <tr><td><strong>Helix</strong></td><td>Modal text editor</td><td><a href="https://helix-editor.com/">Installation Guide</a></td></tr>
 <tr><td><strong>Yazi</strong></td><td>Terminal file manager</td><td><a href="https://yazi-rs.github.io/docs/installation">Installation Guide</a></td></tr>
 </tbody>
@@ -207,6 +208,7 @@
 <tr><td><strong>revdiff</strong></td><td>Code review tool</td><td><a href="https://github.com/umputun/revdiff/releases">GitHub Releases</a></td></tr>
 <tr><td><strong>glab-tui</strong></td><td>GitHub/GitLab workflow</td><td><a href="https://github.com/rcieri/glab-tui/releases">GitHub Releases</a></td></tr>
 <tr><td><strong>Shiki</strong></td><td>Mind map / notes TUI</td><td><a href="https://github.com/sazardev/shiki">GitHub</a> / <code>cargo install shiki-cli</code></td></tr>
+<tr><td><strong>fzf</strong></td><td>Project picker fallback when no <code>PATH</code> is given</td><td><a href="https://github.com/junegunn/fzf">GitHub</a></td></tr>
 </tbody>
 </table>
 </div>
@@ -216,8 +218,12 @@
 <li>Cargo</li>
 </ul>
 <p>Verify your setup:</p>
-<pre><code class="language-bash"># Check Zellij
+<pre><code class="language-bash"># Check Zellij (default backend)
 zellij --version
+
+# If using kitty backend: kitty and kitten for remote control
+kitty --version
+kitten --version
 
 # Check Helix
 hx --version
@@ -240,6 +246,7 @@ sat-hx-ide version
 <tbody>
 <tr><td><code>VERSION</code></td><td>latest release</td><td>Pin a version (without leading <code>v</code>)</td></tr>
 <tr><td><code>INSTALL_DIR</code></td><td><code>~/.local/bin</code></td><td>Install destination</td></tr>
+<tr><td><code>INSTALL_DESKTOP</code></td><td><code>1</code> on Linux</td><td>Set to <code>0</code> to skip the application-menu entry</td></tr>
 </tbody>
 </table>
 </div>
@@ -269,21 +276,26 @@ sat-hx-ide setup --dry-run
 <p>This will check that all required tools are installed and accessible.</p>
 <h2 id="first-session"><a class="header" href="#first-session">First Session</a></h2>
 <p>Let’s start your first <code>sat-helix-ide</code> session:</p>
-<pre><code class="language-bash"># Navigate to your project directory
-cd /path/to/your/project
+<pre><code class="language-bash"># Pick a project interactively (Yazi or fzf), or launch from the desktop entry on Linux
+sat-hx-ide
 
-# Initialize a new session
-sat-hx-ide init .
+# Or, when you already know the project directory:
+cd /path/to/your/project
+sat-hx-ide .
 </code></pre>
-<p>This command will:</p>
+<p>With no <code>PATH</code>, sat-hx-ide opens the configured project picker (<code>[launcher]</code> in
+<code>config.toml</code>; Yazi is preferred, with <code>fzf</code> as fallback when <code>picker = "auto"</code>).
+Canceling the picker exits without starting a session.</p>
+<p>Starting a session will:</p>
 <ol>
-<li>Resolve your project directory</li>
+<li>Resolve your project directory (argument or picker)</li>
 <li>Create a Zellij session named after your project</li>
 <li>Write runtime configuration files to <code>$XDG_RUNTIME_DIR/sat-helix-ide/&lt;session&gt;/</code></li>
 <li>Launch Zellij with the configured layout</li>
 </ol>
+<p><code>init</code> and <code>start</code> remain optional aliases (<code>sat-hx-ide init .</code> is the same as <code>sat-hx-ide .</code>).</p>
 <h3 id="what-youll-see"><a class="header" href="#what-youll-see">What You’ll See</a></h3>
-<p>After running <code>sat-hx-ide init .</code>, you should see:</p>
+<p>After the session starts, you should see:</p>
 <ul>
 <li>A Zellij session with a <strong><code>code</code></strong> tab containing:
 <ul>
@@ -326,12 +338,9 @@ sat-hx-ide init .
 zellij list-sessions
 
 # Reattach to your project session
-sat-hx-ide init .
+sat-hx-ide .
 </code></pre>
-<p>By default, <code>sat-hx-ide</code> will attach to an existing session with the same name. To disable this behavior:</p>
-<pre><code class="language-bash">sat-hx-ide init . --no-attach
-</code></pre>
-<p>Or configure it permanently in your <code>config.toml</code>:</p>
+<p>By default, <code>sat-hx-ide</code> attaches to an existing session with the same name. To create a new session instead (and fail if the name already exists), configure:</p>
 <pre><code class="language-toml">[session]
 attach_existing = false
 </code></pre>

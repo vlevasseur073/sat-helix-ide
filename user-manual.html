@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
+            window.path_to_searchindex_js = "searchindex-0db075b6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -181,7 +181,7 @@
                         <h1 id="user-manual"><a class="header" href="#user-manual">User Manual</a></h1>
 <p>This chapter provides a comprehensive guide to using <code>sat-helix-ide</code> effectively.</p>
 <h2 id="workspace-layout"><a class="header" href="#workspace-layout">Workspace Layout</a></h2>
-<p><code>sat-helix-ide</code> creates a Zellij workspace with a carefully designed layout optimized for development workflows.</p>
+<p><code>sat-helix-ide</code> creates a multiplexer-hosted workspace (Zellij by default, or kitty) with a layout optimized for development workflows. The rest of this chapter describes behavior common to both backends; Zellij-specific details (lock mode, <code>default_tab_template</code>, optional native status bar) are called out where they apply.</p>
 <h3 id="default-layout"><a class="header" href="#default-layout">Default Layout</a></h3>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
 │  Tabs: [ code* ] [ ai ] [ … user tabs … ]                    │
@@ -381,7 +381,7 @@ binary is on <code>PATH</code>.</p>
 <tr><th>Field</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>session</strong></td><td>Zellij session name (same as <code>sat-hx-ide init --session</code> or the project-derived name)</td></tr>
+<tr><td><strong>session</strong></td><td>Zellij session name (same as <code>sat-hx-ide --session</code> or the project-derived name)</td></tr>
 <tr><td><strong>git</strong></td><td>Current branch in the project directory</td></tr>
 <tr><td><strong>status</strong></td><td>Working tree state: clean, modified, staged, untracked, or no git</td></tr>
 <tr><td><strong>venv</strong></td><td>Active virtual environment path, or <code>none</code></td></tr>
@@ -589,7 +589,7 @@ args = []
 cd ~/Codes/sat-helix-ide
 
 # Start a development session
-sat-hx-ide init . --session sat-helix-ide-dev
+sat-hx-ide . --session sat-helix-ide-dev
 </code></pre>
 <h3 id="typical-development-workflow"><a class="header" href="#typical-development-workflow">Typical Development Workflow</a></h3>
 <ol>
@@ -625,11 +625,11 @@ sat-hx-ide init . --session sat-helix-ide-dev
 <h3 id="working-with-multiple-projects"><a class="header" href="#working-with-multiple-projects">Working with Multiple Projects</a></h3>
 <pre><code class="language-bash"># Project 1 in one session
 cd ~/projects/project-a
-sat-hx-ide init . --session project-a
+sat-hx-ide . --session project-a
 
 # In another terminal:
 cd ~/projects/project-b
-sat-hx-ide init . --session project-b
+sat-hx-ide . --session project-b
 </code></pre>
 <p>Switch between sessions with Zellij:</p>
 <pre><code class="language-bash">zellij attach project-a
@@ -637,14 +637,14 @@ zellij attach project-b
 </code></pre>
 <h3 id="custom-session-names"><a class="header" href="#custom-session-names">Custom Session Names</a></h3>
 <pre><code class="language-bash"># Use a custom session name
-sat-hx-ide init ~/src/myproject --session myproject-dev
+sat-hx-ide ~/src/myproject --session myproject-dev
 
 # This creates a session named 'myproject-dev' instead of 'myproject'
 </code></pre>
 <h3 id="disabling-ai-tab"><a class="header" href="#disabling-ai-tab">Disabling AI Tab</a></h3>
 <p>For projects where you don’t need AI assistance:</p>
 <pre><code class="language-bash"># Temporarily for one session
-sat-hx-ide init . --no-ai
+sat-hx-ide . --no-ai
 
 # Permanently in configuration
 # In ~/.config/sat-helix-ide/config.toml:

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
+            window.path_to_searchindex_js = "searchindex-0db075b6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -291,10 +291,11 @@ pre-commit run --all-files
 │   └── architecture.md       # Architecture document (now integrated into book)
 ├── src/                      # Source code
 │   ├── main.rs               # CLI entry point
-│   ├── actions.rs            # Action handlers
-│   ├── config.rs             # Configuration handling
-│   ├── layout.rs             # Layout generation
-│   └── error.rs              # Error types
+│   ├── actions.rs            # Backend-neutral action handlers
+│   ├── backend/              # SessionBackend (zellij, kitty)
+│   ├── zellij/               # Zellij layout + config generation
+│   ├── kitty/                # kitty session + runtime config generation
+│   └── config/               # TOML configuration
 └── tests/                    # Test files
     └── test_*.rs              # Integration tests
 </code></pre>
@@ -364,14 +365,14 @@ pre-commit run --all-files
 <h2 id="debugging"><a class="header" href="#debugging">Debugging</a></h2>
 <h3 id="debug-logging"><a class="header" href="#debug-logging">Debug Logging</a></h3>
 <p>Enable debug logging to see detailed information about <code>sat-helix-ide</code> operations:</p>
-<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide init .
+<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide .
 
 # For even more detail
-RUST_LOG=trace sat-hx-ide init .
+RUST_LOG=trace sat-hx-ide .
 </code></pre>
 <h3 id="common-debug-scenarios"><a class="header" href="#common-debug-scenarios">Common Debug Scenarios</a></h3>
 <h4 id="debugging-session-initialization"><a class="header" href="#debugging-session-initialization">Debugging Session Initialization</a></h4>
-<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide init . --session test-session
+<pre><code class="language-bash">RUST_LOG=debug sat-hx-ide . --session test-session
 </code></pre>
 <p>This will show:</p>
 <ul>
@@ -382,7 +383,7 @@ RUST_LOG=trace sat-hx-ide init .
 </ul>
 <h4 id="debugging-action-execution"><a class="header" href="#debugging-action-execution">Debugging Action Execution</a></h4>
 <pre><code class="language-bash"># Start a session first
-sat-hx-ide init .
+sat-hx-ide .
 
 # Then in another terminal, trace helper commands
 RUST_LOG=trace sat-hx-ide __file-manager open

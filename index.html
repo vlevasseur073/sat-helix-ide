@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a5dafd01.js";
+            window.path_to_searchindex_js = "searchindex-0db075b6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-26df6826.js"></script>
@@ -180,8 +180,16 @@
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
 <h2 id="what-is-sat-helix-ide"><a class="header" href="#what-is-sat-helix-ide">What is sat-helix-ide?</a></h2>
-<p><code>sat-helix-ide</code> is a <strong>workspace orchestrator</strong> that transforms <a href="https://zellij.dev/">Zellij</a> into a full-fledged IDE centered around the <a href="https://helix-editor.com/">Helix</a> editor. It composes a development environment by integrating multiple powerful terminal-based tools into a cohesive workflow.</p>
-<p>At its core, <code>sat-helix-ide</code> is a small command-line tool that creates and manages Zellij sessions with pre-configured layouts, keybindings, and tool integrations. Each keybinding spawns a short-lived <code>sat-helix-ide</code> helper process that drives Zellij CLI actions and exits — there is <strong>no background daemon</strong>.</p>
+<p><code>sat-helix-ide</code> is a <strong>workspace orchestrator</strong> for a full IDE centered around the
+<a href="https://helix-editor.com/">Helix</a> editor. The project was <strong>originally built on</strong>
+<a href="https://zellij.dev/">Zellij</a>, which remains the <strong>default</strong> session backend. A generic
+<a href="https://github.com/vlevasseur073/sat-helix-ide/blob/main/src/backend/mod.rs"><code>SessionBackend</code></a>
+layer now targets any supported <strong>terminal multiplexer</strong> (multi-tab / multi-pane shell).
+<a href="https://sw.kovidgoyal.net/kitty/">Kitty</a> is supported today via remote control (<code>kitten</code>).
+You can launch sat-hx-ide from <strong>any terminal emulator</strong>; only the chosen backend must be installed.</p>
+<p>At its core, <code>sat-helix-ide</code> creates and manages workspace sessions with pre-configured layouts,
+keybindings, and tool integrations. Each shortcut spawns a short-lived <code>sat-hx-ide</code> helper that
+drives the active backend and exits — there is <strong>no background daemon</strong>.</p>
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <p><code>sat-helix-ide</code> provides a unified interface to several best-in-class terminal tools:</p>
 <div class="table-wrapper">
@@ -190,6 +198,7 @@
 <tr><th>Category</th><th>Default Tool</th><th>Alternatives</th><th>Purpose</th></tr>
 </thead>
 <tbody>
+<tr><td><strong>Session backend</strong></td><td>Zellij</td><td>Kitty (<code>backend = "kitty"</code> or <code>"auto"</code>)</td><td>Hosts tabs/panes for the IDE layout</td></tr>
 <tr><td><strong>Editor</strong></td><td>Helix (<code>hx</code>)</td><td>-</td><td>Modern modal text editor</td></tr>
 <tr><td><strong>File Manager</strong></td><td><a href="https://yazi-rs.github.io/">Yazi</a></td><td>-</td><td>Feature-rich terminal file manager</td></tr>
 <tr><td><strong>Git TUI</strong></td><td><a href="https://github.com/jesseduffield/lazygit">Lazygit</a></td><td><a href="https://github.com/gitui-org/gitui">GitUI</a></td><td>Interactive Git client</td></tr>
@@ -201,7 +210,9 @@
 </div>
 <h3 id="core-features"><a class="header" href="#core-features">Core Features</a></h3>
 <ul>
-<li><strong>Automatic Workspace Setup</strong>: Create a Zellij session with Helix editor and optional AI assistant tab</li>
+<li><strong>Pluggable session backend</strong>: Zellij (default) or kitty; <code>auto</code> picks kitty when already inside a kitty window</li>
+<li><strong>Automatic Workspace Setup</strong>: Create a session with Helix editor and optional AI assistant tab</li>
+<li><strong>Interactive Launcher</strong>: Run <code>sat-hx-ide</code> with no path to pick a project via Yazi or <code>fzf</code>; Linux installs can add a desktop menu entry (<code>install-desktop</code>)</li>
 <li><strong>Docked Terminal</strong>: Integrated shell pane that can be toggled or zoomed</li>
 <li><strong>File Manager Integration</strong>: Open Yazi in floating or docked mode with smart focus management</li>
 <li><strong>Git Integration</strong>: Launch Git TUI clients in floating panes</li>
@@ -211,7 +222,7 @@
 <li><strong>Session Status Bar</strong>: A one-line git / venv summary on <strong>every tab</strong> (including AI and user-created tabs), refreshed automatically</li>
 <li><strong>Virtual Environments</strong>: Auto-detect Python envs in the project, pick one with a ratatui selector, toggle activation in the terminal (<code>Alt-v</code> / <code>Alt-Shift-v</code>)</li>
 <li><strong>Configuration Flexibility</strong>: Customize every aspect without modifying your global configs</li>
-<li><strong>Non-Intrusive</strong>: Never writes to your global Zellij, Helix, or tool configurations</li>
+<li><strong>Non-Intrusive</strong>: Never writes to your global Zellij, kitty, Helix, or tool configurations</li>
 </ul>
 <h2 id="project-philosophy"><a class="header" href="#project-philosophy">Project Philosophy</a></h2>
 <p><code>sat-helix-ide</code> follows several key principles:</p>
@@ -219,11 +230,11 @@
 <li><strong>Composition over Integration</strong>: Rather than creating a monolithic IDE, it composes existing excellent tools</li>
 <li><strong>Non-Intrusive</strong>: It reads your configurations but never modifies them</li>
 <li><strong>Short-Lived Processes</strong>: Helper commands run briefly and exit, avoiding daemon complexity</li>
-<li><strong>Configuration Safety</strong>: Refuses to start if keybindings would conflict with your existing setup</li>
+<li><strong>Configuration Safety</strong>: Refuses to start if sat-hx-ide keybindings would conflict with your Zellij or kitty config</li>
 <li><strong>Graceful Degradation</strong>: Missing optional tools (like AI agents) are handled gracefully</li>
 </ol>
 <blockquote>
-<p><strong>Important</strong>: <code>sat-helix-ide</code> is <strong>not</strong> a dotfile manager — it does not rewrite your Zellij, Helix, or Git configs. Use <code>sat-hx-ide setup</code> if you want an opt-in helper to install companion tools.</p>
+<p><strong>Important</strong>: <code>sat-helix-ide</code> is <strong>not</strong> a dotfile manager — it does not rewrite your Zellij, kitty, Helix, or Git configs. Use <code>sat-hx-ide setup</code> if you want an opt-in helper to install companion tools.</p>
 </blockquote>
 <p>The project aims to provide a professional-grade development environment that feels native to terminal users while offering the convenience of an IDE.</p>
 
