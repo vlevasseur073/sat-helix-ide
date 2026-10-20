@@ -10,7 +10,7 @@ Animated walkthrough of a typical `sat-hx-ide` session:
 
 ## Initial Workspace
 
-When you first launch `sat-helix-ide init .` in the sat-helix-ide repository, you'll see the default workspace:
+When you first launch `sat-hx-ide .` in the sat-helix-ide repository (or pick that directory from the interactive launcher), you'll see the default workspace. The ASCII mock-ups below use the **Zellij** backend (tabs in the title bar); the kitty backend exposes the same panes as kitty tabs/windows.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐

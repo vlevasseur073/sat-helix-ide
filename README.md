@@ -11,8 +11,14 @@
 <!-- # sat-helix-ide -->
 ## A workspace orchestrator for a full IDE.
 
-`sat-hx-ide` is a small [Zellij](https://zellij.dev/) session composer for a [Helix](https://helix-editor.com/)-centered workflow.
-enhanced with multiple additional tools among which:
+`sat-hx-ide` is a small **workspace orchestrator** for a [Helix](https://helix-editor.com/)-centered IDE
+workflow. It was originally built on [Zellij](https://zellij.dev/) — still the **default** session
+backend — and now drives any supported **terminal multiplexer** (multi-tab / multi-pane shell) through
+a shared `SessionBackend` API (`src/backend/`). **[Kitty](https://sw.kovidgoyal.net/kitty/)** is
+supported as a second backend (remote control via `kitten`). You can run sat-hx-ide from **any terminal
+emulator**; only the chosen backend must be installed.
+
+Enhanced with multiple additional tools among which:
 [Yazi](https://yazi-rs.github.io/) +
 [Lazygit](https://github.com/jesseduffield/lazygit)/[GitUI](https://github.com/gitui-org/gitui) +
 [revdiff](https://github.com/umputun/revdiff) +
@@ -29,12 +35,18 @@ The features/tools currently implemented in `sat-helix-ide` are:
 - a *session status bar* (git branch/state, active venv, session name) on every tab
 - *virtual environment* auto-detection, selector TUI, and terminal activation
 
+Run `sat-hx-ide` with no arguments to pick a project directory interactively (Yazi or
+`fzf`, configurable via `[launcher]` in `config.toml`), or pass a path directly. On Linux,
+the install script and `sat-hx-ide install-desktop` register an application-menu entry
+that uses the same picker flow.
+
 `sat-hx-ide` starts a project session with:
 
 - a `code` tab with Helix and a docked shell below it;
 - an `ai` tab running the configured agent when it is installed;
 
-Then, the different tools are accessible via zellij keybindings:
+Then, the different tools are accessible via workspace keybindings (injected into the active
+session backend — Zellij `bind` / kitty `map`):
 - `Ctrl-y` to open or focus Yazi in a full-screen floating pane;
 - `Alt-y` to dock Yazi on the left of Helix, or float it again;
 - `Alt-t` to hide the terminal behind fullscreen Helix, or show it again;
@@ -49,25 +61,41 @@ Then, the different tools are accessible via zellij keybindings:
 
 
 `sat-hx-ide` is deliberately **not** a dotfile manager: it does not rewrite your
-Zellij, Helix, Yazi, or Git configs. Companion tools can be installed explicitly
+multiplexer, Helix, Yazi, or Git configs. Companion tools can be installed explicitly
 with `sat-hx-ide setup` (opt-in).
 
-> sat-hx-ide never writes your Zellij, Helix, Yazi, Lazygit, GitUI, or global
+> sat-hx-ide never writes your global Zellij, kitty, Helix, Yazi, Lazygit, GitUI, or
 > Git configuration.
 
 ![`sat-hx-ide` demo](book/src/assets/demo.gif)
 
 ## How it works
 
-Zellij has no configuration `include` directive. To add session-level
-shortcuts without editing your config, sat-hx-ide:
+### Session backend
 
-1. reads your existing Zellij config;
-2. parses it and checks for key collisions;
-3. adds its bindings to a private runtime copy;
-4. launches Zellij with `--config <runtime-copy>`.
+Choose the multiplexer in `config.toml` (`[session] backend`, default `zellij`):
 
-The source remains byte-for-byte unchanged. Runtime files live under:
+| Value | Behavior |
+| --- | --- |
+| `zellij` | Classic path: attach or create a Zellij session (works from any terminal). |
+| `kitty` | Spawn a dedicated kitty with per-session remote control (`allow_remote_control=socket-only`). |
+| `auto` | Use kitty when `KITTY_WINDOW_ID` is set (already inside kitty), otherwise Zellij. |
+
+Helpers (file manager, terminal toggle, Git, …) call the same Rust action layer; only the
+backend translates pane operations into Zellij CLI or `kitten @` commands.
+
+### Private runtime config (no dotfile edits)
+
+sat-hx-ide never modifies your global multiplexer config. It reads the merge source
+read-only, checks for key collisions, writes a **session-specific copy** under
+`$XDG_RUNTIME_DIR/sat-helix-ide/<session>/`, and launches the backend against that copy.
+
+- **Zellij** — no `include` in upstream config: sat-hx-ide merges bindings into `config.kdl` and
+  starts from generated `layout.kdl` (`zellij --config <runtime-copy>`).
+- **Kitty** — runtime `kitty.conf` `include`s your `~/.config/kitty/kitty.conf` and appends `map`
+  lines; layout lives in `session.conf`. Remote control requires `kitten` next to `kitty`.
+
+Example runtime layout (Zellij backend):
 
 ```text
 $XDG_RUNTIME_DIR/sat-helix-ide/<session>/
@@ -75,16 +103,18 @@ $XDG_RUNTIME_DIR/sat-helix-ide/<session>/
 └── layout.kdl
 ```
 
+Kitty backend uses `kitty.conf`, `session.conf`, `kitty.sock`, and related files in the same directory.
+
 If `XDG_RUNTIME_DIR` is unavailable, the system temporary directory is used.
 
-See [`docs/architecture.md`](docs/architecture.md) for init flow, helper commands,
+See [`docs/architecture.md`](docs/architecture.md) for init flow, backends, helper commands,
 and the pane cache.
 
 ## Requirements and installation
 
 Required:
 
-- Zellij
+- A session backend: **Zellij** (default) or **Kitty** + `kitten` when using `backend = "kitty"` or `auto` inside kitty
 - Helix (`hx`)
 - Yazi (the supported file-manager adapter)
 - Lazygit, GitUI, or another configured Git TUI
@@ -97,7 +127,7 @@ curl -fsSL https://raw.githubusercontent.com/vlevasseur073/sat-helix-ide/main/in
 sat-hx-ide doctor
 ```
 
-Installs the latest GitHub release into `~/.local/bin` (override with `INSTALL_DIR`). Pin a version with `curl ... | VERSION=0.1.0 bash`.
+Installs the latest GitHub release into `~/.local/bin` (override with `INSTALL_DIR`) and, on Linux, registers a desktop launcher (`sat-hx-ide install-desktop`). Pin a version with `curl ... | VERSION=0.1.0 bash`. Set `INSTALL_DESKTOP=0` to install only the binary.
 
 Windows: download the `.zip` from [Releases](https://github.com/vlevasseur073/sat-helix-ide/releases).
 
@@ -135,19 +165,25 @@ command = "/snap/bin/hx"
 ## Usage
 
 ```bash
-# Create or attach to a session named after the project directory
-sat-hx-ide init .
+# Pick a project interactively (Yazi or fzf), or launch from the desktop entry
+sat-hx-ide
+
+# Create or attach to a session for a known directory
+sat-hx-ide .
 
 # Skip the AI tab for this session
-sat-hx-ide init . --no-ai
+sat-hx-ide . --no-ai
 
 # Override the session name
-sat-hx-ide init ~/src/project --session project-api
+sat-hx-ide ~/src/project --session project-api
+
+# `init` / `start` remain aliases: sat-hx-ide init .
 
 sat-hx-ide doctor
 sat-hx-ide setup
 sat-hx-ide config
 sat-hx-ide version
+sat-hx-ide install-desktop   # Linux: application menu entry + icon
 ```
 
 An existing project-named session is attached by default. Set
@@ -186,12 +222,11 @@ prints a note and starts the session without that tab, so a machine without the
 agent installed still works. Use `--no-ai` for a single session, or
 `session.ai_by_default = false` to opt out permanently.
 
-Yazi and the Git client are not permanent layout panes. They are opened on
-demand by Zellij.
+Yazi and the Git client are not permanent layout panes. They are opened on demand by the session backend.
 
 ## Keybindings
 
-Bindings are active in every Zellij mode except locked mode:
+With the **Zellij** backend, bindings are active in every mode except locked mode:
 
 | Key | Action |
 | --- | --- |
@@ -205,9 +240,8 @@ Bindings are active in every Zellij mode except locked mode:
 | `Alt-Shift-v` | Open the virtual environment selector TUI |
 | `Ctrl-g` | Existing Zellij lock/unlock binding; sat-hx-ide intentionally leaves it alone |
 
-The keys are configurable. sat-hx-ide refuses to launch if a selected key
-already exists anywhere in the source Zellij keybindings; it never silently
-replaces a user binding.
+The keys are configurable. sat-hx-ide refuses to launch if a selected key already exists in your
+**Zellij** or **kitty** config (depending on backend); it never silently replaces a user binding.
 
 ### File-manager states
 
@@ -235,9 +269,8 @@ Yazi/Helix width (28% by default):
 
 ### Terminal states
 
-The shell runs in a named `terminal` pane with no configured command — Zellij
-starts your `$SHELL`. Toggles use Zellij fullscreen so the process keeps
-running:
+The shell runs in a named `terminal` pane/window with your login shell. On Zellij, toggles use
+fullscreen so the process keeps running; on kitty, the `stack` layout hides other windows:
 
 ```text
 Alt-t
@@ -256,8 +289,8 @@ Yazi exits after selection. A docked Yazi reopens after handing the path to
 Helix so the file-manager pane remains alongside the editor. Quitting Yazi
 without a selection closes it in either state.
 
-The integration uses targeted Zellij terminal input because Helix does not
-provide a remote-control API.
+Helix has no remote-control API; file-open integration uses backend-specific input (Zellij pane
+keys or kitty `kitten @ send-text`).
 
 ## Configuration
 
@@ -279,6 +312,8 @@ Example (same as [`configs/config.toml`](configs/config.toml)):
 
 ```toml
 [session]
+# Workspace shell: "zellij" (default), "kitty", or "auto" (kitty inside kitty, else Zellij).
+# backend = "zellij"
 # Attach when a session with the project-derived name already exists.
 attach_existing = true
 # Add the AI tab whenever the [tools.ai] agent below is on PATH. When it is
@@ -287,7 +322,9 @@ ai_by_default = true
 # Optional explicit merge source. By default, ZELLIJ_CONFIG_FILE or the normal
 # XDG path (~/.config/zellij/config.kdl) is used read-only.
 # zellij_config = "/home/user/.config/zellij/config.kdl"
-# Show Zellij's input-mode bar under the git/venv summary (summary is always on)
+# kitty backend only:
+# kitty_config = "/home/user/.config/kitty/kitty.conf"
+# Show Zellij's input-mode bar under the git/venv summary (Zellij backend only; summary is always on)
 status_bar = true
 
 [terminal]
@@ -326,6 +363,10 @@ venv_select = "Alt Shift v"
 
 [tools.zellij]
 command = "zellij"
+args = []
+
+[tools.kitty]
+command = "kitty"
 args = []
 
 [tools.editor]
@@ -381,17 +422,19 @@ auto_detection = true
 # Additional directories to search for virtual environments
 # Default searches the project directory. Add "~" to search home directory.
 # search_paths = ["~", "/opt/venvs"]
+
+[launcher]
+# Project picker when `sat-hx-ide` is run without a path (see `configs/config.toml`).
+picker = "auto"
+start_dir = "~"
 ```
 
-The Zellij merge source is selected in this order:
+**Zellij** merge source (read-only), in order: `session.zellij_config` → `ZELLIJ_CONFIG_FILE` →
+`$XDG_CONFIG_HOME/zellij/config.kdl` → `~/.config/zellij/config.kdl`. If none exists, the runtime
+copy contains only sat-hx-ide bindings.
 
-1. `session.zellij_config`;
-2. `ZELLIJ_CONFIG_FILE`;
-3. `$XDG_CONFIG_HOME/zellij/config.kdl`;
-4. `~/.config/zellij/config.kdl`.
-
-If none exists, the private config contains only sat-hx-ide's additive
-keybindings and Zellij supplies its normal defaults.
+**Kitty** merge source: `session.kitty_config` or `~/.config/kitty/kitty.conf` (via XDG). The runtime
+`kitty.conf` includes that file and adds `map` lines for helpers.
 
 ### Migration from the draft configuration
 

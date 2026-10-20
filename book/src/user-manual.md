@@ -4,7 +4,7 @@ This chapter provides a comprehensive guide to using `sat-helix-ide` effectively
 
 ## Workspace Layout
 
-`sat-helix-ide` creates a Zellij workspace with a carefully designed layout optimized for development workflows.
+`sat-helix-ide` creates a multiplexer-hosted workspace (Zellij by default, or kitty) with a layout optimized for development workflows. The rest of this chapter describes behavior common to both backends; Zellij-specific details (lock mode, `default_tab_template`, optional native status bar) are called out where they apply.
 
 ### Default Layout
 
@@ -234,7 +234,7 @@ Each tab includes a **sat-hx-ide summary line** (1 row) at the bottom, updated a
 
 | Field | Meaning |
 |-------|---------|
-| **session** | Zellij session name (same as `sat-hx-ide init --session` or the project-derived name) |
+| **session** | Zellij session name (same as `sat-hx-ide --session` or the project-derived name) |
 | **git** | Current branch in the project directory |
 | **status** | Working tree state: clean, modified, staged, untracked, or no git |
 | **venv** | Active virtual environment path, or `none` |
@@ -476,7 +476,7 @@ This section demonstrates how `sat-helix-ide` can be used to edit its own codeba
 cd ~/Codes/sat-helix-ide
 
 # Start a development session
-sat-hx-ide init . --session sat-helix-ide-dev
+sat-hx-ide . --session sat-helix-ide-dev
 ```
 
 ### Typical Development Workflow
@@ -519,11 +519,11 @@ This setup allows you to:
 ```bash
 # Project 1 in one session
 cd ~/projects/project-a
-sat-hx-ide init . --session project-a
+sat-hx-ide . --session project-a
 
 # In another terminal:
 cd ~/projects/project-b
-sat-hx-ide init . --session project-b
+sat-hx-ide . --session project-b
 ```
 
 Switch between sessions with Zellij:
@@ -536,7 +536,7 @@ zellij attach project-b
 
 ```bash
 # Use a custom session name
-sat-hx-ide init ~/src/myproject --session myproject-dev
+sat-hx-ide ~/src/myproject --session myproject-dev
 
 # This creates a session named 'myproject-dev' instead of 'myproject'
 ```
@@ -547,7 +547,7 @@ For projects where you don't need AI assistance:
 
 ```bash
 # Temporarily for one session
-sat-hx-ide init . --no-ai
+sat-hx-ide . --no-ai
 
 # Permanently in configuration
 # In ~/.config/sat-helix-ide/config.toml:

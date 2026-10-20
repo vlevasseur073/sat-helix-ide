@@ -39,6 +39,9 @@ Here's a complete sample configuration with all available options:
 
 ```toml
 [session]
+# Session backend: "zellij" (default), "kitty", or "auto"
+# backend = "zellij"
+
 # Whether to attach to existing sessions by default
 attach_existing = true
 
@@ -46,11 +49,13 @@ attach_existing = true
 ai_by_default = true
 
 # Show Zellij's input-mode status bar under the sat-hx-ide git/venv line.
-# The sat-hx-ide summary line is always on; this only toggles Zellij's plugin.
+# Zellij backend only. The sat-hx-ide summary line is always on.
 status_bar = true
 
-# Custom Zellij config path (optional)
+# Custom Zellij config path (optional, Zellij backend)
 # zellij_config = "/home/user/.config/zellij/config.kdl"
+# Custom kitty config merge source (kitty backend)
+# kitty_config = "/home/user/.config/kitty/kitty.conf"
 
 [terminal]
 # Whether to include a terminal pane in the layout
@@ -87,6 +92,11 @@ terminal_zoom = "Alt Shift t"
 [tools.zellij]
 # Path to Zellij executable
 command = "zellij"
+args = []
+
+[tools.kitty]
+# kitty backend only; kitten is resolved next to kitty or via "kitty +kitten"
+command = "kitty"
 args = []
 
 [tools.editor]
@@ -128,11 +138,33 @@ args = []
 # AI agent command (optional, skipped if not found)
 command = "cursor-agent"  # or any other AI agent
 args = []
+
+[launcher]
+# When `sat-hx-ide` is run without PATH: "auto" (Yazi, then fzf), "yazi", or "fzf"
+picker = "auto"
+start_dir = "~"
+# fzf_command = "fzf"
+# max_depth = 8
 ```
 
 ## Session Settings
 
-Settings related to Zellij session management.
+Settings related to workspace session management (Zellij or kitty).
+
+### `session.backend`
+
+- **Type**: String (`zellij`, `kitty`, `auto`)
+- **Default**: `zellij`
+- **Description**: Terminal multiplexer that hosts the IDE layout. Zellij is the historical default and works from any terminal emulator. Kitty spawns a dedicated window with socket-only remote control. `auto` selects kitty when `KITTY_WINDOW_ID` is set, otherwise Zellij.
+
+```toml
+[session]
+backend = "zellij"   # default
+# backend = "kitty"
+# backend = "auto"
+```
+
+Configure `[tools.kitty]` when using the kitty backend (`sat-hx-ide doctor` checks `kitty` and `kitten`).
 
 ### `session.attach_existing`
 
@@ -160,18 +192,29 @@ ai_by_default = false  # Don't create AI tab
 
 - **Type**: String (path)
 - **Default**: Auto-detected from Zellij's configuration locations
-- **Description**: Custom path to Zellij configuration file
+- **Description**: Read-only merge source for the **Zellij** backend (`config.kdl`)
 
 ```toml
 [session]
 zellij_config = "/path/to/custom/zellij/config.kdl"
 ```
 
+### `session.kitty_config`
+
+- **Type**: String (path)
+- **Default**: `~/.config/kitty/kitty.conf` (via XDG)
+- **Description**: Read-only merge source for the **kitty** backend. The runtime `kitty.conf` uses `include` to pull this file in, then appends sat-hx-ide `map` lines.
+
+```toml
+[session]
+kitty_config = "/path/to/custom/kitty.conf"
+```
+
 ### `session.status_bar`
 
 - **Type**: Boolean
 - **Default**: `false` in bundled defaults; sample config sets `true`
-- **Description**: When `true`, append Zellij’s `zellij:status-bar` plugin below the sat-hx-ide git/venv summary on every tab. The sat-hx-ide summary itself is **always** enabled and is not controlled by this flag.
+- **Description**: **Zellij backend only.** When `true`, append Zellij’s `zellij:status-bar` plugin below the sat-hx-ide git/venv summary on every tab. The sat-hx-ide summary itself is **always** enabled and is not controlled by this flag.
 
 ```toml
 [session]
@@ -179,13 +222,40 @@ status_bar = false   # sat-hx-ide line only
 status_bar = true    # sat-hx-ide line + Zellij input-mode bar
 ```
 
-You can override for one session at init time: `sat-hx-ide init . --status-bar` (see `sat-hx-ide init --help`).
+You can override for one session at start time: `sat-hx-ide . --status-bar` (see `sat-hx-ide --help`).
 
 **Auto-detection order:**
 1. `session.zellij_config` if specified
 2. `ZELLIJ_CONFIG_FILE` environment variable
 3. `$XDG_CONFIG_HOME/zellij/config.kdl`
 4. `~/.config/zellij/config.kdl`
+
+## Launcher Settings
+
+When you run `sat-hx-ide` with no `PATH` argument (including the Linux desktop
+entry), sat-hx-ide asks you to choose a project directory before creating the
+Zellij session.
+
+### `[launcher]` section
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `picker` | `"auto"` | `"auto"` (Yazi, then `fzf`), `"yazi"`, or `"fzf"` |
+| `start_dir` | `"~"` | Directory where the picker opens (tilde expanded) |
+| `fzf_command` | `"fzf"` | Executable used when `picker` is `"fzf"` or as the auto fallback |
+| `max_depth` | `8` | Maximum directory depth scanned by the `fzf` picker |
+
+Yazi runs in chooser mode (confirm a folder with Enter; normal open-to-Helix rules do not apply). Canceling the picker exits without starting a session.
+
+If neither Yazi nor `fzf` is available and `picker = "auto"`, startup fails with a message pointing to `sat-hx-ide doctor`.
+
+```toml
+[launcher]
+picker = "auto"
+start_dir = "~/src"
+# fzf_command = "fzf"
+# max_depth = 8
+```
 
 ## Terminal Settings
 
@@ -292,12 +362,22 @@ Each tool has its own configuration section with `command` and `args` fields.
 
 ### `tools.zellij`
 
-Configuration for the Zellij executable.
+Configuration for the **Zellij** session backend.
 
 ```toml
 [tools.zellij]
 command = "zellij"
 args = ["--log-level", "warn"]  # Optional arguments
+```
+
+### `tools.kitty`
+
+Configuration for the **kitty** session backend. Remote control needs `kitten` next to `kitty` or on `PATH`.
+
+```toml
+[tools.kitty]
+command = "kitty"
+args = []
 ```
 
 ### `tools.editor`
@@ -454,7 +534,7 @@ passthrough = ["Ctrl b", "Ctrl o"]
   and no longer leaves Tmux mode - it always goes to the focused pane
 - Empty entries and duplicates are ignored
 - A passthrough key may not collide with a `sat-hx-ide` action keybinding;
-  `init` fails with an error naming the key
+  session startup fails with an error naming the key
 - If your own Zellij config binds a passthrough key, the binding is released
   for the `sat-hx-ide` session only (your `config.kdl` is never modified);
   a warning is logged
@@ -503,27 +583,27 @@ Keybindings use Zellij's keybinding syntax:
 
 `sat-helix-ide` performs the following safety checks:
 
-1. **Parses your existing Zellij config** to detect all configured keybindings
-2. **Checks for conflicts** with all `sat-helix-ide` keybindings
+1. **Reads your multiplexer config** (Zellij `config.kdl` or kitty `map` lines) for existing bindings
+2. **Checks for conflicts** with all `sat-hx-ide` keybindings
 3. **Refuses to start** if any conflicts are found
 4. **Never silently replaces** your existing keybindings
 
-This ensures that your existing Zellij workflow is never accidentally broken.
+This ensures that your existing Zellij or kitty workflow is never accidentally broken.
 
 ### Example: Safe Keybinding Changes
 
 ```bash
 # This will fail if Ctrl-f is already used in your Zellij config
-sat-hx-ide init . --config ~/.config/sat-helix-ide/config.toml
+sat-hx-ide . --config ~/.config/sat-helix-ide/config.toml
 
-# Error: Keybinding conflict: 'Ctrl f' is already bound in your Zellij config
+# Error: Keybinding conflict (Zellij or kitty, depending on backend)
 ```
 
 To resolve conflicts:
 
-1. Change the `sat-helix-ide` keybinding
-2. Or remove the conflicting binding from your Zellij config
-3. Or choose a different Zellij config via `session.zellij_config`
+1. Change the `sat-hx-ide` keybinding
+2. Or remove the conflicting binding from your Zellij or kitty config
+3. Or point `session.zellij_config` / `session.kitty_config` at another merge source
 
 ## Complete Configuration Example
 
@@ -605,7 +685,7 @@ While most configuration is done via the TOML file, a few aspects can be influen
 ```bash
 # Override runtime directory
 export XDG_RUNTIME_DIR=/tmp/my-runtime
-sat-hx-ide init .
+sat-hx-ide .
 ```
 
 ### `ZELLIJ_CONFIG_FILE`
@@ -616,7 +696,7 @@ sat-hx-ide init .
 ```bash
 # Use a specific Zellij config
 export ZELLIJ_CONFIG_FILE=/path/to/zellij/config.kdl
-sat-hx-ide init .
+sat-hx-ide .
 ```
 
 ### `RUST_LOG`
@@ -626,10 +706,10 @@ sat-hx-ide init .
 
 ```bash
 # Enable debug logging
-RUST_LOG=debug sat-hx-ide init .
+RUST_LOG=debug sat-hx-ide .
 
 # Enable trace logging for maximum detail
-RUST_LOG=trace sat-hx-ide init .
+RUST_LOG=trace sat-hx-ide .
 ```
 
 ## Configuration Validation

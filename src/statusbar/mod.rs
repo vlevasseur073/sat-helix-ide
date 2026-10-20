@@ -1,7 +1,8 @@
 //! Session status line: Zellij session name, git branch/state, and active venv.
 
+use crate::backend::SessionBackend;
 use crate::config::{expand_tilde, Config};
-use crate::resolve::{resolve_executable, resolve_git_cli};
+use crate::resolve::resolve_git_cli;
 use crate::venv::load_venv_selection;
 use anyhow::{Context, Result};
 use crossterm::terminal::enable_raw_mode;
@@ -226,18 +227,16 @@ fn advance_focus_in_match(matched: usize, byte: u8) -> (usize, bool) {
 /// (`MoveFocusOrTab`, bound to Alt+arrows in many configurations) focuses
 /// whichever pane sits on the reached screen edge, and this status bar
 /// spans that edge. The bar therefore listens for terminal focus events
-/// and hands focus back to the previous pane as soon as Zellij focuses it.
-/// Reading stdin in raw mode also keeps stray keystrokes from echoing in
+/// and hands focus back to the previous pane as soon as the backend focuses
+/// it. Reading stdin in raw mode also keeps stray keystrokes from echoing in
 /// the pane, so it never looks editable.
-fn spawn_focus_guard(zellij: &Path, session_name: &str) {
+fn spawn_focus_guard(backend: Box<dyn SessionBackend>) {
     if enable_raw_mode().is_err() {
         return;
     }
     print!("\x1b[?1004h");
     let _ = std::io::stdout().flush();
 
-    let zellij = zellij.to_path_buf();
-    let session_name = session_name.to_string();
     thread::spawn(move || {
         let stdin = std::io::stdin();
         let mut stdin = stdin.lock();
@@ -252,15 +251,7 @@ fn spawn_focus_guard(zellij: &Path, session_name: &str) {
                 let (next, focus_in) = advance_focus_in_match(matched, byte);
                 matched = next;
                 if focus_in {
-                    let _ = Command::new(&zellij)
-                        .args([
-                            "--session",
-                            session_name.as_str(),
-                            "action",
-                            "focus-previous-pane",
-                        ])
-                        .stdin(std::process::Stdio::null())
-                        .status();
+                    let _ = backend.focus_previous_pane();
                 }
             }
         }
@@ -269,8 +260,8 @@ fn spawn_focus_guard(zellij: &Path, session_name: &str) {
 
 /// Refresh the status line in the current terminal (used by the layout pane).
 pub fn run_status_bar_loop(config: &Config, project_dir: &Path, session_name: &str) -> Result<()> {
-    if let Ok(zellij) = resolve_executable(&config.tools.zellij.command) {
-        spawn_focus_guard(&zellij, session_name);
+    if let Ok(backend) = crate::backend::from_config(config) {
+        spawn_focus_guard(backend);
     }
     loop {
         let snapshot = collect_status(config, project_dir, session_name)?;

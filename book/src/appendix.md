@@ -8,10 +8,13 @@ This appendix contains reference information, environment variables, related pro
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `init` | Initialize a new Zellij session | `sat-hx-ide init [PATH] [--session NAME] [--no-ai] [--no-attach]` |
+| *(default)* | Start or attach to a workspace | `sat-hx-ide [PATH] [OPTIONS]` |
+| `init` / `start` | Same as default (optional alias) | `sat-hx-ide init [PATH] [OPTIONS]` |
 | `doctor` | Check system requirements and configuration | `sat-hx-ide doctor` |
+| `setup` | Install companion tools interactively | `sat-hx-ide setup [--dry-run]` |
 | `config` | Display current configuration | `sat-hx-ide config [--config PATH]` |
 | `version` | Display version information | `sat-hx-ide version` |
+| `install-desktop` | Install Freedesktop launcher + icon (Linux) | `sat-hx-ide install-desktop` |
 
 ### Helper Commands (Internal)
 
@@ -29,30 +32,38 @@ These commands are invoked internally by Zellij keybindings and are not typicall
 
 ### Command-Line Options
 
-#### `init` Command Options
+#### Workspace options
+
+These flags apply to `sat-hx-ide [PATH]`, `sat-hx-ide init [PATH]`, and `sat-hx-ide start [PATH]`.
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `[PATH]` | Project directory | Current directory |
+| `[PATH]` | Project directory | *(none — opens interactive picker)* |
 | `--session NAME` | Session name override | Directory name |
+| `--ai` | Force the AI tab on | Follow `session.ai_by_default` |
 | `--no-ai` | Skip AI tab | `false` |
-| `--no-attach` | Don't attach to existing session | `false` |
+| `--status-bar` | Enable/disable Zellij's input-mode bar | From config |
 | `--config PATH` | Custom configuration file | `~/.config/sat-helix-ide/config.toml` |
+
+Attach-vs-create behavior is controlled by `session.attach_existing` in config (there is no `--no-attach` flag).
 
 **Examples:**
 
 ```bash
-# Initialize in current directory
-sat-hx-ide init .
+# Pick a project with Yazi or fzf
+sat-hx-ide
 
-# Initialize in specific directory with custom session name
-sat-hx-ide init ~/projects/myapp --session myapp-dev
+# Start in the current directory
+sat-hx-ide .
 
-# Initialize without AI tab
-sat-hx-ide init . --no-ai
+# Known path with a custom session name
+sat-hx-ide ~/projects/myapp --session myapp-dev
 
-# Initialize with custom config
-sat-hx-ide init . --config /path/to/config.toml
+# Skip the AI tab for this session
+sat-hx-ide . --no-ai
+
+# Custom config file
+sat-hx-ide . --config /path/to/config.toml
 ```
 
 #### `config` Command Options
@@ -87,6 +98,12 @@ sat-hx-ide config --config /path/to/config.toml
 | `ZELLIJ_CONFIG_FILE` | Path to Zellij configuration | Overrides `session.zellij_config` |
 | `ZELLIJ_LOG` | Zellij logging level | Controls Zellij's own logging |
 
+### Kitty Variables
+
+| Variable | Description | Effect |
+|----------|-------------|--------|
+| `KITTY_WINDOW_ID` | Set inside a kitty window | `session.backend = "auto"` selects the kitty backend |
+
 ### Tool Variables
 
 | Variable | Tool | Description |
@@ -103,8 +120,10 @@ sat-hx-ide config --config /path/to/config.toml
 |---------|----------|-------------|
 | User Config | `~/.config/sat-helix-ide/config.toml` | Main configuration file |
 | Sample Config | `<repo>/configs/config.toml` | Sample configuration for reference |
-| Runtime Config | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/config.kdl` | Merged Zellij config |
-| Runtime Layout | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/layout.kdl` | Session layout |
+| Runtime (Zellij) | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/config.kdl` | Merged Zellij config |
+| Runtime (Zellij) | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/layout.kdl` | Zellij session layout |
+| Runtime (kitty) | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/kitty.conf` | Merged kitty config |
+| Runtime (kitty) | `$XDG_RUNTIME_DIR/sat-helix-ide/<session>/session.conf` | kitty session tabs/windows |
 
 ### Default Configuration
 
@@ -224,12 +243,26 @@ args = []
 | `terminal` | String | `"Alt t"` | Terminal toggle key |
 | `terminal_zoom` | String | `"Alt Shift t"` | Terminal zoom key |
 
+#### `[session]` (backend)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `backend` | String | `"zellij"` | `zellij`, `kitty`, or `auto` |
+| `kitty_config` | String | auto (XDG) | kitty merge source (kitty backend) |
+
 #### `[tools.zellij]`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `command` | String | `"zellij"` | Zellij executable |
 | `args` | Array | `[]` | Zellij arguments |
+
+#### `[tools.kitty]`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `command` | String | `"kitty"` | kitty executable |
+| `args` | Array | `[]` | kitty arguments |
 
 #### `[tools.editor]`
 
@@ -283,8 +316,9 @@ args = []
 
 | Project | Description | Website |
 |---------|-------------|---------|
-| **Zellij** | Terminal workspace multiplexer (used by sat-hx-ide) | [zellij.dev](https://zellij.dev) |
-| tmux | Terminal multiplexer | [tmux.github.io](https://tmux.github.io) |
+| **Zellij** | Default sat-hx-ide session backend | [zellij.dev](https://zellij.dev) |
+| **Kitty** | Optional session backend (remote control) | [sw.kovidgoyal.net/kitty](https://sw.kovidgoyal.net/kitty/) |
+| tmux | Terminal multiplexer (not a backend yet) | [tmux.github.io](https://tmux.github.io) |
 | screen | Terminal multiplexer | [GNU Screen](https://www.gnu.org/software/screen/) |
 
 ### Editors
@@ -402,8 +436,8 @@ args = []
 
 ```bash
 # Add to your .bashrc or .zshrc
-alias ide="sat-hx-ide init ."
-alias ide-no-ai="sat-hx-ide init . --no-ai"
+alias ide="sat-hx-ide ."
+alias ide-no-ai="sat-hx-ide . --no-ai"
 
 # Usage
 ide        # Start session in current directory
@@ -419,7 +453,7 @@ if [ -d ".sat-hx-ide" ]; then
 fi
 
 # Then use
-sat-hx-ide init . --config $SAT_HX_IDE_CONFIG
+sat-hx-ide . --config $SAT_HX_IDE_CONFIG
 ```
 
 ### Integrating with Makefile
@@ -427,11 +461,11 @@ sat-hx-ide init . --config $SAT_HX_IDE_CONFIG
 ```makefile
 .PHONY: ide
 ide:
-	sat-hx-ide init .
+	sat-hx-ide .
 
 .PHONY: ide-debug
 ide-debug:
-	RUST_LOG=debug sat-hx-ide init .
+	RUST_LOG=debug sat-hx-ide .
 ```
 
 ### Integrating with Justfile
@@ -439,11 +473,11 @@ ide-debug:
 ```just
 # Start IDE
 ide:
-    sat-hx-ide init .
+    sat-hx-ide .
 
 # Start IDE with debugging
 ide-debug:
-    RUST_LOG=debug sat-hx-ide init .
+    RUST_LOG=debug sat-hx-ide .
 
 # Run doctor
 check:

@@ -8,6 +8,7 @@
 #   VERSION      Release version without leading v (default: latest)
 #   INSTALL_DIR  Install directory (default: ~/.local/bin)
 #   REPO         GitHub repo (default: vlevasseur073/sat-helix-ide)
+#   INSTALL_DESKTOP  Set to 0 to skip the application menu entry (default: 1 on Linux)
 set -euo pipefail
 
 REPO="${REPO:-vlevasseur073/sat-helix-ide}"
@@ -110,6 +111,11 @@ main() {
     echo "note: ${INSTALL_DIR} is not on PATH; add it or move the binary"
   else
     "${INSTALL_DIR}/${BIN}" version || true
+  fi
+
+  if [ "${INSTALL_DESKTOP:-1}" != "0" ] && [ "$(uname -s)" = "Linux" ]; then
+    echo "Installing desktop launcher..."
+    "${INSTALL_DIR}/${BIN}" install-desktop
   fi
 }
 

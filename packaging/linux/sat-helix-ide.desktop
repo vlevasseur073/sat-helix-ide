@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=sat-hx-ide
+GenericName=Helix IDE Workspace
+Comment=Open a Helix-centered workspace for a project
+Exec=sat-hx-ide
+Icon=sat-helix-ide
+Terminal=true
+Categories=Development;IDE;
+Keywords=helix;zellij;ide;editor;
+StartupNotify=true

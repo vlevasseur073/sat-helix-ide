@@ -3,8 +3,11 @@
 //! A focused Zellij session composer for Helix and terminal tools.
 
 pub mod actions;
+pub mod backend;
 pub mod config;
+pub mod desktop;
 pub mod error;
+pub mod kitty;
 pub mod resolve;
 pub mod setup;
 pub mod statusbar;
